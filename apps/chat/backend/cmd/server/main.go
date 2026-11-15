@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -29,6 +28,7 @@ import (
 	"alfheim/chat/internal/shared/storage"
 	"alfheim/go-shared/auth"
 	"alfheim/go-shared/db"
+	"alfheim/go-shared/health"
 	"alfheim/go-shared/httpmw"
 	"alfheim/go-shared/logger"
 )
@@ -181,7 +181,8 @@ func run(parentCtx context.Context) error {
 	conversationsService := conversations.NewService(conversationsRepo, modelBlocksService, mcpServersService, mcpClientPool, urlSigner, log)
 	conversationsHandler := conversations.NewHandler(conversationsService)
 
-	r := buildRouter(log, dbClient, authMw, modelBlocksHandler, conversationsHandler, mcpServersHandler, attachmentsHandler, cfg.CORS.AllowedOrigins)
+	ready := readinessCheck(dbClient, cfg.Database.MigrationsDir, log)
+	r := buildRouter(log, dbClient, ready, authMw, modelBlocksHandler, conversationsHandler, mcpServersHandler, attachmentsHandler, cfg.CORS.AllowedOrigins)
 
 	// HTTP Server & Graceful Shutdown.
 	srv := &http.Server{
@@ -239,6 +240,7 @@ func run(parentCtx context.Context) error {
 func buildRouter(
 	log *slog.Logger,
 	dbClient *db.Client,
+	ready health.Check,
 	authMw func(http.Handler) http.Handler,
 	modelBlocksHandler *modelblocks.Handler,
 	conversationsHandler *conversations.Handler,
@@ -263,7 +265,8 @@ func buildRouter(
 		"/api/v1/chat/attachments": attachments.MaxUploadBodyBytes,
 	}))
 
-	r.Get("/api/v1/chat/health", healthHandler(dbClient))
+	// Liveness (/healthz) and database-aware readiness (/readyz) probes.
+	health.Register(r, "chat-backend", ready, log)
 
 	if modelBlocksHandler != nil {
 		modelBlocksHandler.RegisterRoutes(r, authMw)
@@ -289,26 +292,15 @@ func setupAuthenticator(ctx context.Context, cfg *config.Config, log *slog.Logge
 	})
 }
 
-// healthHandler reports service and database connectivity status for compose healthchecks.
-func healthHandler(dbClient *db.Client) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		if dbClient == nil || dbClient.Pool == nil || dbClient.Pool.Ping(r.Context()) != nil {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_ = json.NewEncoder(w).Encode(map[string]string{
-				"status":   "degraded",
-				"service":  "chat-backend",
-				"database": "disconnected",
-			})
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]string{
-			"status":   "ok",
-			"service":  "chat-backend",
-			"database": "connected",
-		})
+// readinessCheck builds the /readyz check: the database must answer and its
+// schema must be at the newest migration shipped in migrationsDir. An
+// unreadable migrations directory keeps the backend unready instead of
+// crash-looping it, and is logged once here.
+func readinessCheck(dbClient *db.Client, migrationsDir string, log *slog.Logger) health.Check {
+	check, err := dbClient.ReadinessCheck(migrationsDir)
+	if err != nil {
+		log.Error("readiness check disabled: cannot read the migrations", slog.String("error", err.Error()))
+		return func(context.Context) error { return err }
 	}
+	return check
 }

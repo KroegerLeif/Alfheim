@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
@@ -50,33 +51,6 @@ func TestSetupAuthenticator_FailClosed(t *testing.T) {
 	}
 }
 
-func TestHealthHandler(t *testing.T) {
-	t.Run("nil dbClient returns 503", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/health", nil)
-		rec := httptest.NewRecorder()
-		handler := healthHandler(nil)
-		handler.ServeHTTP(rec, req)
-
-		if rec.Code != http.StatusServiceUnavailable {
-			t.Errorf("expected status 503, got %d", rec.Code)
-		}
-		if !strings.Contains(rec.Body.String(), `"status":"degraded"`) {
-			t.Errorf("expected degraded status, got %s", rec.Body.String())
-		}
-	})
-
-	t.Run("nil pool returns 503", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/health", nil)
-		rec := httptest.NewRecorder()
-		handler := healthHandler(&db.Client{Pool: nil})
-		handler.ServeHTTP(rec, req)
-
-		if rec.Code != http.StatusServiceUnavailable {
-			t.Errorf("expected status 503, got %d", rec.Code)
-		}
-	})
-}
-
 func passthroughAuth(next http.Handler) http.Handler { return next }
 
 func TestBuildRouter_PanicsWithoutAuth(t *testing.T) {
@@ -86,21 +60,20 @@ func TestBuildRouter_PanicsWithoutAuth(t *testing.T) {
 			t.Fatal("expected buildRouter to panic when auth middleware is nil")
 		}
 	}()
-	buildRouter(log, &db.Client{Pool: nil}, nil, nil, nil, nil, nil, nil)
+	buildRouter(log, &db.Client{Pool: nil}, nil, nil, nil, nil, nil, nil, nil)
 }
 
 func TestBuildRouter(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dbClient := &db.Client{Pool: nil}
 
-	router := buildRouter(log, dbClient, passthroughAuth, nil, nil, nil, nil, nil)
+	router := buildRouter(log, dbClient, nil, passthroughAuth, nil, nil, nil, nil, nil)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/health", nil)
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusServiceUnavailable {
-		t.Errorf("expected status 503, got %d", rec.Code)
+	if got := probeStatus(t, router, "/readyz"); got != http.StatusServiceUnavailable {
+		t.Errorf("/readyz without a readiness check = %d, want 503", got)
+	}
+	if got := probeStatus(t, router, "/api/v1/chat/health"); got == http.StatusOK {
+		t.Errorf("the retired /api/v1/chat/health probe still answers %d", got)
 	}
 }
 
@@ -372,5 +345,50 @@ func TestMain_Function(t *testing.T) {
 
 	if exitCode != 1 {
 		t.Errorf("expected exit code 1, got %d", exitCode)
+	}
+}
+
+// probeStatus returns the status router answers path with.
+func probeStatus(t *testing.T, router http.Handler, path string) int {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+	return rec.Code
+}
+
+func TestBuildRouter_Probes(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	up := func(context.Context) error { return nil }
+	down := func(context.Context) error { return errors.New("connection refused") }
+
+	healthy := buildRouter(log, &db.Client{}, up, passthroughAuth, nil, nil, nil, nil, nil)
+	if got := probeStatus(t, healthy, "/healthz"); got != http.StatusOK {
+		t.Errorf("/healthz = %d, want 200", got)
+	}
+	if got := probeStatus(t, healthy, "/readyz"); got != http.StatusOK {
+		t.Errorf("/readyz with a reachable database = %d, want 200", got)
+	}
+
+	degraded := buildRouter(log, &db.Client{}, down, passthroughAuth, nil, nil, nil, nil, nil)
+	if got := probeStatus(t, degraded, "/healthz"); got != http.StatusOK {
+		t.Errorf("/healthz with the database down = %d, want 200 (liveness ignores it)", got)
+	}
+	if got := probeStatus(t, degraded, "/readyz"); got != http.StatusServiceUnavailable {
+		t.Errorf("/readyz with the database down = %d, want 503", got)
+	}
+}
+
+func TestReadinessCheck_UnreadableMigrationsStaysUnready(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	check := readinessCheck(&db.Client{}, filepath.Join(t.TempDir(), "missing"), log)
+	if err := check(context.Background()); err == nil {
+		t.Error("a missing migrations directory must keep the backend unready")
+	}
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "000001_init.up.sql"), []byte("SELECT 1;"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := readinessCheck(&db.Client{}, dir, log)(context.Background()); err == nil {
+		t.Error("a client without a pool must not be ready")
 	}
 }

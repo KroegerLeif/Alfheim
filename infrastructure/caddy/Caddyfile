@@ -240,87 +240,87 @@ http://{$ALFHEIM_HOST:alfheim.loegien.de}, https://{$ALFHEIM_HOST:alfheim.loegie
 	# API Gateway Proxies on Frontend Domain (allows relative /api/v1/... calls without CORS)
 	handle_path /api/v1/maintenance* {
 		rewrite * /api/v1{path}
-		import app_backend maintenance-backend:8000 /api/v1/health
+		import app_backend maintenance-backend:8000 /readyz
 	}
 	handle_path /maintenance/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend maintenance-backend:8000 /api/v1/health
+		import app_backend maintenance-backend:8000 /readyz
 	}
 
 	handle_path /api/v1/pantry* {
 		rewrite * /api/v1{path}
-		import app_backend pantry-backend:8000 /api/v1/health
+		import app_backend pantry-backend:8000 /readyz
 	}
 	handle_path /pantry/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend pantry-backend:8000 /api/v1/health
+		import app_backend pantry-backend:8000 /readyz
 	}
 
 	# Pass-through: the shopping backend already serves /api/v1/shopping-lists,
 	# /api/v1/shopping/items and /api/v1/shopping-history, so stripping the prefix
 	# would turn them into /api/v1-lists and /api/v1/items (404).
 	handle /api/v1/shopping* {
-		import app_backend shopping-backend:8000 /health
+		import app_backend shopping-backend:8000 /readyz
 	}
 	handle_path /shopping/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend shopping-backend:8000 /health
+		import app_backend shopping-backend:8000 /readyz
 	}
 
 	handle_path /api/v1/workout* {
 		rewrite * /api/v1{path}
-		import app_backend workout-backend:8000 /api/v1/health
+		import app_backend workout-backend:8000 /readyz
 	}
 	handle_path /workout/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend workout-backend:8000 /api/v1/health
+		import app_backend workout-backend:8000 /readyz
 	}
 
 	handle_path /api/v1/budget* {
 		rewrite * /api/v1{path}
-		import app_backend budget-backend:8000 /healthz
+		import app_backend budget-backend:8000 /readyz
 	}
 	handle_path /budget/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend budget-backend:8000 /healthz
+		import app_backend budget-backend:8000 /readyz
 	}
 
 	handle /api/v1/chores* {
-		import app_backend chores-backend:8000 /api/v1/health
+		import app_backend chores-backend:8000 /readyz
 	}
 	handle_path /chores/api/v1* {
 		rewrite * /api/v1/chores{path}
-		import app_backend chores-backend:8000 /api/v1/health
+		import app_backend chores-backend:8000 /readyz
 	}
 
 	handle /api/v1/chat* {
-		import app_backend chat-backend:8080 /api/v1/chat/health
+		import app_backend chat-backend:8080 /readyz
 	}
 	handle_path /chat/api/v1* {
 		rewrite * /api/v1/chat{path}
-		import app_backend chat-backend:8080 /api/v1/chat/health
+		import app_backend chat-backend:8080 /readyz
 	}
 
 	handle /api/v1/library* {
-		import app_backend library-backend:8000 /health
+		import app_backend library-backend:8000 /readyz
 	}
 	handle_path /library/api/v1* {
 		rewrite * /api/v1/library{path}
-		import app_backend library-backend:8000 /health
+		import app_backend library-backend:8000 /readyz
 	}
 
 	# Household app (core/household): households, memberships and the user
 	# profile, path preserved. Caddy sorts handle blocks by path length, so
 	# these win over the dashboard /api/v1/* catch-all below.
 	handle /api/v1/households* {
-		import app_backend household-backend:8080 /healthz
+		import app_backend household-backend:8080 /readyz
 	}
 	handle /api/v1/profile* {
-		import app_backend household-backend:8080 /healthz
+		import app_backend household-backend:8080 /readyz
 	}
 
 	handle /api/v1/* {
-		import app_backend dashboard-backend:8080 /healthz
+		import app_backend dashboard-backend:8080 /readyz
 	}
 
 	# Service-to-service endpoints (ALFHEIM_INTERNAL_TOKEN) are never exposed
@@ -393,57 +393,57 @@ http://api.{$ALFHEIM_HOST:alfheim.loegien.de}, https://api.{$ALFHEIM_HOST:alfhei
 	# Maintenance API
 	handle_path /api/v1/maintenance* {
 		rewrite * /api/v1{path}
-		import app_backend maintenance-backend:8000 /api/v1/health
+		import app_backend maintenance-backend:8000 /readyz
 	}
 	handle_path /maintenance/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend maintenance-backend:8000 /api/v1/health
+		import app_backend maintenance-backend:8000 /readyz
 	}
 	handle_path /maintenance* {
 		rewrite * /api/v1{path}
-		import app_backend maintenance-backend:8000 /api/v1/health
+		import app_backend maintenance-backend:8000 /readyz
 	}
 
 	# Budget API
 	handle_path /api/v1/budget* {
 		rewrite * /api/v1{path}
-		import app_backend budget-backend:8000 /healthz
+		import app_backend budget-backend:8000 /readyz
 	}
 	handle_path /budget/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend budget-backend:8000 /healthz
+		import app_backend budget-backend:8000 /readyz
 	}
 	handle_path /budget* {
 		rewrite * /api/v1{path}
-		import app_backend budget-backend:8000 /healthz
+		import app_backend budget-backend:8000 /readyz
 	}
 
 	# Workout API
 	handle_path /api/v1/workout* {
 		rewrite * /api/v1{path}
-		import app_backend workout-backend:8000 /api/v1/health
+		import app_backend workout-backend:8000 /readyz
 	}
 	handle_path /workout/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend workout-backend:8000 /api/v1/health
+		import app_backend workout-backend:8000 /readyz
 	}
 	handle_path /workout* {
 		rewrite * /api/v1{path}
-		import app_backend workout-backend:8000 /api/v1/health
+		import app_backend workout-backend:8000 /readyz
 	}
 
 	# Pantry API
 	handle_path /api/v1/pantry* {
 		rewrite * /api/v1{path}
-		import app_backend pantry-backend:8000 /api/v1/health
+		import app_backend pantry-backend:8000 /readyz
 	}
 	handle_path /pantry/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend pantry-backend:8000 /api/v1/health
+		import app_backend pantry-backend:8000 /readyz
 	}
 	handle_path /pantry* {
 		rewrite * /api/v1{path}
-		import app_backend pantry-backend:8000 /api/v1/health
+		import app_backend pantry-backend:8000 /readyz
 	}
 
 	# Shopping API
@@ -451,68 +451,68 @@ http://api.{$ALFHEIM_HOST:alfheim.loegien.de}, https://api.{$ALFHEIM_HOST:alfhei
 	# /api/v1/shopping/items and /api/v1/shopping-history, so stripping the prefix
 	# would turn them into /api/v1-lists and /api/v1/items (404).
 	handle /api/v1/shopping* {
-		import app_backend shopping-backend:8000 /health
+		import app_backend shopping-backend:8000 /readyz
 	}
 	handle_path /shopping/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend shopping-backend:8000 /health
+		import app_backend shopping-backend:8000 /readyz
 	}
 	handle_path /shopping* {
 		rewrite * /api/v1{path}
-		import app_backend shopping-backend:8000 /health
+		import app_backend shopping-backend:8000 /readyz
 	}
 
 	# Chores API
 	handle /api/v1/chores* {
-		import app_backend chores-backend:8000 /api/v1/health
+		import app_backend chores-backend:8000 /readyz
 	}
 	handle_path /chores/api/v1* {
 		rewrite * /api/v1/chores{path}
-		import app_backend chores-backend:8000 /api/v1/health
+		import app_backend chores-backend:8000 /readyz
 	}
 	handle_path /chores* {
 		rewrite * /api/v1/chores{path}
-		import app_backend chores-backend:8000 /api/v1/health
+		import app_backend chores-backend:8000 /readyz
 	}
 
 	# Library API
 	handle /api/v1/library* {
-		import app_backend library-backend:8000 /health
+		import app_backend library-backend:8000 /readyz
 	}
 	handle_path /library/api/v1* {
 		rewrite * /api/v1/library{path}
-		import app_backend library-backend:8000 /health
+		import app_backend library-backend:8000 /readyz
 	}
 	handle_path /library* {
 		rewrite * /api/v1/library{path}
-		import app_backend library-backend:8000 /health
+		import app_backend library-backend:8000 /readyz
 	}
 
 	# Chat API
 	handle /api/v1/chat* {
-		import app_backend chat-backend:8080 /api/v1/chat/health
+		import app_backend chat-backend:8080 /readyz
 	}
 	handle_path /chat/api/v1* {
 		rewrite * /api/v1/chat{path}
-		import app_backend chat-backend:8080 /api/v1/chat/health
+		import app_backend chat-backend:8080 /readyz
 	}
 	handle_path /chat* {
 		rewrite * /api/v1/chat{path}
-		import app_backend chat-backend:8080 /api/v1/chat/health
+		import app_backend chat-backend:8080 /readyz
 	}
 
 	# Household API (core/household), path preserved. Same routes as on the
 	# frontend host; longer paths than the dashboard catch-all, so they win.
 	handle /api/v1/households* {
-		import app_backend household-backend:8080 /healthz
+		import app_backend household-backend:8080 /readyz
 	}
 	handle /api/v1/profile* {
-		import app_backend household-backend:8080 /healthz
+		import app_backend household-backend:8080 /readyz
 	}
 
 	# Dashboard Backend (Go backend: /api/v1/apps, /telemetry, ...)
 	handle /api/v1/* {
-		import app_backend dashboard-backend:8080 /healthz
+		import app_backend dashboard-backend:8080 /readyz
 	}
 
 	# Service-to-service endpoints are never exposed through the gateway.

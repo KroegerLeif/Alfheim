@@ -4,6 +4,8 @@ import logging
 from contextlib import asynccontextmanager
 
 from backend_shared import setup_telemetry, shutdown_telemetry
+from backend_shared.cors import resolve_cors_origins
+from backend_shared.health import health_router
 from backend_shared.household import close_membership_client, configure_household_auth
 from backend_shared.mcp_middleware import mount_mcp
 from backend_shared.storage import S3StorageService
@@ -11,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.core.audit import AuditRepository  # noqa: F401 - imported to trigger register_audit_hooks at module load
 from src.core.config import settings
-from src.core.database import engine, init_db
+from src.core.database import BACKEND_DIR, engine, init_db
 from src.features.accounts import router as accounts_router
 from src.features.plans import router as plans_router
 from src.features.pots import router as pots_router
@@ -86,17 +88,15 @@ mcp_app = mount_mcp(app, mcp, settings=settings)
 # Configure CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=resolve_cors_origins(settings),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-@app.get("/healthz")
-async def healthz():
-    """Health check endpoint required by TASK-101."""
-    return {"status": "ok", "service": settings.PROJECT_NAME}
+# Liveness (/healthz) and database-aware readiness (/readyz) probes (#788).
+app.include_router(health_router(engine, service="budget-backend", backend_dir=BACKEND_DIR))
 
 
 @app.get("/metrics")

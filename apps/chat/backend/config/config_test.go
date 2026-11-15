@@ -203,3 +203,37 @@ func TestLoad_MCPServersSpecSet(t *testing.T) {
 		t.Error("a missing CHAT_MCP_SERVERS must not count as set")
 	}
 }
+
+// TestLoad_CORSOrigins covers #921: production never falls back to the dev
+// hosts, operator origins are used as configured and a malformed list fails
+// startup.
+func TestLoad_CORSOrigins(t *testing.T) {
+	t.Setenv("ALFHEIM_INTERNAL_TOKEN", "secret")
+	t.Setenv("CHAT_ATTACHMENT_URL_SECRET", "0123456789abcdef0123456789abcdef")
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("CORS_ALLOWED_ORIGINS", "") // registers the restore
+	if err := os.Unsetenv("CORS_ALLOWED_ORIGINS"); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if len(cfg.CORS.AllowedOrigins) != 0 {
+		t.Errorf("production without CORS_ALLOWED_ORIGINS allows %v, want none", cfg.CORS.AllowedOrigins)
+	}
+
+	t.Setenv("CORS_ALLOWED_ORIGINS", "https://alfheim.example.com")
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if len(cfg.CORS.AllowedOrigins) != 1 || cfg.CORS.AllowedOrigins[0] != "https://alfheim.example.com" {
+		t.Errorf("AllowedOrigins = %v", cfg.CORS.AllowedOrigins)
+	}
+
+	t.Setenv("CORS_ALLOWED_ORIGINS", "*")
+	if _, err := Load(); err == nil {
+		t.Error("a wildcard origin must fail Load()")
+	}
+}

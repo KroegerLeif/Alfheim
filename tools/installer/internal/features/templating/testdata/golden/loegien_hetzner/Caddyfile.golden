@@ -252,75 +252,75 @@ https://alfheim.loegien.de {
 	# /api/v1/households and /api/v1/profile itself. No app slug is a prefix
 	# of "households" or "profile", so no /api/v1/<slug>* rule can take them.
 	handle /api/v1/households* {
-		import app_backend household-backend:8080 /healthz
+		import app_backend household-backend:8080 /readyz
 	}
 	handle /api/v1/profile* {
-		import app_backend household-backend:8080 /healthz
+		import app_backend household-backend:8080 /readyz
 	}
 	handle_path /api/v1/pantry* {
 		rewrite * /api/v1{path}
-		import app_backend pantry-backend:8000 /api/v1/health
+		import app_backend pantry-backend:8000 /readyz
 	}
 	handle_path /pantry/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend pantry-backend:8000 /api/v1/health
+		import app_backend pantry-backend:8000 /readyz
 	}
 	handle /api/v1/shopping* {
-		import app_backend shopping-backend:8000 /health
+		import app_backend shopping-backend:8000 /readyz
 	}
 	handle_path /shopping/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend shopping-backend:8000 /health
+		import app_backend shopping-backend:8000 /readyz
 	}
 	handle_path /api/v1/maintenance* {
 		rewrite * /api/v1{path}
-		import app_backend maintenance-backend:8000 /api/v1/health
+		import app_backend maintenance-backend:8000 /readyz
 	}
 	handle_path /maintenance/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend maintenance-backend:8000 /api/v1/health
+		import app_backend maintenance-backend:8000 /readyz
 	}
 	handle /api/v1/chores* {
-		import app_backend chores-backend:8000 /api/v1/health
+		import app_backend chores-backend:8000 /readyz
 	}
 	handle_path /chores/api/v1* {
 		rewrite * /api/v1/chores{path}
-		import app_backend chores-backend:8000 /api/v1/health
+		import app_backend chores-backend:8000 /readyz
 	}
 	handle_path /api/v1/budget* {
 		rewrite * /api/v1{path}
-		import app_backend budget-backend:8000 /healthz
+		import app_backend budget-backend:8000 /readyz
 	}
 	handle_path /budget/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend budget-backend:8000 /healthz
+		import app_backend budget-backend:8000 /readyz
 	}
 	handle_path /api/v1/workout* {
 		rewrite * /api/v1{path}
-		import app_backend workout-backend:8000 /api/v1/health
+		import app_backend workout-backend:8000 /readyz
 	}
 	handle_path /workout/api/v1* {
 		rewrite * /api/v1{path}
-		import app_backend workout-backend:8000 /api/v1/health
+		import app_backend workout-backend:8000 /readyz
 	}
 	handle /api/v1/library* {
-		import app_backend library-backend:8000 /health
+		import app_backend library-backend:8000 /readyz
 	}
 	handle_path /library/api/v1* {
 		rewrite * /api/v1/library{path}
-		import app_backend library-backend:8000 /health
+		import app_backend library-backend:8000 /readyz
 	}
 	handle /api/v1/chat* {
-		import app_backend chat-backend:8080 /api/v1/chat/health
+		import app_backend chat-backend:8080 /readyz
 	}
 	handle_path /chat/api/v1* {
 		rewrite * /api/v1/chat{path}
-		import app_backend chat-backend:8080 /api/v1/chat/health
+		import app_backend chat-backend:8080 /readyz
 	}
 
 	# Central dashboard control plane (path preserved).
 	handle /api/v1/* {
-		import app_backend dashboard-backend:8080 /healthz
+		import app_backend dashboard-backend:8080 /readyz
 	}
 
 	# RustFS object storage (S3_PUBLIC_URL). Browsers PUT and GET presigned

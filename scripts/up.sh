@@ -559,7 +559,7 @@ else
 
   info "Starting OTel Collector, Vector log shipper, and Grafana …"
   dc up ${BUILD_FLAG} -d otel-collector vector grafana
-  wait_running "otel-collector"  "OTel Collector" 60
+  wait_healthy "otel-collector"   "OTel Collector" 60
   wait_healthy "vector-shipper"   "Vector"         60
   wait_healthy "alfheim_grafana"  "Grafana"        120
 

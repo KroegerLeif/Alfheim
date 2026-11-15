@@ -324,10 +324,10 @@ http://{{ $on.AuthHost }} {
 	# /api/v1/households and /api/v1/profile itself. No app slug is a prefix
 	# of "households" or "profile", so no /api/v1/<slug>* rule can take them.
 	handle /api/v1/households* {
-		import app_backend household-backend:8080 /healthz
+		import app_backend household-backend:8080 /readyz
 	}
 	handle /api/v1/profile* {
-		import app_backend household-backend:8080 /healthz
+		import app_backend household-backend:8080 /readyz
 	}
 {{- range .EnabledRoutes }}
 {{- if .Direct }}
@@ -358,7 +358,7 @@ http://{{ $on.AuthHost }} {
 
 	# Central dashboard control plane (path preserved).
 	handle /api/v1/* {
-		import app_backend dashboard-backend:8080 /healthz
+		import app_backend dashboard-backend:8080 /readyz
 	}
 
 	# RustFS object storage (S3_PUBLIC_URL). Browsers PUT and GET presigned

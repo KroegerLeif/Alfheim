@@ -7,6 +7,8 @@ import pathlib
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 
+from backend_shared.cors import resolve_cors_origins
+from backend_shared.health import health_router
 from backend_shared.household import close_membership_client, configure_household_auth
 from backend_shared.mcp_middleware import mount_mcp
 from fastapi import APIRouter, FastAPI, Request
@@ -130,7 +132,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Security: Restrict allowed origins instead of using wildcard '*' when allow_credentials=True
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=resolve_cors_origins(settings),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -138,6 +140,7 @@ app.add_middleware(
 
 # Initialize OpenTelemetry telemetry at startup to correctly build ASGI middleware chain
 from backend_shared.telemetry import setup_telemetry
+from src.core.database import BACKEND_DIR, engine
 
 setup_telemetry(app)
 
@@ -163,8 +166,5 @@ discover_and_import_mcp_tools()
 mcp_app = mount_mcp(app, mcp, settings=settings)
 
 
-@app.get("/api/v1/health")
-async def health_check():
-    """Simple health check endpoint."""
-    logging.info("Chores health check endpoint hit!")
-    return {"status": "ok", "project": settings.PROJECT_NAME}
+# Liveness (/healthz) and database-aware readiness (/readyz) probes (#788).
+app.include_router(health_router(engine, service="chores-backend", backend_dir=BACKEND_DIR))

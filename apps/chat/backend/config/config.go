@@ -12,6 +12,7 @@ import (
 	"alfheim/chat/internal/shared/crypto"
 
 	"alfheim/go-shared/db"
+	"alfheim/go-shared/httpmw"
 )
 
 // Config encapsulates all chat-backend service configurations.
@@ -124,14 +125,13 @@ func Load() (*Config, error) {
 	s3UseSSL := getEnvAsBool("S3_USE_SSL", false)
 	s3Region := getEnv("S3_REGION", "us-east-1")
 
-	// Parse CORS allowed origins from environment variable
-	corsOriginsStr := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8000,http://alfheim.loegien.localhost,http://api.alfheim.loegien.localhost")
-	corsOrigins := []string{}
-	if corsOriginsStr != "" {
-		corsOrigins = strings.Split(corsOriginsStr, ",")
-		for i := range corsOrigins {
-			corsOrigins[i] = strings.TrimSpace(corsOrigins[i])
-		}
+	// CORS allowlist (#921): production allows no cross-origin access unless
+	// CORS_ALLOWED_ORIGINS names the public origins; a malformed entry fails
+	// startup instead of widening the list.
+	corsRaw, corsSet := os.LookupEnv("CORS_ALLOWED_ORIGINS")
+	corsOrigins, err := httpmw.ResolveAllowedOrigins(corsRaw, corsSet, env)
+	if err != nil {
+		return nil, fmt.Errorf("CORS_ALLOWED_ORIGINS: %w", err)
 	}
 
 	cfg := &Config{

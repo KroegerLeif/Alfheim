@@ -410,9 +410,10 @@ services:
         reservations:
           memory: 32m
           cpus: 0.10
-  # VictoriaLogs >= 1.53 ships a distroless image without a shell or wget. This
-  # one-shot service copies a static busybox into a read-only volume so the
-  # VictoriaLogs healthcheck can still probe /health from inside the container.
+  # VictoriaLogs >= 1.53 and the OTel Collector contrib image ship without a
+  # shell or wget. This one-shot service copies a static busybox into a
+  # read-only volume so their healthchecks can still probe from inside the
+  # container.
   victorialogs-probe:
     image: busybox:1.38.0-musl
     container_name: victorialogs-probe
@@ -479,14 +480,27 @@ services:
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
       - ./infrastructure/telemetry/collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
-    # No healthcheck: the contrib image is a minimal/scratch-based build with no
-    # shell or wget, so a CMD-SHELL probe can never succeed and only stalls
-    # startup until timeout. Downstream services depend on service_started.
+      # Static busybox from victorialogs-probe: the contrib image has no shell
+      # or wget, so the healthcheck below runs this binary instead.
+      - victorialogs_probe:/probe:ro
+    # The collector's health_check extension (collector/config.yaml) answers
+    # on :13133 once every pipeline is running.
+    healthcheck:
+      test: ["CMD", "/probe/busybox", "wget", "-q", "--spider", "http://127.0.0.1:13133/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      # The collector needs several seconds to start its pipelines; probe every
+      # 5 s for up to 60 s instead of waiting a full interval after a miss.
+      start_period: 60s
+      start_interval: 5s
     depends_on:
       victoriametrics:
         condition: service_healthy
       victorialogs:
         condition: service_healthy
+      victorialogs-probe:
+        condition: service_completed_successfully
     networks:
       - observability-internal
 
@@ -663,6 +677,10 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - ENVIRONMENT=production
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ALLOWED_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - PORT=8080
       - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-dashboard_user}:${DASHBOARD_POSTGRES_PASSWORD:?DASHBOARD_POSTGRES_PASSWORD must be set}@postgres-core:5432/${DASHBOARD_POSTGRES_DB:-alfheim_dashboard}?sslmode=disable}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -677,7 +695,7 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/readyz || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 20
@@ -750,6 +768,14 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      # Optional sign-up allowlist (ADR 0009): comma-separated e-mail addresses
+      # and @domains allowed to create a first household. Empty keeps the
+      # instance open; invites always work.
+      - ALFHEIM_SIGNUP_ALLOWLIST=${ALFHEIM_SIGNUP_ALLOWLIST:-}
+      - ENVIRONMENT=production
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ALLOWED_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - PORT=8080
       - DATABASE_URL=${HOUSEHOLD_DATABASE_URL:-postgres://${HOUSEHOLD_POSTGRES_USER:-household_user}:${HOUSEHOLD_POSTGRES_PASSWORD:?HOUSEHOLD_POSTGRES_PASSWORD must be set}@postgres-core:5432/${HOUSEHOLD_POSTGRES_DB:-alfheim_household}?sslmode=disable}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -764,7 +790,7 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/readyz || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 20
@@ -839,6 +865,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
+      - ENVIRONMENT=production
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ALLOWED_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - PORT=8080
       - DATABASE_URL=${CHAT_DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-chat_user}:${CHAT_POSTGRES_PASSWORD:?CHAT_POSTGRES_PASSWORD must be set}@postgres-core:5432/${CHAT_POSTGRES_DB:-alfheim_chat}?sslmode=disable}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -866,7 +896,7 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/api/v1/chat/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/readyz || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 20
@@ -942,6 +972,9 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - ENVIRONMENT=production
       - DEBUG=false
       - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-pantry_user}:${PANTRY_POSTGRES_PASSWORD:?PANTRY_POSTGRES_PASSWORD must be set}@postgres-core:5432/${PANTRY_POSTGRES_DB:-alfheim_pantry}}
@@ -962,7 +995,7 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 20
@@ -1038,6 +1071,9 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - ENVIRONMENT=production
       - DEBUG=false
       - DATABASE_URL=${SHOPPING_DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-shopping_user}:${SHOPPING_POSTGRES_PASSWORD:?SHOPPING_POSTGRES_PASSWORD must be set}@postgres-core:5432/${SHOPPING_POSTGRES_DB:-alfheim_shopping}}
@@ -1060,7 +1096,7 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\" || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 20
@@ -1136,6 +1172,9 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - ENVIRONMENT=production
       - DEBUG=false
       - DATABASE_URL=${MAINTENANCE_DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-maintenance_user}:${MAINTENANCE_POSTGRES_PASSWORD:?MAINTENANCE_POSTGRES_PASSWORD must be set}@postgres-core:5432/${MAINTENANCE_POSTGRES_DB:-alfheim_maintenance}}
@@ -1156,7 +1195,7 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 20
@@ -1232,6 +1271,9 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - ENVIRONMENT=production
       - DEBUG=false
       - DATABASE_URL=${CHORES_DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-chores_user}:${CHORES_POSTGRES_PASSWORD:?CHORES_POSTGRES_PASSWORD must be set}@postgres-core:5432/${CHORES_POSTGRES_DB:-alfheim_chores}}
@@ -1252,7 +1294,7 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 20
@@ -1328,6 +1370,9 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - ENVIRONMENT=production
       - DEBUG=false
       - DATABASE_URL=${BUDGET_DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-budget_user}:${BUDGET_POSTGRES_PASSWORD:?BUDGET_POSTGRES_PASSWORD must be set}@postgres-core:5432/${BUDGET_POSTGRES_DB:-alfheim_budget}}
@@ -1355,7 +1400,7 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')\" || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 20
@@ -1432,6 +1477,9 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - ENVIRONMENT=production
       - DEBUG=false
       - DATABASE_URL=${WORKOUT_DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-workout_user}:${WORKOUT_POSTGRES_PASSWORD:?WORKOUT_POSTGRES_PASSWORD must be set}@postgres-core:5432/${WORKOUT_POSTGRES_DB:-alfheim_workout}}
@@ -1452,7 +1500,7 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 20
@@ -1528,6 +1576,9 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - ENVIRONMENT=production
       - DEBUG=false
       - DATABASE_URL=${LIBRARY_DATABASE_URL:-postgresql+asyncpg://${LIBRARY_POSTGRES_USER:-library_user}:${LIBRARY_POSTGRES_PASSWORD:?LIBRARY_POSTGRES_PASSWORD must be set}@postgres-core:5432/${LIBRARY_POSTGRES_DB:-alfheim_library}}
@@ -1555,7 +1606,7 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\" || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 20

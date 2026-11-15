@@ -98,6 +98,13 @@ func (m Model) ExternalPort() string {
 	return "80"
 }
 
+// CORSOrigins renders ALFHEIM_CORS_ORIGINS, the cross-origin allowlist every
+// backend receives (#921): the public app origin only. The frontends call the
+// APIs same-origin through Caddy, and Zitadel's auth host never calls them.
+func (m Model) CORSOrigins() string {
+	return strings.TrimRight(m.Onboarding.BaseURL, "/")
+}
+
 // ExtraCAFile is the container path of the generated root CA's public copy
 // (ALFHEIM_EXTRA_CA_FILE), empty for strategies with a publicly trusted
 // certificate.
@@ -230,8 +237,8 @@ type APIRoute struct {
 	// proxied: /api/v1 for most apps, /api/v1/<slug> for apps whose routers
 	// are mounted under their slug.
 	BackendPrefix string
-	// HealthPath is the backend's health endpoint, probed by Caddy's active
-	// health check (the same path as its compose healthcheck).
+	// HealthPath is the backend's readiness probe (/readyz, #788), probed by
+	// Caddy's active health check (the same path as its compose healthcheck).
 	HealthPath string
 }
 
@@ -240,18 +247,18 @@ type APIRoute struct {
 // the API proxy rules and the frontend handlers are generated from this one
 // list so the two can never drift apart.
 var apiRoutes = []APIRoute{
-	{Slug: "pantry", Upstream: "pantry-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/api/v1/health"},
+	{Slug: "pantry", Upstream: "pantry-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/readyz"},
 	// The shopping backend serves /api/v1/shopping-lists, /api/v1/shopping/items
 	// and /api/v1/shopping-history itself, so /api/v1/shopping* is passed through
 	// while /shopping/api/v1/... maps onto /api/v1/.... Its frontend listens on
 	// 3010 (PORT in compose.prod.yaml).
-	{Slug: "shopping", Upstream: "shopping-backend:8000", FrontendPort: 3010, Direct: true, BackendPrefix: "/api/v1", HealthPath: "/health"},
-	{Slug: "maintenance", Upstream: "maintenance-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/api/v1/health"},
-	{Slug: "chores", Upstream: "chores-backend:8000", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chores", HealthPath: "/api/v1/health"},
-	{Slug: "budget", Upstream: "budget-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/healthz"},
-	{Slug: "workout", Upstream: "workout-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/api/v1/health"},
-	{Slug: "library", Upstream: "library-backend:8000", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/library", HealthPath: "/health"},
-	{Slug: "chat", Upstream: "chat-backend:8080", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chat", HealthPath: "/api/v1/chat/health"},
+	{Slug: "shopping", Upstream: "shopping-backend:8000", FrontendPort: 3010, Direct: true, BackendPrefix: "/api/v1", HealthPath: "/readyz"},
+	{Slug: "maintenance", Upstream: "maintenance-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/readyz"},
+	{Slug: "chores", Upstream: "chores-backend:8000", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chores", HealthPath: "/readyz"},
+	{Slug: "budget", Upstream: "budget-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/readyz"},
+	{Slug: "workout", Upstream: "workout-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/readyz"},
+	{Slug: "library", Upstream: "library-backend:8000", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/library", HealthPath: "/readyz"},
+	{Slug: "chat", Upstream: "chat-backend:8080", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chat", HealthPath: "/readyz"},
 }
 
 // APIRoutes exposes the whole application route table.

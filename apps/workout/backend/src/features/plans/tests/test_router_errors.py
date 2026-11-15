@@ -274,10 +274,3 @@ async def test_plan_crud_service_sets_and_subresources(db_session: AsyncSession,
         user_id,
     )
     assert deleted_ex is True
-
-
-async def test_health_check_endpoint(client: AsyncClient):
-    """Verify health check endpoint returns 200."""
-    res = await client.get("/api/v1/health")
-    assert res.status_code == 200
-    assert res.json()["status"] == "ok"

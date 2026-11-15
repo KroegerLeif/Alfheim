@@ -3,7 +3,8 @@
 # alfheim: Running Stack Verification
 # ==============================================================================
 # Checks a *running* Alfheim stack end to end: every Compose service reports
-# healthy (or, absent a healthcheck, running), Caddy answers its healthcheck,
+# healthy (or, absent a healthcheck, running), every backend's healthcheck is
+# its database-aware /readyz probe, Caddy answers its healthcheck,
 # the OIDC discovery document names the configured issuer, the route of every
 # running app resolves through the ingress gateway without a 5xx (apps that are
 # not running, such as optional apps left out of a Lean Core install, are
@@ -183,6 +184,24 @@ else
     esac
   done <<< "${services}"
 fi
+echo ""
+
+# ------------------------------------------------------------------------------
+# 1b. Every running backend's healthcheck is its database-aware readiness probe
+#     (/readyz, #788), so "healthy" above means its database answers at the
+#     current schema, not just that the process is up.
+# ------------------------------------------------------------------------------
+log_info "Checking that backend healthchecks probe /readyz..."
+while IFS=$'\t' read -r service state _; do
+  [[ "${service}" == *-backend && "${state}" == "running" ]] || continue
+  container="$(docker compose -f "${COMPOSE_FILE}" ps -q "${service}" 2>/dev/null | head -n 1)"
+  probe="$(docker inspect --format '{{json .Config.Healthcheck.Test}}' "${container}" 2>/dev/null || true)"
+  if [[ "${probe}" == *"/readyz"* ]]; then
+    log_success "${service}: healthcheck probes /readyz"
+  else
+    fail "${service}: healthcheck does not probe /readyz (${probe:-none})"
+  fi
+done <<< "${services}"
 echo ""
 
 # ------------------------------------------------------------------------------
