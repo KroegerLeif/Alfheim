@@ -8,6 +8,7 @@
 # Pipeline stages:
 #   0. Pre-flight    — validate Docker network prerequisites
 #   1. IAM Core      — postgres-core  →  zitadel  →  rustfs  →  caddy
+#                      (→  mailpit when ALFHEIM_SMTP_HOST=mailpit)
 #   2. Core apps     — dashboard-backend  →  dashboard-frontend
 #                      →  household-backend  →  household-frontend
 #                      [live at ${ALFHEIM_BASE_URL}/ and /household after this stage]
@@ -449,6 +450,14 @@ wait_healthy "alfheim_rustfs" "rustfs" 60
 info "Starting caddy reverse proxy gateway …"
 dc up ${BUILD_FLAG} -d caddy
 wait_healthy "alfheim_caddy" "caddy" 60
+
+# Mailpit catches Zitadel's e-mail when .env points SMTP at it
+# (ALFHEIM_SMTP_HOST=mailpit, see .env.example); provisioning below then
+# activates it and scripts/verify-stack.sh checks a password-reset e-mail.
+if grep -qE '^ALFHEIM_SMTP_HOST="?mailpit"?$' .env; then
+  info "Starting mailpit (Zitadel's SMTP server, UI at http://127.0.0.1:8025) …"
+  dc up ${BUILD_FLAG} -d mailpit
+fi
 
 # Zitadel has no admin CLI, so client provisioning goes through its Management
 # API, reached through Caddy on 127.0.0.1:80 (Zitadel resolves the instance
