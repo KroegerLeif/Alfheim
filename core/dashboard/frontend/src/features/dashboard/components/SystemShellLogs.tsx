@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '@alfheim/shared';
 import { useTelemetryLogs } from '../queries';
+import { runShellCommand } from '../shellCommands';
 import { SystemShellLogsOutput, LogEntry } from './SystemShellLogsOutput';
 
 /** Server logs followed by the shell's own entries, de-duplicated by id and capped at the newest 50. */
@@ -23,7 +24,6 @@ export function SystemShellLogs() {
   const [logs, setLogs] = useState<LogEntry[]>(() => mergeServerLogs([], serverLogs));
   const [syncedServerLogs, setSyncedServerLogs] = useState(serverLogs);
   const [commandInput, setCommandInput] = useState('');
-  const [, setCommandHistory] = useState<string[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,66 +36,33 @@ export function SystemShellLogs() {
     setLogs((prev) => mergeServerLogs(prev, serverLogs));
   }
 
-  const handleCommandSubmit = (e: React.FormEvent) => {
+  // Command answers arrive asynchronously; drop them once the shell is gone.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const handleCommandSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cmd = commandInput.trim();
     if (!cmd) return;
+    setCommandInput('');
+    if (cmd.toLowerCase() === 'clear') {
+      setLogs([]);
+      return;
+    }
 
     const now = new Date();
     const timestamp = `${now.toTimeString().split(' ')[0]}.${now.getMilliseconds().toString().padStart(3, '0')}`;
+    const id = `${Date.now()}`;
+    setLogs((prev) => [...prev, { id: `log-${id}`, timestamp, level: 'INFO', service: 'shell', message: `$ ${cmd}` }]);
 
-    const cmdLog: LogEntry = {
-      id: `log-${Date.now()}`,
-      timestamp,
-      level: 'INFO',
-      service: 'shell',
-      message: `$ ${cmd}`,
-    };
-
-    let responseLog: LogEntry | null = null;
-    const lower = cmd.toLowerCase();
-
-    if (lower === 'clear') {
-      setLogs([]);
-      setCommandInput('');
-      return;
-    } else if (lower === 'help') {
-      responseLog = {
-        id: `log-res-${Date.now()}`,
-        timestamp,
-        level: 'SUCCESS',
-        service: 'system',
-        message: t('dashboard.shell_help_response'),
-      };
-    } else if (lower === 'status') {
-      responseLog = {
-        id: `log-res-${Date.now()}`,
-        timestamp,
-        level: 'SUCCESS',
-        service: 'system',
-        message: t('dashboard.shell_status_response'),
-      };
-    } else if (lower === 'ping') {
-      responseLog = {
-        id: `log-res-${Date.now()}`,
-        timestamp,
-        level: 'INFO',
-        service: 'network',
-        message: t('dashboard.shell_ping_response'),
-      };
-    } else {
-      responseLog = {
-        id: `log-res-${Date.now()}`,
-        timestamp,
-        level: 'WARN',
-        service: 'shell',
-        message: t('dashboard.shell_unknown_response', { cmd }),
-      };
-    }
-
-    setLogs((prev) => [...prev, cmdLog, responseLog]);
-    setCommandHistory((prev) => [...prev, cmd]);
-    setCommandInput('');
+    const response = await runShellCommand(cmd, t);
+    if (!mountedRef.current) return;
+    setLogs((prev) => [...prev, { id: `log-res-${id}`, timestamp, ...response }]);
   };
 
   const getLevelBadge = (level: LogEntry['level']) => {
