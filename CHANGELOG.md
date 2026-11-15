@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add optional "Sign in with Google": `alfheim-setup` creates or updates the Zitadel identity provider from `ALFHEIM_GOOGLE_CLIENT_ID` / `ALFHEIM_GOOGLE_CLIENT_SECRET` (flag `--google-client-id`, an opt-in wizard step, or `.env`), prints the redirect URI to register, makes no change on a repeated run, and takes the provider off the login page when the values are emptied (#885).
 - Add optional "Sign in with Apple" through the same mechanism from `ALFHEIM_APPLE_CLIENT_ID`, `ALFHEIM_APPLE_TEAM_ID`, `ALFHEIM_APPLE_KEY_ID` and `ALFHEIM_APPLE_PRIVATE_KEY_FILE` (or the matching `--apple-*` flags); the `.p8` key is uploaded to Zitadel and never copied into `.env` (#886).
 - Add optional SMTP e-mail for Zitadel: `alfheim-setup` configures an SMTP provider from `ALFHEIM_SMTP_*` (the `--smtp-*` flags, an opt-in wizard step, or `.env`; the password from the environment or `.env` only), so password reset, invitations and e-mail verification work; a repeated run makes no change, and without SMTP the installer states what does not work and hides "Forgot password" on the login page (#456).
+- Check password-reset e-mail delivery in `scripts/verify-stack.sh`: when Zitadel's SMTP server is Mailpit (`ALFHEIM_SMTP_HOST=mailpit`) or `VERIFY_STACK_MAILPIT_URL` is set, it creates a throwaway user, requests a reset, waits for the e-mail in Mailpit's API and deletes both again; against any other mail server the check is skipped. `./scripts/up.sh` starts Mailpit when `.env` points SMTP at it.
 
 ### Changed
 - Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)
@@ -52,9 +53,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgrade Zitadel from v2.66.1 to v4.20.3, keeping the built-in Login V1 and RSA token signing for new instances; an updated installation migrates in place, and every user signs in again once because v4 replaces the token signing keys (#765).
 - Document the Lean Core setup: new how-tos for low-spec hosts and for managing apps, one hardware tier table built from the measured reservations (the stale 4 GB / 8 GB figures are gone), memory and requirements in the apps catalog, and the v0.4.x update steps for Zitadel v4 and PostgreSQL 18 (#889)
 - Regenerate the ingress matrix from the Caddyfile with a prefix-handling column, state that backends accept `RS256` only, document the gateway's CORS stance, and fix stale paths in `README.md` and the Caddy Dockerfile (#890)
+- Bring the German docs up to the English ones for v0.5.0: the machine-key flow replacing the bootstrap PAT, the v0.4.x update steps (Zitadel v4, PostgreSQL 18), the `apps` and `zitadel-token` subcommands, social login and SMTP variables, and a new German "Configure e-mail (SMTP)" how-to with local Mailpit testing.
+
 ### Fixed
 - Answer Pantry failures in the shopping backend with 502 (unreachable) or 503 (not installed) instead of 400, with short timeouts on the cross-app calls (#864)
 - Show "ALFI is not available" in the chat widget when the chat app is stopped or not installed instead of failing silently, ignore a user-initiated abort, and log instead of swallowing errors in `@alfheim/shared` (#888)
+- Enforce mode `0700` on `infrastructure/zitadel/provisioner/` when the installer writes the machine key; a git checkout or an older install had created it `0755`, and `MkdirAll` keeps an existing directory's mode.
+- Refresh `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` to one week ahead on `update` and on a plain re-run when it is missing, unparseable or past, as `scripts/init-env.sh` does; Zitadel refuses an expired date when it creates its first instance again after the database was wiped while `.env` was kept.
+
 ### Security
 - Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).
 - Make `scripts/init-env.sh` replace every secret-like key that still holds its `.env.example` placeholder, printing key names only (#870).
