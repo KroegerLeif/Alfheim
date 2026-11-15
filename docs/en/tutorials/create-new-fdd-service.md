@@ -362,9 +362,11 @@ COPY --from=builder /app/main.py /app/main.py
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8000/api/v1/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8000/readyz || exit 1
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
+
+The service mounts the shared probes with `app.include_router(health_router(engine, service="<name>-backend", backend_dir=BACKEND_DIR))` from `backend_shared.health`: `/healthz` for liveness and `/readyz`, which answers `200` only when the database runs `SELECT 1` and its Alembic revision is at head. Point every healthcheck at `/readyz`.
 
 `.dockerignore` excludes `.venv`, `uv.lock`, `__pycache__`, `.pytest_cache`, `.ruff_cache`,
 `.coverage`, `.env*`, `*.sqlite3` and `.git`.

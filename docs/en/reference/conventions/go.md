@@ -34,13 +34,15 @@ internal/shared/          # app-specific, domain-agnostic code (for example chat
 | Package | Contents |
 | --- | --- |
 | `auth` | OIDC bearer token validation (`NewAuthenticator`, `AuthenticateMiddleware`), `UserClaims`, the operator role (`RequireOperator`) |
-| `httpmw` | `RequestLogger`, `CORSWithOrigins`, `MaxBodySize`, `Chain`, `ExtraCATransport` (`ALFHEIM_EXTRA_CA_FILE`) |
-| `db` | `Config`, the pgx pool `Client` and golang-migrate `RunMigrations` |
+| `httpmw` | `RequestLogger` (probes at DEBUG), `CORSWithOrigins`, `ResolveAllowedOrigins` (`CORS_ALLOWED_ORIGINS`), `MaxBodySize`, `Chain`, `ExtraCATransport` (`ALFHEIM_EXTRA_CA_FILE`) |
+| `db` | `Config`, the pgx pool `Client`, golang-migrate `RunMigrations` and `ReadinessCheck` (pool answers, schema at the newest migration) |
+| `health` | `Register`: `GET /healthz` (liveness, never touches the database) and `GET /readyz` (database-aware readiness, `503` when not ready) |
 | `logger` | JSON `slog` logger with OpenTelemetry trace and span ids |
 
 - `auth.NewAuthenticator(ctx, auth.Config{IssuerURL, Audience, HTTPClient, Logger})` discovers the JWKS from `{IssuerURL}/.well-known/openid-configuration`. Issuer and audience are required and always checked, tokens need an expiry and a subject, and only RS256 is accepted. The request host plays no part. Tests inject `HTTPClient`; production leaves it nil to get a client that trusts `ALFHEIM_EXTRA_CA_FILE`.
 - `UserClaims` carries identity only. Household membership and role never come from the token: see [Household authorization](#household-authorization).
-- Each backend aliases its database settings to the shared type (`type DatabaseConfig = db.Config`) and passes its own allowed CORS methods and headers.
+- Each backend aliases its database settings to the shared type (`type DatabaseConfig = db.Config`) and passes its own allowed CORS methods and headers. Origins come from `httpmw.ResolveAllowedOrigins`: development hosts only outside production, and a malformed entry fails `config.Load`.
+- Every backend mounts `health.Register(r, "<name>-backend", dbClient.ReadinessCheck(migrationsDir), log)`; compose healthchecks and Caddy probe `/readyz`.
 - Backends require `alfheim/go-shared v0.0.0` with `replace alfheim/go-shared => ../../../packages/go-shared`, so a module builds outside `go.work`. Their Dockerfiles therefore build from the repository root (`docker build -f core/dashboard/backend/Dockerfile .`), as the compose files and the release workflow do.
 - A change to `packages/go-shared` affects every Go backend: run the whole `./scripts/verify.sh --go` gate.
 
@@ -63,4 +65,4 @@ Authorization rules are in [Authentication and security](../../explanation/authe
 
 ## Gates
 
-`./scripts/verify.sh --go` runs `gofmt`, `go vet` and `go test -race`. `golangci-lint run` is optional when installed. `tools/installer` keeps at least 80 % coverage.
+`./scripts/verify.sh --go` runs `gofmt`, `go vet`, and `go test -race` with the module's coverage gate through `scripts/check-go-coverage.sh` (chat 94 %, dashboard 95 %, household 97 %, go-shared 96 %, installer 80 %; see [quality gates](../quality-gates.md#go)). `golangci-lint run` is optional when installed.

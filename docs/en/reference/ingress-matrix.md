@@ -195,7 +195,7 @@ Every app backend `reverse_proxy` (the optional apps plus `dashboard-backend` an
 | :--- | :--- | :--- |
 | `lb_try_duration` / `lb_try_interval` | `3s` / `250ms` | A request waits briefly for a backend that is restarting instead of failing at once. |
 | `fail_duration` | `10s` | A failed request marks the upstream down for 10 s (passive check). |
-| `health_uri` | the backend's health path | Active check every `15s` with a `3s` timeout, on the same path as its compose healthcheck (for example `/api/v1/health` for pantry, `/healthz` for budget, the dashboard and the household app). |
+| `health_uri` | `/readyz` | Active check every `15s` with a `3s` timeout on the backend's database-aware readiness probe, the same path as its compose healthcheck (#788). A backend whose database is unreachable is taken out of rotation. |
 
 The `app_unavailable` snippet adds `handle_errors 502 503 504` to the app host (the dev `api.*` host imports `api_unavailable`, which always answers JSON). It only replaces a response Caddy itself failed to get; an app's own `503` (for example `household_service_unavailable`) passes through unchanged.
 

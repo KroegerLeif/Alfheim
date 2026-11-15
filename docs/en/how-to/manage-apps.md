@@ -89,14 +89,10 @@ Grafana sign-in client; follow [Turn telemetry on](./grafana-access.md#turn-tele
 | Dashboard tile | Shown | Hidden |
 | Later updates | `alfheim-setup update`, a re-run and `restore` start it | None of them starts it |
 
-`apps enable|disable` applies the containers and the Caddyfile at once. The dashboard backend
-(`ALFHEIM_ENABLED_APPS`) and the chat backend (`CHAT_MCP_SERVERS`) read the enabled set only
-when their containers are created, so the dashboard tile and ALFI's tool list follow the change
-after their next recreation. Trigger it once after you are done switching apps:
-
-```bash
-alfheim-setup update
-```
+`apps enable|disable` applies the containers and the Caddyfile at once. It then recreates the
+dashboard backend (which reads `ALFHEIM_ENABLED_APPS`) and, while chat is enabled, the chat
+backend (which reads `CHAT_MCP_SERVERS`) and waits for both to report healthy, so the dashboard
+tiles and ALFI's tool list follow the change right away. No `alfheim-setup update` is needed.
 
 Use the `alfheim-setup` binary of your installed release: without `--version`, `update`
 targets the binary's own version, so it stays on that release, backs up the databases,

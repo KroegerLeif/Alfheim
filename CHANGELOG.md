@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add optional SMTP e-mail for Zitadel: `alfheim-setup` configures an SMTP provider from `ALFHEIM_SMTP_*` (the `--smtp-*` flags, an opt-in wizard step, or `.env`; the password from the environment or `.env` only), so password reset, invitations and e-mail verification work; a repeated run makes no change, and without SMTP the installer states what does not work and hides "Forgot password" on the login page (#456).
 - Check password-reset e-mail delivery in `scripts/verify-stack.sh`: when Zitadel's SMTP server is Mailpit (`ALFHEIM_SMTP_HOST=mailpit`) or `VERIFY_STACK_MAILPIT_URL` is set, it creates a throwaway user, requests a reset, waits for the e-mail in Mailpit's API and deletes both again; against any other mail server the check is skipped. `./scripts/up.sh` starts Mailpit when `.env` points SMTP at it.
 - Add `scripts/test-gateway-hardening.sh`, run in `smoke-test.yml`: it starts the Caddy image alone and checks the enforced CSP, that traffic below every rate limit passes and that traffic above it gets `429` with `Retry-After` (#785, #786).
+- Add database-aware readiness probes to every backend: `GET /readyz` answers `200` only when the database answers (`SELECT 1` or a pool ping, 2 s timeout) and its schema is at the newest Alembic revision or golang-migrate version, `503` otherwise; `GET /healthz` stays a liveness probe. Compose healthchecks, Caddy's active health checks, the dashboard's app-health tiles and `verify-stack.sh` use `/readyz`, so a backend reports healthy only once its database is reachable (#788).
+- Give the OTel Collector a healthcheck (its `health_check` extension on `:13133`, probed with the static busybox from `victorialogs-probe`); `scripts/up.sh` now waits for it with `wait_healthy` (#812).
+- Add an optional sign-up allowlist, `ALFHEIM_SIGNUP_ALLOWLIST` (ADR 0009): when set, a user without a household may create one only when their verified e-mail address or its domain is listed; invited users always join, and the household app explains the refusal (#923).
 
 ### Changed
 - Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)
@@ -57,6 +60,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bring the German docs up to the English ones for v0.5.0: the machine-key flow replacing the bootstrap PAT, the v0.4.x update steps (Zitadel v4, PostgreSQL 18), the `apps` and `zitadel-token` subcommands, social login and SMTP variables, and a new German "Configure e-mail (SMTP)" how-to with local Mailpit testing.
 - Build the dev Caddy container from `infrastructure/caddy/Dockerfile` instead of the stock `caddy` image, since the Caddyfile now needs the rate-limit module; `scripts/test-prod-startup.sh` builds Caddy from the checkout as well (#785).
 - Let Grafana send its own nonce-based Content-Security-Policy (`GF_SECURITY_CONTENT_SECURITY_POLICY=true`), which the gateway keeps (#786).
+- Standardise backend probes on `/healthz` and `/readyz`; the per-app paths `/health`, `/api/v1/health` and `/api/v1/chat/health` are gone. Probe requests are logged at DEBUG in the Go backends and dropped from the uvicorn access log (#788).
+- Move Zitadel provisioning to the v2 APIs (projects, OIDC applications, project roles, the operator role grant, machine-key rotation); only the login policy, identity providers and SMTP stay on v1, which Zitadel 4 has no v2 write API for (#915).
+- Recreate `dashboard-backend` and, while chat is enabled, `chat-backend` after `alfheim-setup apps enable|disable` and wait for them, so dashboard tiles and ALFI's tools follow the change without `alfheim-setup update` (#922).
+- Enforce Go coverage gates in `verify.sh --go` and CI through `scripts/check-go-coverage.sh`: chat 94 %, dashboard 95 %, household 97 %, go-shared 96 %, installer 80 % (#813).
+- Run the Go backends with `ENVIRONMENT=production` in `compose.prod.yaml`, so they log at INFO instead of DEBUG.
 
 ### Fixed
 - Answer Pantry failures in the shopping backend with 502 (unreachable) or 503 (not installed) instead of 400, with short timeouts on the cross-app calls (#864)
@@ -77,6 +85,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enforce the Content-Security-Policy instead of sending it report-only, in the installer template and the dev Caddyfile: same-origin by default, no external scripts or `eval`, `object-src 'none'`, `frame-ancestors 'self'`, and only the CARTO tiles, Leaflet marker icons and Nominatim as third parties. `verify-stack.sh` checks the enforced header (#786).
 - Sign every release image (multi-arch index and platform manifests) with cosign keyless, attach SLSA build provenance and a per-platform SPDX SBOM as signed attestations, sign `SHA256SUMS` (`SHA256SUMS.sigstore.json`) and attest the provenance of every release asset; the verify-release how-to shows the `cosign` and `gh attestation verify` commands (#787).
 - Remove the `pnpm audit` ignores for `http-cache-semantics` (patched 4.3.0 is locked) and `braces` (advisory withdrawn), and raise the `fast-uri` override to 3.1.9 (#645).
+- Restrict production CORS to the operator's own origin: the installer renders `ALFHEIM_CORS_ORIGINS` from the app host and `compose.prod.yaml` passes it to every backend; without it a production backend allows no cross-origin access instead of the development hosts, and a wildcard or malformed origin stops the backend at startup (#921).
+
 <!-- One line per change, imperative mood, issue or PR number in parentheses: "- Add X (#123)".
      Use only Added, Changed, Deprecated, Removed, Fixed and Security, each at most once.
      A release moves these entries under a new version heading and adds its compare link. -->

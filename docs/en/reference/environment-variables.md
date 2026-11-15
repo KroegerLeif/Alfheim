@@ -32,6 +32,7 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
 | `ALFHEIM_BASE_URL` | `https://alfheim.loegien.de` | Root public domain for frontend ingress |
+| `ALFHEIM_CORS_ORIGINS` | _(rendered: `ALFHEIM_BASE_URL`)_ | Origins allowed to call the production backends cross-origin, comma-separated exact `scheme://host[:port]` entries, never a wildcard (#921). The installer renders the public app origin on every run; `compose.prod.yaml` passes it to every backend as `CORS_ORIGINS` (FastAPI) and `CORS_ALLOWED_ORIGINS` (Go) and falls back to `ALFHEIM_BASE_URL` when it is unset. Empty allows no cross-origin access. See [CORS](../explanation/authentication-security.md#cross-origin-requests-cors) |
 | `ALFHEIM_HOST` | `alfheim.loegien.de` | Canonical hostname for the main application |
 | `DOMAIN` | `loegien.de` | Root domain for all services |
 | `IMAGE_REGISTRY` | `ghcr.io` | Container image registry |
@@ -77,7 +78,7 @@ The Zitadel service in `compose.prod.yaml` and `infrastructure/compose.yml` also
 
 ## Social Login
 
-Optional. Read only by `alfheim-setup` (install, re-run, `update`, `provision`), which configures the providers in Zitadel; no container reads them. Empty values keep a provider off. See [Set up social login](../how-to/social-login.md) and [ADR 0008](../explanation/decisions/0008-social-login-policy.md).
+Optional. Read only by `alfheim-setup` (install, re-run, `update`, `provision`), which configures the providers in Zitadel; no container reads them, except `ALFHEIM_SIGNUP_ALLOWLIST`, which `household-backend` reads. Empty values keep a provider off. See [Set up social login](../how-to/social-login.md) and [ADR 0008](../explanation/decisions/0008-social-login-policy.md).
 
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
@@ -89,6 +90,7 @@ Optional. Read only by `alfheim-setup` (install, re-run, `update`, `provision`),
 | `ALFHEIM_APPLE_KEY_ID` | _(empty)_ | Key ID of the Sign in with Apple key (10 characters); flag `--apple-key-id`. |
 | `ALFHEIM_APPLE_PRIVATE_KEY_FILE` | _(empty)_ | Absolute path of the `.p8` key file, mode `0600` or stricter (the installer refuses anything looser). Only the path is stored; the key is uploaded to Zitadel. Flag `--apple-private-key-file`. |
 | `ZITADEL_APPLE_IDP_FINGERPRINT` | _(written by provisioning)_ | SHA-256 over the configured Apple values including the key, so a replaced key is detected. Do not edit. |
+| `ALFHEIM_SIGNUP_ALLOWLIST` | _(empty)_ | Optional sign-up allowlist ([ADR 0009](../explanation/decisions/0009-signup-allowlist.md)): comma-separated e-mail addresses (`alice@example.com`) and domains (`@example.com` or `example.com`). When set, a user who belongs to no household may create one only if their **verified** e-mail address or its domain is listed; invited users can always join. Empty keeps the open behaviour of ADR 0008. A malformed entry stops `household-backend` at startup. Kept across installer re-runs. |
 
 ---
 
@@ -165,6 +167,8 @@ Grafana SSO is restricted to users holding the Zitadel project role `alfheim_ope
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
 | `{SERVICE}_DATABASE_URL` | _(constructed)_ | Explicit PostgreSQL connection string for a service (e.g., `DASHBOARD_DATABASE_URL`, `PANTRY_DATABASE_URL`); when empty, services construct it from `{SERVICE}_POSTGRES_*` variables |
+| `CORS_ORIGINS` / `CORS_ALLOWED_ORIGINS` | _(dev hosts in development, none in production)_ | Cross-origin allowlist of the FastAPI and Go backends, comma-separated (FastAPI also accepts a JSON list). `compose.prod.yaml` sets both from `ALFHEIM_CORS_ORIGINS`. A wildcard or a malformed entry stops the backend at startup |
+| `ENVIRONMENT` | `development` | `production` in `compose.prod.yaml` for every backend: production logging (INFO, no source) and no fallback to the development CORS hosts |
 | `TESTING` | _(unset)_ | Set to `true` only in backend test suites; bypasses JWT verification. Never set it in a deployed stack |
 | `OTEL_ENABLED` | `false` | Enables OpenTelemetry export in the FastAPI backends; see [Observability Stack](#observability-stack-victoriastack--telemetry) |
 | `CHAT_ENCRYPTION_KEY` | _(empty)_ | AES-256-GCM key (base64-encoded) for encrypting stored LLM API keys and credentials |
@@ -193,7 +197,7 @@ Bootstrap model blocks (seeded from `CHAT_BOOTSTRAP_*`) are managed by the serve
 
 ## Household & Roles Service (`core/household`)
 
-Tier-1 core service that owns households and member roles. `compose.prod.yaml` runs it as `household-backend` (Go, port `8080`, health `GET /healthz`) and `household-frontend` (Next.js, port `3000`, basePath `/household`). The frontend takes the same variables as `dashboard-frontend` (`NEXT_PUBLIC_OIDC_ISSUER`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` from `ALFHEIM_WEB_CLIENT_ID`, `ALFHEIM_BASE_URL`).
+Tier-1 core service that owns households and member roles. `compose.prod.yaml` runs it as `household-backend` (Go, port `8080`, liveness `GET /healthz`, readiness `GET /readyz`) and `household-frontend` (Next.js, port `3000`, basePath `/household`). The frontend takes the same variables as `dashboard-frontend` (`NEXT_PUBLIC_OIDC_ISSUER`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` from `ALFHEIM_WEB_CLIENT_ID`, `ALFHEIM_BASE_URL`).
 
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |

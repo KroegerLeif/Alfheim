@@ -279,6 +279,19 @@ Deleting an old key or PAT that fails is a warning, not an error: the new key is
 
 When `ALFHEIM_GOOGLE_CLIENT_ID` and `ALFHEIM_GOOGLE_CLIENT_SECRET` are set, provisioning creates or updates the instance identity provider "Google" (and, with the four `ALFHEIM_APPLE_*` values, "Apple", uploading the key read from `ALFHEIM_APPLE_PRIVATE_KEY_FILE`) with the options from [ADR 0008](../explanation/decisions/0008-social-login-policy.md), lists it on the login policy, turns `allowExternalIdp` on and keeps `allowRegister` off. It prints the redirect URI to register at the provider (Apple's ends in `/callback/form`, because Apple answers with a form POST) and writes `ZITADEL_<PROVIDER>_IDP_FINGERPRINT` to `.env`. A run without changes makes no write to Zitadel. Emptying both values takes the provider off the login page but keeps it, so existing user links survive. The hidden `provision` subcommand takes `--google-client-id ID` and the four `--apple-*` flags too (Google secret from `ALFHEIM_GOOGLE_CLIENT_SECRET` in the environment or `.env`) and writes the values to `.env`. A loose Apple key file stops it with an error on every installation, new or existing. On an existing installation a social login failure is a warning, so the run still finishes.
 
+### Zitadel APIs
+
+Provisioning uses Zitadel's v2 services wherever Zitadel 4 offers a write API (#915). They are called in the Connect JSON form, `POST /<service>/<method>`, on the auth host:
+
+| Resource | Calls |
+| :--- | :--- |
+| Projects and project roles | `zitadel.project.v2.ProjectService`: `ListProjects`, `CreateProject`, `GetProject`, `UpdateProject`, `ListProjectRoles`, `AddProjectRole` |
+| OIDC applications | `zitadel.application.v2.ApplicationService`: `ListApplications`, `CreateApplication`, `UpdateApplication`, `GenerateClientSecret` |
+| Operator role grant | `zitadel.authorization.v2.AuthorizationService`: `ListAuthorizations`, `CreateAuthorization`, `UpdateAuthorization`; user lookup with `zitadel.user.v2.UserService/ListUsers` |
+| Machine key rotation | `zitadel.user.v2.UserService`: `GetUserByID`, `AddKey`, `ListKeys`, `RemoveKey`, `ListPersonalAccessTokens`, `RemovePersonalAccessToken`; the token's user from the OIDC userinfo endpoint |
+
+Three areas stay on v1 because Zitadel 4 (checked against v4.20.3) has no v2 write API for them: the login policy (`/admin/v1/policies/login`, `/management/v1/policies/login` and their `/idps` links), identity provider templates (`/admin/v1/idps/...`) and SMTP providers (`/admin/v1/email/...`). They move when Zitadel ships the replacements. Operator-visible behaviour did not change.
+
 ### E-mail (SMTP)
 
 Provisioning reconciles one SMTP e-mail provider owned by the installer (description "Alfheim installer (alfheim-setup)") through the Zitadel Admin API (`/admin/v1/email`). With `ALFHEIM_SMTP_HOST` set it creates or updates the provider, activates it and writes `ZITADEL_SMTP_FINGERPRINT` to `.env`, a hash that detects a changed password; a run without changes makes no write to Zitadel. When it turns e-mail on, it also shows **Forgot password** on the login page (`hidePasswordReset=false`). With the host empty it deletes its provider and sets `hidePasswordReset=true` on the instance login policy (and a custom organisation policy), so no flow waits for an e-mail; self-registration stays off either way. A provider added in the Zitadel console is never changed, and while one is active the password reset link is left alone. The output says what happened, and the install summary states that password reset, invitations and e-mail verification do not work when SMTP was skipped. The hidden `provision` subcommand takes the same `--smtp-*` flags (password from `ALFHEIM_SMTP_PASSWORD` in the environment or `.env`) and writes the values to `.env`. On an existing installation an SMTP failure is a warning, so the run still finishes.
