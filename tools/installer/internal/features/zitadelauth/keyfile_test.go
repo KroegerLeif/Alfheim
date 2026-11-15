@@ -143,6 +143,35 @@ func TestLoadKeyReportsUnreadableFile(t *testing.T) {
 	}
 }
 
+// TestWriteKeyRestrictsAnExistingDirectory covers a checkout or older install
+// where the provisioner directory already exists with mode 0755: the key file
+// is 0600 and the directory is tightened to 0700.
+func TestWriteKeyRestrictsAnExistingDirectory(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "provisioner")
+	if err := os.Mkdir(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "machine-key.json")
+	if err := WriteKey(path, []byte("{}")); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		path string
+		want os.FileMode
+	}{{dir, 0o700}, {path, 0o600}} {
+		info, err := os.Stat(c.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := info.Mode().Perm(); got != c.want {
+			t.Errorf("mode of %s = %o, want %o", c.path, got, c.want)
+		}
+	}
+}
+
 func TestWriteKeyFailsWhenDirectoryCannotBeCreated(t *testing.T) {
 	blocker := filepath.Join(t.TempDir(), "file")
 	if err := os.WriteFile(blocker, nil, 0o600); err != nil {
