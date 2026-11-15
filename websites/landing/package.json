@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node ../../packages/shared/scripts/sync-brand-assets.mjs",
     "dev": "vite",
+    "prebuild": "node ../../packages/shared/scripts/sync-brand-assets.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },

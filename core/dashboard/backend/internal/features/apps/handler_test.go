@@ -13,7 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"alfheim/dashboard/internal/features/apps"
-	"alfheim/dashboard/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 type mockAppService struct {
@@ -80,21 +80,21 @@ func (m *mockAppService) DeleteUserLink(ctx context.Context, userID string, id s
 }
 
 func withAuthClaims(ctx context.Context, subject string) context.Context {
-	claims := &middleware.UserClaims{
+	claims := &auth.UserClaims{
 		Subject: subject,
 		Roles:   []string{"user"},
 	}
-	return context.WithValue(ctx, middleware.UserContextKey, claims)
+	return context.WithValue(ctx, auth.UserContextKey, claims)
 }
 
-func mockAuthMW(claims *middleware.UserClaims, shouldAuth bool) func(http.Handler) http.Handler {
+func mockAuthMW(claims *auth.UserClaims, shouldAuth bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !shouldAuth {
 				next.ServeHTTP(w, r)
 				return
 			}
-			ctx := context.WithValue(r.Context(), middleware.UserContextKey, claims)
+			ctx := context.WithValue(r.Context(), auth.UserContextKey, claims)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -123,7 +123,7 @@ func TestAppsHandler_GetDashboardApps(t *testing.T) {
 			},
 		}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -145,7 +145,7 @@ func TestAppsHandler_GetDashboardApps(t *testing.T) {
 			},
 		}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -185,7 +185,7 @@ func TestAppsHandler_GetUserPreferences(t *testing.T) {
 			},
 		}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -205,7 +205,7 @@ func TestAppsHandler_GetUserPreferences(t *testing.T) {
 			},
 		}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -252,7 +252,7 @@ func TestAppsHandler_UpdateUserPreferences(t *testing.T) {
 	t.Run("bad request on invalid json body", func(t *testing.T) {
 		service := &mockAppService{}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -272,7 +272,7 @@ func TestAppsHandler_UpdateUserPreferences(t *testing.T) {
 			},
 		}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -293,7 +293,7 @@ func TestAppsHandler_UpdateUserPreferences(t *testing.T) {
 			},
 		}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -331,7 +331,7 @@ func TestAppsHandler_GetUserLinks(t *testing.T) {
 			},
 		}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -351,7 +351,7 @@ func TestAppsHandler_GetUserLinks(t *testing.T) {
 			},
 		}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -399,7 +399,7 @@ func TestAppsHandler_CreateUserLink_SanitizedErrors(t *testing.T) {
 	t.Run("bad request on invalid json body", func(t *testing.T) {
 		service := &mockAppService{}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -439,7 +439,7 @@ func TestAppsHandler_CreateUserLink_SanitizedErrors(t *testing.T) {
 			},
 		}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -494,7 +494,7 @@ func TestAppsHandler_UpdateUserLink_SanitizedErrors(t *testing.T) {
 	t.Run("bad request on invalid json body", func(t *testing.T) {
 		service := &mockAppService{}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -537,7 +537,7 @@ func TestAppsHandler_UpdateUserLink_SanitizedErrors(t *testing.T) {
 			},
 		}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -558,7 +558,7 @@ func TestAppsHandler_UpdateUserLink_SanitizedErrors(t *testing.T) {
 			},
 		}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -579,7 +579,7 @@ func TestAppsHandler_UpdateUserLink_SanitizedErrors(t *testing.T) {
 			},
 		}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 
@@ -600,7 +600,7 @@ func TestAppsHandler_UpdateUserLink_SanitizedErrors(t *testing.T) {
 			},
 		}
 		handler := apps.NewHandler(service)
-		claims := &middleware.UserClaims{Subject: "u1"}
+		claims := &auth.UserClaims{Subject: "u1"}
 		r := chi.NewRouter()
 		handler.RegisterRoutes(r, mockAuthMW(claims, true))
 

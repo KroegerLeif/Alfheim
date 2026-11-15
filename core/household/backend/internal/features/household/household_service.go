@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"alfheim/household/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 )
@@ -38,7 +38,7 @@ func validateHouseholdName(name string) (string, error) {
 	return name, nil
 }
 
-func (s *service) CreateHousehold(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
+func (s *service) CreateHousehold(ctx context.Context, claims *auth.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
 	name, err := validateHouseholdName(req.Name)
 	if err != nil {
 		return nil, err

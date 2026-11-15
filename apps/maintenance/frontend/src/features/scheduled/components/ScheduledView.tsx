@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { Device, MaintenanceStep } from "@/shared/types";
 import { ScheduledTaskItem } from "./ScheduledTaskItem";
 import { CalendarRange, Info, Loader2 } from "lucide-react";
-import { cn, daysUntil, UPCOMING_WINDOW_DAYS } from "@/core/utils";
+import { cn } from "@alfheim/shared";
+import { daysUntil, UPCOMING_WINDOW_DAYS } from "@/core/utils";
 import { useTranslations } from "next-intl";
 import { useDevices } from "@/features/devices";
 

@@ -94,6 +94,7 @@
     "replyStopped": "Odpowiedź została zatrzymana.",
     "retry": "Ponów",
     "networkError": "Nie można połączyć się z usługą czatu.",
+    "unavailable": "ALFI jest teraz niedostępny. Aplikacja czatu jest zatrzymana lub niezainstalowana.",
     "toolCallsTitle": "Użyte narzędzia: {count}",
     "toolStatusRunning": "W toku",
     "toolStatusDone": "Zakończone",

@@ -74,7 +74,7 @@ The maintenance conversion cannot map integer household ids to UUID households, 
 Each backend has a `test_migrations.py`. The SQLite tests always run. The PostgreSQL tests (upgrade matches the models, downgrade to base, legacy databases, concurrent startups) run when `ALFHEIM_MIGRATION_TEST_DATABASE_URL` points at a disposable database; its `public` schema is dropped and recreated:
 
 ```bash
-docker run -d --rm -p 55432:5432 -e POSTGRES_PASSWORD=pg postgres:16-alpine
+docker run -d --rm -p 55432:5432 -e POSTGRES_PASSWORD=pg postgres:18-alpine
 ALFHEIM_MIGRATION_TEST_DATABASE_URL='postgresql+asyncpg://postgres:pg@localhost:55432/postgres' \
   uv run --directory apps/pantry/backend pytest -q
 ```

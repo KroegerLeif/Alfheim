@@ -9,9 +9,10 @@ x-logging: &default-logging
 services:
   chat-backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: apps/chat/backend/Dockerfile
     container_name: chat-backend
+    profiles: ["chat"]
     restart: always
     logging: *default-logging
     extra_hosts:
@@ -34,7 +35,9 @@ services:
       # Signs chat attachment download URLs (>= 32 bytes); dev default only.
       - CHAT_ATTACHMENT_URL_SECRET=${CHAT_ATTACHMENT_URL_SECRET:-dev-chat-attachment-url-secret-change-me}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-http://alfheim.loegien.localhost}
-      - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS:-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
+      # alfheim-setup renders the list from the enabled apps; an empty value
+      # (no tool app installed) is kept, only a missing one gets the default.
+      - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
       # Hosts the chat backend may call as an LLM endpoint (SSRF allowlist).
       - CHAT_ALLOWED_LLM_HOSTS=${CHAT_ALLOWED_LLM_HOSTS:-host.docker.internal}
     healthcheck:
@@ -63,6 +66,7 @@ services:
         - NEXT_PUBLIC_OIDC_CLIENT_ID=${NEXT_PUBLIC_OIDC_CLIENT_ID:-chat-frontend}
         - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-http://alfheim.loegien.localhost}
     container_name: chat-frontend
+    profiles: ["chat"]
     restart: always
     logging: *default-logging
     env_file:

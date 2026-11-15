@@ -34,7 +34,7 @@ Source: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 18 Core Database Server |
 | `chat-backend` | 8080 | `/api/v1/chat` | Go REST API, SSE & MCP Bridge |
 | `chat-frontend` | 3000 | `alfheim.loegien.localhost/chat` | Next.js Microfrontend |
 
@@ -45,7 +45,7 @@ Source: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 | `CHAT_ENCRYPTION_KEY` | *(Generated 32-byte base64 key)* | AES-256-GCM key for encrypting LLM API keys |
 | `CHAT_ATTACHMENT_URL_SECRET` | *(generated secret, at least 32 bytes)* | HMAC key signing attachment download URLs. Required in production (compose refuses to start without it); the installer generates it and backfills it on update. Without it outside production, a random key is used per process |
 | `CHAT_ATTACHMENT_URL_TTL_MINUTES` | `15` | Lifetime of a signed attachment download URL |
-| `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,...` | Comma-separated FastMCP endpoints |
+| `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,...` | Comma-separated FastMCP endpoints of the enabled tool apps. Empty means no tool app is installed; unset keeps the stored registry |
 | `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Base URL of the household membership API (`core/household`) |
 | `ALFHEIM_INTERNAL_TOKEN` | *(generated secret)* | Shared secret sent as `Authorization: Bearer …` on membership checks. Required; the backend refuses to start without it |
 | `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/chat` | Browser API base URL. Compose derives it from `ALFHEIM_BASE_URL` (build argument and runtime env) |
@@ -85,6 +85,14 @@ startup upserts the URL but never resets an admin's enabled/disabled toggle. Eve
 the caller's bearer token and `X-Household-ID` so the target app authorizes it the same way it
 authorizes a REST request. A 404 from an MCP endpoint is reported to the caller as a configuration
 error (mismatched `CHAT_MCP_SERVERS` path) rather than treated as reachable.
+
+The tool apps (pantry, chores, maintenance) are optional ([ADR 0007](../../explanation/decisions/0007-lean-core-app-set.md)).
+The installer renders `CHAT_MCP_SERVERS` from the enabled apps, and once the variable is present
+(even empty) only the apps it lists offer tools: the registry row of a disabled app stays stored
+but is skipped. Without the variable the stored registry is used as is. An MCP server that is down
+never fails the conversation: dialing it gives up after 2 s and tool discovery after 5 s per
+server, its tools are left out of that turn, and a failed tool call is fed back to the model as a
+tool error.
 
 MCP sessions are kept per endpoint, household and user: `ClientPool` resolves the client for
 every call from that call's caller credentials, so a session id and the cached tool list are
@@ -126,7 +134,7 @@ Seeded and re-synced on every startup from `CHAT_MCP_SERVERS` (`internal/feature
 2. Shared `model_blocks` are usable by household members; only `owner_user_id` may edit, delete or health-check them (`ModelBlock.CanModify` in `internal/features/modelblocks/entity.go`).
 3. Bootstrap blocks (`is_bootstrap = true`, `owner_user_id = "system"`) are the exception: any authenticated user may see and modify them. The one-time seed is tracked in the separate `bootstrap_state` table, so deleting or editing the seeded block never makes it reappear after a restart.
 4. `internal/shared/llm.Provider` is built from primitive parameters (provider type, base URL, model, API key), never from a `modelblocks.ModelBlock`, so `internal/shared/llm` does not depend on `internal/features/modelblocks`.
-5. JWT validation in `internal/shared/middleware/auth.go` checks both issuer and audience (`OIDC_AUDIENCE`); this deliberately differs from the issuer-only check in `core/dashboard/backend`.
+5. JWT validation comes from the shared `alfheim/go-shared/auth` package and checks both issuer and audience (`OIDC_AUDIENCE`), like every Go backend.
 6. Conversations are always personal (`owner_user_id` only). A household member with access to a shared model block gets their own separate conversation.
 7. `GET /api/v1/chat/conversations/{id}/stream` requires the last message to be an unanswered `user` message (`ErrNoPendingUserMessage` otherwise). The finished assistant reply is persisted by `AppendMessageAndTouchConversation` (one transaction: insert the message and bump `conversations.updated_at`) with a fresh 5 s `context.Background()` timeout, independent of the HTTP request, so a client disconnecting at the end of the stream cannot lose the reply. A stream that ends in an `Err` chunk persists nothing.
 8. `internal/features/conversations` depends on `internal/shared/llm` and defines its own narrow `ModelBlockResolver` interface (satisfied structurally by `modelblocks.Service`) instead of importing `internal/features/modelblocks`. Go interfaces are defined at the consumer.

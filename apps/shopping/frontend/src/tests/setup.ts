@@ -1,70 +1,14 @@
-import type { PropsWithChildren } from 'react'
-import '@testing-library/jest-dom'
-import { vi, expect, beforeAll, afterEach, afterAll } from 'vitest'
-import * as matchers from 'vitest-axe/matchers'
-import 'vitest-axe/extend-expect'
+import { afterEach, vi } from 'vitest'
+import { setupAlfheimTests } from '@alfheim/shared/testing'
 import { server } from './mocks/server'
-import { configure } from '@testing-library/react'
 import { setTestLocale } from './locale'
 
-expect.extend(matchers)
-
-// findBy*/waitFor poll for 5s instead of 1s so the suite also passes while the machine is busy (CI, parallel workspaces).
-configure({ asyncUtilTimeout: 5000 })
-
-beforeAll(() => server.listen({ onUnhandledFrame: 'bypass' }))
+setupAlfheimTests({ server })
 afterEach(() => {
-  server.resetHandlers()
   setTestLocale('en')
 })
-afterAll(() => server.close())
 
-// Mock localStorage and sessionStorage globally for tests
-const localStorageMock = (function () {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
-      store[key] = value.toString();
-    },
-    clear: () => {
-      store = {};
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-  };
-})();
-
-Object.defineProperty(global, 'localStorage', {
-  value: localStorageMock,
-  writable: true,
-});
-Object.defineProperty(global, 'sessionStorage', {
-  value: localStorageMock,
-  writable: true,
-});
-
-// Mock next/navigation router hooks
-vi.mock('next/navigation', () => ({
-  useRouter() {
-    return {
-      prefetch: () => null,
-      push: () => null,
-      replace: () => null,
-      back: () => null,
-    }
-  },
-  usePathname() {
-    return ''
-  },
-  useSearchParams() {
-    return new URLSearchParams()
-  },
-  useParams() {
-    return {}
-  },
-}))
+vi.mock('next/navigation', async () => (await import('@alfheim/shared/testing')).nextNavigationMock())
 
 // next-intl with the real shared dictionaries. The active locale is "en" unless a test calls
 // setTestLocale(). A key that does not resolve in the active dictionary throws, so a missing or
@@ -73,6 +17,7 @@ vi.mock('next-intl', async () => {
   const actual = await vi.importActual<typeof import('next-intl')>('next-intl')
   const { getSharedMessages } = await import('@alfheim/shared')
   const { getTestLocale } = await import('./locale')
+  const keyMock = (await import('@alfheim/shared/testing')).nextIntlKeyMock()
 
   const translators = new Map<string, ReturnType<typeof actual.createTranslator>>()
   const translatorFor = (namespace: string | undefined) => {
@@ -100,18 +45,8 @@ vi.mock('next-intl', async () => {
     ...actual,
     useTranslations: (namespace?: string) => translatorFor(namespace),
     useLocale: () => getTestLocale(),
-    Link: ({ children, ...props }: PropsWithChildren<Record<string, unknown>>) => {
-      const React = require('react')
-      return React.createElement('a', props, children)
-    },
-    useRouter() {
-      return {
-        push: () => null,
-        replace: () => null,
-      }
-    },
-    usePathname() {
-      return ''
-    },
+    Link: keyMock.Link,
+    useRouter: keyMock.useRouter,
+    usePathname: keyMock.usePathname,
   }
 })

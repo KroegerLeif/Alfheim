@@ -35,7 +35,7 @@ export function useInventoryState(productId?: string, locationId?: string) {
     queryKey: inventoryKeys.stateFiltered(activeHouseholdId, productId, locationId),
     queryFn: () =>
       pantryClient
-        .get("api/v1/inventory/state", {
+        .get("inventory/state", {
           searchParams: {
             ...(productId && { product_id: productId }),
             ...(locationId && { location_id: locationId }),
@@ -57,7 +57,7 @@ export function useLowStockItems() {
     queryKey: inventoryKeys.lowStock(activeHouseholdId),
     queryFn: () =>
       pantryClient
-        .get("api/v1/inventory/low-stock")
+        .get("inventory/low-stock")
         .json<LowStockItem[]>(),
     enabled: status === "ready",
   });
@@ -74,7 +74,7 @@ export function useExpirationSummary() {
     queryKey: inventoryKeys.expirationSummary(activeHouseholdId),
     queryFn: () =>
       pantryClient
-        .get("api/v1/inventory/expiration-summary")
+        .get("inventory/expiration-summary")
         .json<ExpirationSummary>(),
     enabled: status === "ready",
   });

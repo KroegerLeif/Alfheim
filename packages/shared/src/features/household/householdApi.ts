@@ -1,6 +1,14 @@
+import { createApiClient, type ApiClient } from '../api/client';
 import { getHouseholdErrorCode, isHousehold, type Household, type HouseholdErrorCode } from './householdStore';
 
 export const MY_HOUSEHOLDS_URL = '/api/v1/households/me';
+
+/**
+ * Client for the membership API. It authenticates explicitly (see `getFreshToken`), so it uses
+ * no session, but it inherits the shared default timeout: a hung membership call ends in the
+ * `network` result that `HouseholdGate` turns into its retry view.
+ */
+const defaultHouseholdClient = createApiClient();
 
 export interface OidcWindow extends Window {
   __alfheim_oidc_instance__?: {
@@ -30,8 +38,9 @@ function resolveSessionToken(): string | null {
         if (val) return val;
       }
     }
-  } catch {
-    // Ignore cross-origin / storage errors
+  } catch (error) {
+    // Blocked storage: the caller continues without a token.
+    console.warn('Cannot read the access token from sessionStorage:', error);
   }
   return null;
 }
@@ -46,8 +55,9 @@ async function getFreshToken(): Promise<string | null> {
         sessionStorage.setItem('alfheim_access_token', oidc.token);
         return oidc.token;
       }
-    } catch {
-      // Token update failed, fall back to storage resolution
+    } catch (error) {
+      // Fall back to the stored token; the request then decides with a 401.
+      console.warn('OIDC token update failed; using the stored token:', error);
     }
   }
   return (typeof oidc?.token === 'string' ? oidc.token : null) || resolveSessionToken();
@@ -60,14 +70,17 @@ export type FetchHouseholdsResult =
 /**
  * Loads the caller's memberships from core/household
  * (`GET /api/v1/households/me`, each entry with `role` and `is_default`).
- * Retries once with a force-refreshed OIDC token on 401.
+ * Retries once with a force-refreshed OIDC token on 401. `client` is injectable for tests.
  */
-export async function fetchMyHouseholds(url: string = MY_HOUSEHOLDS_URL): Promise<FetchHouseholdsResult> {
+export async function fetchMyHouseholds(
+  url: string = MY_HOUSEHOLDS_URL,
+  client: ApiClient = defaultHouseholdClient,
+): Promise<FetchHouseholdsResult> {
   try {
     const token = await getFreshToken();
     if (!token) return { ok: false, reason: 'no_token' };
 
-    let res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    let res = await client.get(url, { headers: { Authorization: `Bearer ${token}` } });
 
     if (res.status === 401) {
       const oidc = getOidcInstance();
@@ -77,10 +90,11 @@ export async function fetchMyHouseholds(url: string = MY_HOUSEHOLDS_URL): Promis
           if (refreshed && typeof oidc.token === 'string') {
             const freshToken: string = oidc.token;
             sessionStorage.setItem('alfheim_access_token', freshToken);
-            res = await fetch(url, { headers: { Authorization: `Bearer ${freshToken}` } });
+            res = await client.get(url, { headers: { Authorization: `Bearer ${freshToken}` } });
           }
-        } catch {
-          // Retry refresh failed
+        } catch (error) {
+          // The 401 response is reported below as the http result.
+          console.warn('OIDC token refresh after a 401 failed:', error);
         }
       }
     }
@@ -89,8 +103,9 @@ export async function fetchMyHouseholds(url: string = MY_HOUSEHOLDS_URL): Promis
       let code: HouseholdErrorCode | null = null;
       try {
         code = getHouseholdErrorCode(await res.json());
-      } catch {
-        // Non-JSON error body
+      } catch (error) {
+        // A non-JSON error body (for example a gateway page) carries no household error code.
+        console.warn(`Household API answered HTTP ${res.status} without a JSON body:`, error);
       }
       return { ok: false, reason: 'http', status: res.status, code };
     }

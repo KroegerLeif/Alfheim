@@ -2,10 +2,9 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { PermissionHint, useHouseholdPermission } from "@alfheim/shared";
+import { PermissionHint, useHouseholdPermission, cn } from "@alfheim/shared";
 import { Device } from "@/shared/types";
 import { CATEGORY_ICONS } from "@/shared/data";
-import { cn } from "@/core/utils";
 import { useFormatDate } from "@/core/useFormatDate";
 import { Eye, Play, Info, CheckCircle2 } from "lucide-react";
 import { getDeviceMaintenanceState, getNextServiceDate, MetricFilter } from "../utils";

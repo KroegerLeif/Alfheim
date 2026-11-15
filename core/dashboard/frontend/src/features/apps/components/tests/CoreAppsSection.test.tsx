@@ -68,3 +68,39 @@ describe('CoreAppsSection navigation targets', () => {
     expect(manageLink).toHaveAttribute('href', '/settings')
   })
 })
+
+describe('CoreAppsSection live health', () => {
+  it('shows the probed state of each app next to its configured status', () => {
+    renderWithProviders(
+      <CoreAppsSection
+        isLoading={false}
+        isError={false}
+        apps={[makeApp(), makeApp({ id: 'chat', slug: 'chat', title: 'Chat' }), makeApp({ id: 'budget', slug: 'budget', title: 'Budget' })]}
+        refetch={vi.fn()}
+        health={{ pantry: 'online', chat: 'offline', budget: 'degraded' }}
+      />
+    )
+
+    const states = screen.getAllByRole('status').map((el) => el.getAttribute('data-health'))
+    expect(states).toEqual(['online', 'offline', 'degraded'])
+    expect(screen.getByText('Offline')).toBeInTheDocument()
+    expect(screen.getByLabelText('Live status: Degraded')).toBeInTheDocument()
+  })
+
+  it('shows a pending state until the first probe answered', () => {
+    renderWithProviders(
+      <CoreAppsSection isLoading={false} isError={false} apps={[makeApp()]} refetch={vi.fn()} />
+    )
+
+    expect(screen.getByRole('status')).toHaveAttribute('data-health', 'unknown')
+  })
+
+  it('renders the empty state when no app is enabled', () => {
+    renderWithProviders(
+      <CoreAppsSection isLoading={false} isError={false} apps={undefined} refetch={vi.fn()} />
+    )
+
+    expect(screen.getByText('0 active')).toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+})

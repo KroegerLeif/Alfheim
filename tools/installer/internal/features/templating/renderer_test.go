@@ -3,6 +3,7 @@ package templating
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -67,6 +68,7 @@ func model(t *testing.T, preset onboarding.PresetID, tlsCfg tls.Config) Model {
 		Generated:  fixedTime,
 
 		DockerSocketGID: "998",
+		Telemetry:       true,
 	}
 }
 
@@ -544,8 +546,9 @@ func TestRenderedCaddyfileSecurityHeaders(t *testing.T) {
 			}
 			caddy := string(out)
 
-			if got := strings.Count(caddy, "\timport security_headers\n"); got != 2 {
-				t.Errorf("security_headers is imported %d times, want 2 (auth host and app host)", got)
+			// Auth host, app host and the app_unavailable error routes.
+			if got := strings.Count(caddy, "\timport security_headers\n"); got != 3 {
+				t.Errorf("security_headers is imported %d times, want 3 (auth host, app host, error routes)", got)
 			}
 			for _, want := range []string{
 				"?X-Content-Type-Options \"nosniff\"",
@@ -592,22 +595,58 @@ func TestRenderedCaddyfileRouting(t *testing.T) {
 		t.Error("the gateway must not redirect bare app paths; next-intl owns locale selection")
 	}
 	for _, want := range []string{
-		"\thandle /api/v1/shopping* {\n\t\treverse_proxy shopping-backend:8000\n",
+		"\thandle /api/v1/shopping* {\n\t\timport app_backend shopping-backend:8000 /health\n",
 		"\thandle_path /shopping/api/v1* {\n\t\trewrite * /api/v1{path}\n",
-		"\thandle /api/v1/chores* {\n\t\treverse_proxy chores-backend:8000\n",
+		"\thandle /api/v1/chores* {\n\t\timport app_backend chores-backend:8000 /api/v1/health\n",
 		"\thandle_path /chores/api/v1* {\n\t\trewrite * /api/v1/chores{path}\n",
-		"\thandle /api/v1/library* {\n\t\treverse_proxy library-backend:8000\n",
+		"\thandle /api/v1/library* {\n\t\timport app_backend library-backend:8000 /health\n",
 		"\thandle_path /library/api/v1* {\n\t\trewrite * /api/v1/library{path}\n",
-		"\thandle /api/v1/chat* {\n\t\treverse_proxy chat-backend:8080\n",
+		"\thandle /api/v1/chat* {\n\t\timport app_backend chat-backend:8080 /api/v1/chat/health\n",
 		"\thandle_path /chat/api/v1* {\n\t\trewrite * /api/v1/chat{path}\n",
 		"\thandle_path /api/v1/pantry* {\n\t\trewrite * /api/v1{path}\n",
 		"\thandle_path /api/v1/budget* {\n\t\trewrite * /api/v1{path}\n",
-		"\thandle /api/v1/* {\n\t\treverse_proxy dashboard-backend:8080\n",
+		"\thandle /api/v1/* {\n\t\timport app_backend dashboard-backend:8080 /healthz\n",
 		"\thandle /shopping* {\n\t\treverse_proxy shopping-frontend:3010\n",
 		"\thandle /pantry* {\n\t\treverse_proxy pantry-frontend:3000\n",
 	} {
 		if !strings.Contains(caddy, want) {
 			t.Errorf("the Caddyfile lacks %q", want)
+		}
+	}
+}
+
+// TestRenderTelemetrySwitch pins OTEL_ENABLED in .env and the /grafana route
+// to Model.Telemetry, so a Lean Core install exposes no Grafana path.
+func TestRenderTelemetrySwitch(t *testing.T) {
+	r, err := NewRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, on := range []bool{true, false} {
+		m := model(t, onboarding.PresetCustom, tls.Config{Strategy: tls.StrategyInternal})
+		m.Telemetry = on
+		if !on {
+			// The app set drives the route; the installer keeps both in step.
+			m.DisabledApps = []string{"telemetry"}
+		}
+		env, err := r.RenderEnv(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		caddy, err := r.RenderCaddyfile(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		wantEnv := fmt.Sprintf("\nOTEL_ENABLED=%t\n", on)
+		if !strings.Contains(string(env), wantEnv) {
+			t.Errorf("Telemetry=%t: .env lacks %q", on, wantEnv)
+		}
+		hasRoute := strings.Contains(string(caddy), "reverse_proxy grafana:3000")
+		if hasRoute != on {
+			t.Errorf("Telemetry=%t: Caddyfile routes /grafana = %t", on, hasRoute)
+		}
+		if !strings.Contains(string(caddy), "handle /grafana*") {
+			t.Errorf("Telemetry=%t: /grafana must always be handled (proxy or redirect)", on)
 		}
 	}
 }
@@ -641,5 +680,65 @@ func TestRenderEnvDataPaths(t *testing.T) {
 		if !strings.Contains(string(env), want) {
 			t.Errorf("rendered .env lacks %q", want)
 		}
+	}
+}
+
+// TestRenderedCaddyfileResilience pins issues #811 and #887: every app
+// backend is proxied through app_backend (passive retries plus an active
+// health check on the backend's own health path), and the app host answers a
+// stopped or missing app with the JSON or static error from app_unavailable.
+func TestRenderedCaddyfileResilience(t *testing.T) {
+	r, err := NewRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := model(t, onboarding.PresetCustom, tls.Config{Strategy: tls.StrategyInternal})
+	out, err := r.RenderCaddyfile(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	caddy := string(out)
+
+	for _, want := range []string{
+		"(app_backend) {\n\treverse_proxy {args[0]} {\n\t\tlb_try_duration 3s\n",
+		"\t\thealth_uri {args[1]}\n",
+		"(app_unavailable) {\n\thandle_errors 502 503 504 {\n",
+		"\t\theader Retry-After \"30\"\n",
+		"\t\t@api path */api/v1*\n",
+		`respond ` + "`" + `{"error":"service_unavailable",`,
+		"\t\t\troot * /srv/alfheim-errors\n\t\t\trewrite * /app-unavailable.html\n",
+		"\t\t\t\tstatus 503\n",
+		"\timport security_headers\n\timport app_unavailable\n",
+		"\t\timport app_backend household-backend:8080 /healthz\n",
+	} {
+		if !strings.Contains(caddy, want) {
+			t.Errorf("the Caddyfile lacks %q", want)
+		}
+	}
+	if got := strings.Count(caddy, "\timport app_unavailable\n"); got != 1 {
+		t.Errorf("app_unavailable is imported %d times, want 1 (app host)", got)
+	}
+	for _, route := range m.EnabledRoutes() {
+		if route.HealthPath == "" {
+			t.Errorf("%s has no health path", route.Slug)
+		}
+		want := "import app_backend " + route.Upstream + " " + route.HealthPath + "\n"
+		if strings.Count(caddy, want) < 2 {
+			t.Errorf("%s backend is not proxied through app_backend: %q", route.Slug, want)
+		}
+	}
+	// Every backend upstream goes through the snippet; only frontends,
+	// Zitadel, RustFS and Grafana use reverse_proxy directly.
+	for _, line := range strings.Split(caddy, "\n") {
+		if strings.Contains(line, "reverse_proxy ") && strings.Contains(line, "-backend:") {
+			t.Errorf("backend proxied without health checks: %q", strings.TrimSpace(line))
+		}
+	}
+}
+
+func TestBootstrapPATExpiryIsOneWeekAfterGeneration(t *testing.T) {
+	m := Model{Generated: time.Date(2026, 11, 14, 10, 0, 0, 0, time.FixedZone("CET", 3600))}
+	if got := m.BootstrapPATExpiry(); got != "2026-11-21T09:00:00Z" {
+		t.Errorf("BootstrapPATExpiry() = %q", got)
 	}
 }

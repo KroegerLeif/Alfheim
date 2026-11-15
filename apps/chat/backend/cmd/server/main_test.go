@@ -17,9 +17,9 @@ import (
 	"alfheim/chat/config"
 	"alfheim/chat/internal/features/mcpservers"
 	"alfheim/chat/internal/features/modelblocks"
-	"alfheim/chat/internal/shared/db"
-	"alfheim/chat/internal/shared/middleware"
 	"alfheim/chat/internal/shared/storage"
+	"alfheim/go-shared/auth"
+	"alfheim/go-shared/db"
 )
 
 // TestMain supplies the required ALFHEIM_INTERNAL_TOKEN so tests exercising the
@@ -41,12 +41,12 @@ func TestSetupAuthenticator_FailClosed(t *testing.T) {
 		},
 	}
 
-	auth, err := setupAuthenticator(cfg, log)
+	authenticator, err := setupAuthenticator(t.Context(), cfg, log)
 	if err == nil {
 		t.Errorf("expected error when setting up authenticator with unreachable issuer URL, got nil")
 	}
-	if auth != nil {
-		t.Errorf("expected nil authenticator when setup fails, got %v", auth)
+	if authenticator != nil {
+		t.Errorf("expected nil authenticator when setup fails, got %v", authenticator)
 	}
 }
 
@@ -156,7 +156,7 @@ func TestRun_AuthenticatorError(t *testing.T) {
 	newDBClient = func(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*db.Client, error) {
 		return &db.Client{Pool: nil}, nil
 	}
-	setupAuth = func(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
+	setupAuth = func(_ context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
 		return nil, errors.New("auth setup failed")
 	}
 
@@ -179,8 +179,8 @@ func TestRun_EnsureBootstrapError(t *testing.T) {
 	newDBClient = func(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*db.Client, error) {
 		return &db.Client{Pool: nil}, nil
 	}
-	setupAuth = func(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-		return &middleware.Authenticator{}, nil
+	setupAuth = func(_ context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
+		return &auth.Authenticator{}, nil
 	}
 	ensureBootstrap = func(ctx context.Context, s modelblocks.Service, seed modelblocks.BootstrapSeed) error {
 		return errors.New("simulated bootstrap error")
@@ -193,6 +193,8 @@ func TestRun_EnsureBootstrapError(t *testing.T) {
 }
 
 func TestRun_SeedFromEnvError(t *testing.T) {
+	// The registry is only seeded when CHAT_MCP_SERVERS is present.
+	t.Setenv("CHAT_MCP_SERVERS", "pantry=http://pantry-backend:8000/mcp")
 	origNewDB := newDBClient
 	origSetupAuth := setupAuth
 	origSeedMCPServers := seedMCPServers
@@ -207,8 +209,8 @@ func TestRun_SeedFromEnvError(t *testing.T) {
 	newDBClient = func(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*db.Client, error) {
 		return &db.Client{Pool: nil}, nil
 	}
-	setupAuth = func(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-		return &middleware.Authenticator{}, nil
+	setupAuth = func(_ context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
+		return &auth.Authenticator{}, nil
 	}
 	ensureBootstrap = func(ctx context.Context, s modelblocks.Service, seed modelblocks.BootstrapSeed) error {
 		return nil
@@ -240,8 +242,8 @@ func TestRun_GracefulShutdown_ContextCancel(t *testing.T) {
 	newDBClient = func(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*db.Client, error) {
 		return &db.Client{Pool: nil}, nil
 	}
-	setupAuth = func(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-		return &middleware.Authenticator{}, nil
+	setupAuth = func(_ context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
+		return &auth.Authenticator{}, nil
 	}
 	newStorage = func(ctx context.Context, cfg config.StorageConfig) (storage.Client, error) {
 		return nil, errors.New("storage warning test")
@@ -302,8 +304,8 @@ func TestRun_GracefulShutdown_Signal(t *testing.T) {
 	newDBClient = func(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*db.Client, error) {
 		return &db.Client{Pool: nil}, nil
 	}
-	setupAuth = func(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-		return &middleware.Authenticator{}, nil
+	setupAuth = func(_ context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
+		return &auth.Authenticator{}, nil
 	}
 	// Mocked so startup doesn't block on the real AWS SDK's default credential
 	// chain resolution (e.g. IMDS probing), which would otherwise race with —

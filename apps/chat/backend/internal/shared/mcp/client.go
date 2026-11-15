@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -35,11 +36,18 @@ type Client struct {
 	cachedToolsAt time.Time
 }
 
+// connectTimeout bounds dialing an MCP server. An app that is disabled or
+// stopped must make its tools unavailable quickly instead of stalling the
+// chat turn for the full request timeout.
+const connectTimeout = 2 * time.Second
+
 // NewClient constructs a Client for a single MCP server's Streamable HTTP endpoint.
 func NewClient(endpointURL string) *Client {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DialContext = (&net.Dialer{Timeout: connectTimeout, KeepAlive: 30 * time.Second}).DialContext
 	return &Client{
 		endpointURL: endpointURL,
-		httpClient:  &http.Client{Timeout: 30 * time.Second},
+		httpClient:  &http.Client{Timeout: 30 * time.Second, Transport: transport},
 	}
 }
 

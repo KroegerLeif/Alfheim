@@ -1,9 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { isNetworkError } from 'ky'
 import { getRequestErrorMessage, subscribeHouseholdErrors } from '@alfheim/shared'
 import { LEGACY_ACCESS_TOKEN_KEY } from '@alfheim/shared'
 import { maintenanceClient, shoppingClient } from '../api'
 import { createDevice, getDevices } from '@/features/devices/api/devicesApi'
+
+/** The request the shared client passed to `fetch` as (url, init), as a `Request`. */
+function toRequest(call: unknown[]): Request {
+  return new Request(String(call[0]), call[1] as RequestInit)
+}
 
 function jsonResponse(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -25,14 +29,14 @@ describe('maintenanceClient household context', () => {
   it('sends X-Household-ID for the active household and never X-Household-Role', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-7')
     await maintenanceClient.get('devices').json()
-    const request = fetchSpy.mock.calls[0][0] as Request
+    const request = toRequest(fetchSpy.mock.calls[0])
     expect(request.headers.get('X-Household-ID')).toBe('hh-7')
     expect(request.headers.get('X-Household-Role')).toBeNull()
   })
 
   it('omits the header when no household is active', async () => {
     await maintenanceClient.get('devices').json()
-    const request = fetchSpy.mock.calls[0][0] as Request
+    const request = toRequest(fetchSpy.mock.calls[0])
     expect(request.headers.get('X-Household-ID')).toBeNull()
   })
 
@@ -45,7 +49,7 @@ describe('maintenanceClient household context', () => {
     await expect(maintenanceClient.get('devices').json()).resolves.toEqual([{ id: 1 }])
 
     expect(refresh).toHaveBeenCalledTimes(1)
-    expect((fetchSpy.mock.calls[1][0] as Request).headers.get('Authorization')).toBe('Bearer fresh-token')
+    expect(toRequest(fetchSpy.mock.calls[1]).headers.get('Authorization')).toBe('Bearer fresh-token')
     delete window.__alfheim_oidc__
   })
 
@@ -68,24 +72,24 @@ describe('maintenanceClient household context', () => {
   it('scopes device reads by header only (no household_id param, no /households call)', async () => {
     localStorage.setItem('alfheim_active_household_id', '33333333-3333-4333-a333-333333333333')
     await getDevices()
-    const request = fetchSpy.mock.calls[0][0] as Request
+    const request = toRequest(fetchSpy.mock.calls[0])
     expect(new URL(request.url).searchParams.has('household_id')).toBe(false)
     expect(request.headers.get('X-Household-ID')).toBe('33333333-3333-4333-a333-333333333333')
-    expect(fetchSpy.mock.calls.some((c) => String((c[0] as Request).url).includes('/households'))).toBe(false)
+    expect(fetchSpy.mock.calls.some((c) => String(String(c[0])).includes('/households'))).toBe(false)
   })
 
   it('creates a device in the chosen household via an explicit X-Household-ID', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-active')
     let body: unknown
-    fetchSpy.mockImplementation(async (req: Request) => {
-      body = await req.clone().json()
+    fetchSpy.mockImplementation(async (_url: string, init: RequestInit) => {
+      body = JSON.parse(init.body as string)
       return jsonResponse(200, { id: 1 })
     })
     await createDevice(
       { name: 'n', model: 'm', serial: 's', category: 'c', location: 'l', status: 'active', steps: [] },
       'hh-target',
     )
-    const request = fetchSpy.mock.calls[0][0] as Request
+    const request = toRequest(fetchSpy.mock.calls[0])
     expect(request.headers.get('X-Household-ID')).toBe('hh-target')
     expect(body).toMatchObject({ name: 'n' })
     expect(body).not.toHaveProperty('household_id')
@@ -107,8 +111,8 @@ describe('shoppingClient', () => {
   })
 
   it('targets the shopping app on the frontend origin and never the maintenance API', async () => {
-    await shoppingClient.post('shopping/items', { json: { name: 'Filter' } }).json()
-    const request = fetchSpy.mock.calls[0][0] as Request
+    await shoppingClient.post('shopping/items', { name: 'Filter' }).json()
+    const request = toRequest(fetchSpy.mock.calls[0])
     const url = new URL(request.url)
     expect(url.origin).toBe(window.location.origin)
     expect(url.pathname).toBe('/shopping/api/v1/shopping/items')
@@ -117,8 +121,8 @@ describe('shoppingClient', () => {
   it('sends the bearer token and the active household', async () => {
     sessionStorage.setItem(LEGACY_ACCESS_TOKEN_KEY, 'abc')
     localStorage.setItem('alfheim_active_household_id', 'hh-9')
-    await shoppingClient.post('shopping/items', { json: { name: 'Filter' } }).json()
-    const request = fetchSpy.mock.calls[0][0] as Request
+    await shoppingClient.post('shopping/items', { name: 'Filter' }).json()
+    const request = toRequest(fetchSpy.mock.calls[0])
     expect(request.headers.get('Authorization')).toBe('Bearer abc')
     expect(request.headers.get('X-Household-ID')).toBe('hh-9')
   })
@@ -127,7 +131,7 @@ describe('shoppingClient', () => {
     fetchSpy.mockImplementation(async () =>
       jsonResponse(403, { detail: { code: 'household_role_forbidden', message: 'Read only' } }),
     )
-    await expect(shoppingClient.post('shopping/items', { json: {} }).json()).rejects.toMatchObject({
+    await expect(shoppingClient.post('shopping/items', {}).json()).rejects.toMatchObject({
       status: 403,
       code: 'household_role_forbidden',
     })
@@ -143,17 +147,17 @@ describe('maintenanceClient network failures', () => {
     vi.unstubAllGlobals()
   })
 
-  it('rejects with a NetworkError instead of a normalized API error', async () => {
+  it('rejects with the browser error instead of a normalized API error', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-7')
-    const error = await maintenanceClient.get('devices', { retry: 0 }).json().catch((err: unknown) => err)
-    expect(isNetworkError(error)).toBe(true)
+    const error = await maintenanceClient.get('devices').json().catch((err: unknown) => err)
+    expect(error).toBeInstanceOf(TypeError)
     expect(error).not.toHaveProperty('status')
     expect(error).not.toHaveProperty('code')
   })
 
   it('keeps the browser message for text shown to the user', async () => {
     localStorage.setItem('alfheim_active_household_id', 'hh-7')
-    const error = await maintenanceClient.get('devices', { retry: 0 }).json().catch((err: unknown) => err)
+    const error = await maintenanceClient.get('devices').json().catch((err: unknown) => err)
     expect(getRequestErrorMessage(error)).toBe('Failed to fetch')
   })
 })

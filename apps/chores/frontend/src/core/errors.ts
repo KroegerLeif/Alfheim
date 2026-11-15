@@ -1,9 +1,9 @@
 import { getRequestErrorMessage } from "@alfheim/shared";
 
 /**
- * Message to show for a failed request. API failures are thrown as plain `{ status, code, message }`
- * objects (see `core/api.ts`), so this accepts anything with a non-empty string `message` and uses
- * the already localized `fallback` otherwise.
+ * Message to show for a failed request. API failures are thrown as `ApiError` (an `Error` with
+ * `status` and `code`, see `core/api.ts`); this accepts anything with a non-empty string `message`
+ * and uses the already localized `fallback` otherwise.
  */
 export function errorMessage(err: unknown, fallback: string): string {
   if (err instanceof Error) {

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"alfheim/installer/internal/features/templating"
 	"alfheim/installer/internal/features/updater"
 	"alfheim/installer/internal/shared/assets"
 	"alfheim/installer/internal/shared/envfile"
@@ -86,6 +87,22 @@ func planEnvRepairs(env map[string]string, detect func() (string, error)) ([]env
 	return repairs, warnings
 }
 
+// bootstrapPATExpiryKey is read by compose.prod.yaml as the expiry of the
+// PAT Zitadel creates on first init. Installs rendered before issue #789
+// lack it, and the updated compose file refuses to start without it.
+const bootstrapPATExpiryKey = "ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE"
+
+// bootstrapPATExpiryRepair adds the bootstrap PAT expiry when it is missing.
+// An existing Zitadel instance ignores it (first-instance settings only apply
+// when the instance is created), so a present value is never touched.
+func bootstrapPATExpiryRepair(env map[string]string, now time.Time) (envRepair, bool) {
+	if strings.TrimSpace(env[bootstrapPATExpiryKey]) != "" {
+		return envRepair{}, false
+	}
+	expiry := now.Add(templating.BootstrapPATLifetime).UTC().Format(time.RFC3339)
+	return envRepair{bootstrapPATExpiryKey, env[bootstrapPATExpiryKey], expiry}, true
+}
+
 // repairEnvFile fixes known-broken values in an existing .env, logging every
 // change. The file is backed up first (into the same timestamped directory as
 // the stack files) and keeps its mode. It returns warnings for values it
@@ -95,6 +112,9 @@ func repairEnvFile(
 	detectGID func() (string, error),
 ) ([]string, error) {
 	repairs, warnings := planEnvRepairs(env, detectGID)
+	if r, ok := bootstrapPATExpiryRepair(env, now); ok {
+		repairs = append(repairs, r)
+	}
 	if len(repairs) == 0 {
 		return warnings, nil
 	}

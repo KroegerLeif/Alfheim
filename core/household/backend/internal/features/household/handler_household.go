@@ -7,13 +7,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"alfheim/go-shared/auth"
 	"alfheim/household/internal/shared/httpjson"
-	"alfheim/household/internal/shared/middleware"
 )
 
 // CreateHousehold handles POST /api/v1/households.
 func (h *Handler) CreateHousehold(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -44,7 +44,7 @@ func (h *Handler) CreateHousehold(w http.ResponseWriter, r *http.Request) {
 
 // GetMyHouseholds handles GET /api/v1/households/me.
 func (h *Handler) GetMyHouseholds(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -61,7 +61,7 @@ func (h *Handler) GetMyHouseholds(w http.ResponseWriter, r *http.Request) {
 
 // GetHouseholdDetails handles GET /api/v1/households/{id}.
 func (h *Handler) GetHouseholdDetails(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -92,7 +92,7 @@ func (h *Handler) GetHouseholdDetails(w http.ResponseWriter, r *http.Request) {
 
 // RenameHousehold handles PATCH /api/v1/households/{id} (OWNER/ADMIN).
 func (h *Handler) RenameHousehold(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -114,7 +114,7 @@ func (h *Handler) RenameHousehold(w http.ResponseWriter, r *http.Request) {
 
 // DeleteHousehold handles DELETE /api/v1/households/{id} (OWNER only).
 func (h *Handler) DeleteHousehold(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return
@@ -129,7 +129,7 @@ func (h *Handler) DeleteHousehold(w http.ResponseWriter, r *http.Request) {
 
 // UpdateHouseholdAddress handles PUT /api/v1/households/{id}/address.
 func (h *Handler) UpdateHouseholdAddress(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		httpjson.WriteUnauthorized(w)
 		return

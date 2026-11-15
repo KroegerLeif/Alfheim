@@ -23,7 +23,7 @@ export function json(status: number, body?: unknown): Response {
  * Replaces `fetch` with an in-memory API. Routes are keyed `"METHOD /full/path"` (for example
  * `"GET /pantry/api/v1/products"`); a handler returns a `Response` (see `json`) or a plain value that is
  * sent as a 200 JSON body. Unmatched requests fail the test loudly instead of hitting the network.
- * The real ky client, hooks and error handling run on top of it.
+ * The real shared API client, session and error handling run on top of it.
  */
 export function mockApi(routes: Record<string, Handler | unknown>) {
   const calls: RecordedCall[] = []

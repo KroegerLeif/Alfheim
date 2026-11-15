@@ -63,7 +63,20 @@ Orchestrates platform startup in ordered dependency stages to prevent race condi
 | :--- | :--- |
 | `-b`, `--build` | Force Docker image rebuild before starting containers |
 | `--skip-obs` | Skip the VictoriaStack observability stage |
+| `--lean` | Start the Lean Core only: infrastructure, dashboard and household, no optional app and no telemetry |
+| `--apps=LIST` | Start the Lean Core plus the comma-separated modules in `LIST`, for example `--apps=pantry,shopping,telemetry`. Telemetry starts only when listed. Unknown names and `shopping` without `pantry` are rejected |
 | `-h`, `--help` | Print the usage summary |
+
+Without `--lean` or `--apps`, every app and the observability stack start, as
+before. With either flag, `up.sh` exports `COMPOSE_PROFILES` for its compose
+calls and skips the stage of every app that is off. One stage per app is
+derived from the `OPTIONAL_APPS` array in the script. The split between the
+Lean Core and the optional modules is recorded in
+[ADR 0007](../explanation/decisions/0007-lean-core-app-set.md).
+
+`./scripts/verify-stack.sh` checks the routes of the core apps always and the
+route of an optional app (or `/grafana`) only when its container runs; it
+lists the routes it skipped, so it passes after `./scripts/up.sh --lean`.
 
 Stage 1 boots `postgres-core → zitadel → rustfs → caddy` and then provisions
 the Zitadel project and every OIDC client (dashboard, every app frontend,
@@ -105,20 +118,29 @@ reconciliation logic with a production install
 shell script.
 
 Zitadel has no admin CLI, so this drives the Management API through Caddy. It
-authenticates with the personal access token that Zitadel writes to
+authenticates with a short-lived access token from the machine key in
+`infrastructure/zitadel/provisioner/machine-key.json` next to the `.env`, and
+rotates that key on every run. Only when no key works yet does it need
+`--pat-file`: the personal access token Zitadel writes to
 `/machinekey/pat.txt` while creating its first instance
-(`ZITADEL_FIRSTINSTANCE_PATPATH`). In the development stack that path is the
-`zitadel_machinekey` Docker volume; `scripts/up.sh` copies the file out with
-`docker compose cp` into a private temp file and also stores the PAT in `.env`
-(`ZITADEL_BOOTSTRAP_PAT`), so a later run against an already-initialised
-Zitadel still has it even if the volume is gone. A production install keeps
-the installer's bind mount at `infrastructure/zitadel/machinekey/`. A Zitadel client id
+(`ZITADEL_FIRSTINSTANCE_PATPATH`). That run stores the key and revokes every
+PAT of the machine user, so the PAT works exactly once. In the development
+stack the PAT lives in the `zitadel_machinekey` Docker volume;
+`scripts/up.sh` copies it out with `docker compose cp` into a private temp
+file, and passes `--pat-file` only when it found one. See
+[Zitadel credential](installer-cli.md#zitadel-credential). A Zitadel client id
 is generated rather than chosen, and a client secret is returned exactly
 once, so `.env` — not Zitadel — is the source of truth for the secret; a
 missing or mismatched one is repaired by regenerating it.
 
 ### Usage Syntax
 ```bash
+# With a stored machine key (every run after the first)
+go run ./tools/installer/cmd/alfheim-setup provision \
+  --env-file .env \
+  --zitadel-url http://127.0.0.1:80
+
+# First run, or recovery after the key expired
 docker compose cp zitadel:/machinekey/pat.txt ./pat.txt   # development stack
 go run ./tools/installer/cmd/alfheim-setup provision \
   --env-file .env \
@@ -131,15 +153,16 @@ rm ./pat.txt
 | Flag | Description |
 | :--- | :--- |
 | `--env-file` | The `.env` to read and update in place |
-| `--pat-file` | The Zitadel bootstrap machine user's personal access token file |
+| `--pat-file` | A personal access token of the provisioning machine user. Optional: needed only when no working machine key is stored yet (first run, or recovery). The run revokes it. |
 | `--zitadel-url` | Caddy's plain-HTTP listener, used only when `ZITADEL_EXTERNALSECURE` is not `true` (default `http://127.0.0.1:80`) |
 | `--zitadel-tls-addr` | Caddy's HTTPS listener for a secure install; requests name `https://<ZITADEL_EXTERNALDOMAIN>` but are always dialled here (default `127.0.0.1:443`) |
 | `--ca-file` | Root CA trusted in addition to the system roots (default `infrastructure/ca/alfheim-root-ca.crt` next to the `.env`, when present) |
 
-> The PAT file is only written while the *first* instance is created. If the
-> Zitadel database survives but the file is gone, `ZITADEL_BOOTSTRAP_PAT` in
-> `.env` is used instead; if neither is available, reset the local IAM state
-> with `./scripts/down.sh --volumes` and boot again.
+> The PAT file is only written while the *first* instance is created, and the
+> first provisioning run revokes it. If the machine key is lost or expired,
+> create a short-lived PAT for the machine user in the Zitadel console and pass
+> it with `--pat-file`, or reset the local IAM state as described in
+> [Getting started](../tutorials/local-getting-started.md) and boot again.
 
 ---
 

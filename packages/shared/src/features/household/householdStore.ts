@@ -72,8 +72,9 @@ export function setActiveHouseholdId(id: string | null): void {
   try {
     if (id) localStorage.setItem(ACTIVE_HOUSEHOLD_STORAGE_KEY, id);
     else localStorage.removeItem(ACTIVE_HOUSEHOLD_STORAGE_KEY);
-  } catch {
+  } catch (error) {
     // Storage unavailable (private mode / quota): listeners still re-read.
+    console.warn('Cannot store the active household in localStorage:', error);
   }
   dispatchHouseholdChanged();
 }
@@ -234,8 +235,9 @@ export function writeCachedHouseholds(households: Household[]): void {
     const serialized = JSON.stringify(households);
     localStorage.setItem(HOUSEHOLDS_CACHE_KEY, serialized);
     localStorage.setItem(LEGACY_HOUSEHOLDS_CACHE_KEY, serialized);
-  } catch {
-    // Ignore storage quota errors
+  } catch (error) {
+    // The cache only speeds up the next load; a full or blocked storage is not fatal.
+    console.warn('Cannot cache the households in localStorage:', error);
   }
 }
 

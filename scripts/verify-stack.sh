@@ -4,8 +4,10 @@
 # ==============================================================================
 # Checks a *running* Alfheim stack end to end: every Compose service reports
 # healthy (or, absent a healthcheck, running), Caddy answers its healthcheck,
-# the OIDC discovery document names the configured issuer, every app route
-# resolves through the ingress gateway without a 5xx, the /internal/* surface
+# the OIDC discovery document names the configured issuer, the route of every
+# running app resolves through the ingress gateway without a 5xx (apps that are
+# not running, such as optional apps left out of a Lean Core install, are
+# skipped and listed), the /internal/* surface
 # is unreachable from the outside, and the household API rejects a request
 # with no bearer token.
 #
@@ -212,19 +214,34 @@ echo ""
 # 4. Every app route resolves through the gateway without a 5xx.
 # ------------------------------------------------------------------------------
 log_info "Checking app routes..."
-ROUTES=(
-  "/"
-  "/household"
-  "/pantry"
-  "/shopping"
-  "/maintenance"
-  "/chores"
-  "/budget"
-  "/workout"
-  "/chat"
-  "/library"
-  "/grafana"
+# Core routes are always checked. An optional route is checked only when the
+# container serving it runs: optional apps and telemetry are compose profiles
+# (docs/en/explanation/decisions/0007-lean-core-app-set.md) and may be off.
+ROUTES=("/" "/household")
+OPTIONAL_ROUTES=(
+  "/pantry:pantry-frontend"
+  "/shopping:shopping-frontend"
+  "/maintenance:maintenance-frontend"
+  "/chores:chores-frontend"
+  "/budget:budget-frontend"
+  "/workout:workout-frontend"
+  "/chat:chat-frontend"
+  "/library:library-frontend"
+  "/grafana:grafana"
 )
+SKIPPED=()
+for entry in "${OPTIONAL_ROUTES[@]}"; do
+  route="${entry%%:*}"
+  service="${entry#*:}"
+  if grep -q "^${service}"$'\trunning' <<< "${services}"; then
+    ROUTES+=("${route}")
+  else
+    SKIPPED+=("${route}")
+  fi
+done
+if [[ ${#SKIPPED[@]} -gt 0 ]]; then
+  log_warn "Skipped routes of apps that are not running: ${SKIPPED[*]}"
+fi
 for route in "${ROUTES[@]}"; do
   code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_TLS[@]+"${CURL_TLS[@]}"} "${BASE_URL}${route}" 2>/dev/null || true)"
   if [[ "${code}" =~ ^[0-9]+$ ]] && [[ "${code}" -ge 200 ]] && [[ "${code}" -lt 500 ]]; then

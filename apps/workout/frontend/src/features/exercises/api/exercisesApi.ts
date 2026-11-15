@@ -9,7 +9,7 @@ import type {
   UserExercisePreferenceUpsert,
 } from "../types";
 
-const RESOURCE = "api/v1/exercises";
+const RESOURCE = "exercises";
 
 /**
  * Raw HTTP calls for the exercises resource.
@@ -37,11 +37,11 @@ export const exercisesApi = {
   },
 
   create(payload: ExerciseCreate): Promise<ExerciseRead> {
-    return workoutClient.post(RESOURCE, { json: payload }).json<ExerciseRead>();
+    return workoutClient.post(RESOURCE, payload).json<ExerciseRead>();
   },
 
   update(id: string, payload: ExerciseUpdate): Promise<ExerciseRead> {
-    return workoutClient.patch(`${RESOURCE}/${id}`, { json: payload }).json<ExerciseRead>();
+    return workoutClient.patch(`${RESOURCE}/${id}`, payload).json<ExerciseRead>();
   },
 
   async remove(id: string): Promise<void> {
@@ -58,7 +58,7 @@ export const exercisesApi = {
     payload: UserExercisePreferenceUpsert
   ): Promise<UserExercisePreferenceRead> {
     return workoutClient
-      .put(`${RESOURCE}/${id}/preference`, { json: payload })
+      .put(`${RESOURCE}/${id}/preference`, payload)
       .json<UserExercisePreferenceRead>();
   },
 

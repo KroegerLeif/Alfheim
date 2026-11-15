@@ -19,16 +19,28 @@ import (
 // with self-registration enabled like a fresh Zitadel, and the organisation
 // policy that inherits it.
 type loginPolicyStub struct {
+	// creds answers the machine key rotation every run starts with.
+	creds        *credentialStub
 	mu           sync.Mutex
 	registerOpen bool
 	puts         int
+	// mail fakes the e-mail provider endpoints, see smtp_test.go.
+	mail emailStub
 }
 
-func newLoginPolicyStub() *loginPolicyStub { return &loginPolicyStub{registerOpen: true} }
+func newLoginPolicyStub() *loginPolicyStub {
+	return &loginPolicyStub{creds: newCredentialStub(), registerOpen: true}
+}
 
 // handle answers a login policy request and reports whether it did.
 func (l *loginPolicyStub) handle(w http.ResponseWriter, r *http.Request) bool {
+	if l.creds.handle(w, r) {
+		return true
+	}
 	if handleOperatorAccess(w, r) {
+		return true
+	}
+	if l.handleEmail(w, r) {
 		return true
 	}
 	if r.URL.Path != "/admin/v1/policies/login" && r.URL.Path != "/management/v1/policies/login" {
@@ -41,12 +53,13 @@ func (l *loginPolicyStub) handle(w http.ResponseWriter, r *http.Request) bool {
 		var body map[string]any
 		_ = json.NewDecoder(r.Body).Decode(&body)
 		l.registerOpen, _ = body["allowRegister"].(bool)
+		l.mail.resetHidden, _ = body["hidePasswordReset"].(bool)
 		l.puts++
 		_ = json.NewEncoder(w).Encode(map[string]any{})
 		return true
 	}
 	_ = json.NewEncoder(w).Encode(map[string]any{"policy": map[string]any{
-		"allowRegister": l.registerOpen, "isDefault": true,
+		"allowRegister": l.registerOpen, "isDefault": true, "hidePasswordReset": l.mail.resetHidden,
 	}})
 	return true
 }
@@ -128,12 +141,19 @@ func TestRunProvision_Succeeds(t *testing.T) {
 
 	var stdout, stderr bytes.Buffer
 	code := RunProvision([]string{
-		"--env-file", envPath, "--pat-file", patPath, "--zitadel-tls-addr", addr,
+		"--env-file", envPath, "--pat-file", patPath, "--zitadel-tls-addr", addr, "--telemetry",
 	}, &stdout, &stderr)
 	if code != ExitOK {
 		t.Fatalf("RunProvision() = %d, want %d; stderr=%s", code, ExitOK, stderr.String())
 	}
 	assertProvisionedEnv(t, envPath)
+	vars, err := envfile.ParseFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if vars["OTEL_ENABLED"] != "true" {
+		t.Errorf("OTEL_ENABLED = %q, want --telemetry to persist true", vars["OTEL_ENABLED"])
+	}
 	if policy.registrationOpen() {
 		t.Error("self-registration is still enabled after RunProvision")
 	}
@@ -148,6 +168,10 @@ func TestRunProvision_LegacyInsecureEnv(t *testing.T) {
 
 	dir := t.TempDir()
 	envPath := writeProvisionEnv(t, dir, "false")
+	// Telemetry already on in .env: no flag is needed to keep Grafana provisioned.
+	if err := envfile.Update(envPath, map[string]string{"OTEL_ENABLED": "true"}); err != nil {
+		t.Fatal(err)
+	}
 	patPath := filepath.Join(dir, "pat.txt")
 	if err := os.WriteFile(patPath, []byte("test-pat\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -163,6 +187,58 @@ func TestRunProvision_LegacyInsecureEnv(t *testing.T) {
 	assertProvisionedEnv(t, envPath)
 	if policy.registrationOpen() {
 		t.Error("self-registration is still enabled after RunProvision")
+	}
+}
+
+// TestRunProvision_TelemetryOff covers the Lean Core default and an explicit
+// --telemetry=false: the Grafana client is skipped and an earlier Grafana
+// credential in .env survives for a later re-enable.
+func TestRunProvision_TelemetryOff(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		args     []string
+		wantOTEL string
+	}{
+		{"missing OTEL_ENABLED means off", nil, ""},
+		{"explicit --telemetry=false", []string{"--telemetry=false"}, "false"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			policy := newLoginPolicyStub()
+			srv := httptest.NewServer(zitadelStub(t, policy))
+			defer srv.Close()
+
+			dir := t.TempDir()
+			envPath := writeProvisionEnv(t, dir, "false")
+			if err := envfile.Update(envPath, map[string]string{"GRAFANA_OIDC_CLIENT_SECRET": "kept"}); err != nil {
+				t.Fatal(err)
+			}
+			patPath := filepath.Join(dir, "pat.txt")
+			if err := os.WriteFile(patPath, []byte("test-pat\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+
+			var stdout, stderr bytes.Buffer
+			args := append([]string{"--env-file", envPath, "--pat-file", patPath, "--zitadel-url", srv.URL}, tc.args...)
+			if code := RunProvision(args, &stdout, &stderr); code != ExitOK {
+				t.Fatalf("RunProvision() = %d, want %d; stderr=%s", code, ExitOK, stderr.String())
+			}
+			vars, err := envfile.ParseFile(envPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if vars["GRAFANA_OIDC_CLIENT_SECRET"] != "kept" {
+				t.Errorf("GRAFANA_OIDC_CLIENT_SECRET = %q, want the earlier value kept", vars["GRAFANA_OIDC_CLIENT_SECRET"])
+			}
+			if vars["OTEL_ENABLED"] != tc.wantOTEL {
+				t.Errorf("OTEL_ENABLED = %q, want %q", vars["OTEL_ENABLED"], tc.wantOTEL)
+			}
+			if vars["ALFHEIM_WEB_CLIENT_ID"] != "web-client" {
+				t.Errorf("ALFHEIM_WEB_CLIENT_ID = %q", vars["ALFHEIM_WEB_CLIENT_ID"])
+			}
+			if !strings.Contains(stdout.String(), "Grafana client was skipped") {
+				t.Errorf("stdout = %q, want the skip notice", stdout.String())
+			}
+		})
 	}
 }
 
@@ -215,13 +291,13 @@ func assertProvisionedEnv(t *testing.T, envPath string) {
 	}
 }
 
-func TestRunProvision_RequiresBothFlags(t *testing.T) {
+func TestRunProvision_RequiresEnvFile(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	code := RunProvision([]string{"--env-file", "/tmp/x"}, &stdout, &stderr)
+	code := RunProvision([]string{"--pat-file", "/tmp/x"}, &stdout, &stderr)
 	if code != ExitUsage {
 		t.Fatalf("RunProvision() = %d, want %d", code, ExitUsage)
 	}
-	if !strings.Contains(stderr.String(), "--pat-file") {
+	if !strings.Contains(stderr.String(), "--env-file") {
 		t.Errorf("stderr = %q", stderr.String())
 	}
 }

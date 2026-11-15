@@ -11,7 +11,7 @@ export function useCategories() {
   const { householdId, status } = useActiveHousehold();
   return useQuery<CategoryRead[]>({
     queryKey: ["categories", { householdId }],
-    queryFn: () => fetchAllPages<CategoryRead>("api/v1/categories"),
+    queryFn: () => fetchAllPages<CategoryRead>("categories"),
     enabled: status === "ready",
   });
 }
@@ -25,7 +25,7 @@ export function useCreateCategory() {
   return useMutation<CategoryRead, Error, CategoryCreate>({
     mutationFn: (payload) =>
       pantryClient
-        .post("api/v1/categories", { json: payload })
+        .post("categories", payload)
         .json<CategoryRead>(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
@@ -42,7 +42,7 @@ export function useUpdateCategory() {
   return useMutation<CategoryRead, Error, { id: string; payload: CategoryUpdate }>({
     mutationFn: ({ id, payload }) =>
       pantryClient
-        .patch(`api/v1/categories/${id}`, { json: payload })
+        .patch(`categories/${id}`, payload)
         .json<CategoryRead>(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
@@ -59,7 +59,7 @@ export function useDeleteCategory() {
 
   return useMutation<void, Error, string>({
     mutationFn: async (id) => {
-      await pantryClient.delete(`api/v1/categories/${id}`);
+      await pantryClient.delete(`categories/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });

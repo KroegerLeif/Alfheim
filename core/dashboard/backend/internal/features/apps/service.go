@@ -21,14 +21,18 @@ type Service interface {
 type service struct {
 	repo        Repository
 	stackLoader StackAppsLoader
+	coreApps    []AppItem
 	log         *slog.Logger
 }
 
-// NewService initializes 3-tier app service.
-func NewService(repo Repository, stackLoader StackAppsLoader, log *slog.Logger) Service {
+// NewService initializes 3-tier app service. coreApps is the Tier-1 registry
+// already filtered by the installation's enabled apps (see EnabledCoreApps),
+// so a disabled app never gets a tile.
+func NewService(repo Repository, stackLoader StackAppsLoader, coreApps []AppItem, log *slog.Logger) Service {
 	return &service{
 		repo:        repo,
 		stackLoader: stackLoader,
+		coreApps:    coreApps,
 		log:         log,
 	}
 }
@@ -51,9 +55,9 @@ func (s *service) GetDashboardApps(ctx context.Context, userID string, userRoles
 
 	// 2. Resolve Tier 1 Core Apps
 	visibleCore := make([]AppItem, 0)
-	allCore := make([]AppItem, 0, len(CoreApps))
+	allCore := make([]AppItem, 0, len(s.coreApps))
 
-	for _, app := range CoreApps {
+	for _, app := range s.coreApps {
 		appCopy := app
 		isHidden := hiddenMap[strings.ToLower(app.ID)] || hiddenMap[strings.ToLower(app.Slug)]
 		appCopy.IsHidden = isHidden

@@ -393,3 +393,45 @@ func TestService_SeedFromEnv_SkipsEmptyEntries(t *testing.T) {
 		t.Errorf("expected 1 server, got %d", len(list))
 	}
 }
+
+// A registry row stays stored when its app is disabled, but only the apps in
+// the current CHAT_MCP_SERVERS spec offer tools (#864).
+func TestService_ListEnabledServers_FollowsSeededSpec(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeRepository()
+	svc := newTestService(repo)
+
+	if err := svc.SeedFromEnv(ctx, "pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// A restart with chores disabled renders a spec without it.
+	restarted := newTestService(repo)
+	if err := restarted.SeedFromEnv(ctx, "pantry=http://pantry-backend:8000/mcp"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	refs, err := restarted.ListEnabledServers(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(refs) != 1 || refs[0].Slug != "pantry" {
+		t.Errorf("expected only pantry, got %+v", refs)
+	}
+	if all, _ := restarted.List(ctx); len(all) != 2 {
+		t.Errorf("the chores row must stay stored, got %d rows", len(all))
+	}
+
+	// An empty spec (no tool app installed) offers no tools at all.
+	lean := newTestService(repo)
+	if err := lean.SeedFromEnv(ctx, ""); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if refs, _ := lean.ListEnabledServers(ctx); len(refs) != 0 {
+		t.Errorf("expected no servers for an empty spec, got %+v", refs)
+	}
+
+	// Without any spec applied, every enabled row is used.
+	if refs, _ := newTestService(repo).ListEnabledServers(ctx); len(refs) != 2 {
+		t.Errorf("expected both rows without a spec, got %+v", refs)
+	}
+}

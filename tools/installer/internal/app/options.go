@@ -9,8 +9,11 @@ import (
 	"os"
 	"strings"
 
+	"alfheim/installer/internal/features/apps"
 	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
+	"alfheim/installer/internal/features/smtp"
+	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/features/tls"
 )
 
@@ -39,9 +42,22 @@ type Options struct {
 	CertPath    string
 	ImageTag    string
 
+	// Apps is the optional app selection: "all", "none" or a comma-separated
+	// list of app names (ALFHEIM_APPS). Empty keeps the stored set, or the
+	// Lean Core on a fresh install.
+	Apps string
+
 	// DataPaths are host directories for persistent data, keyed by the .env
 	// variable (ALFHEIM_DB_DATA_PATH, ...). Empty keeps the named volume.
 	DataPaths datapaths.Paths
+
+	// SocialLogin are the optional social login credentials from flags and
+	// the environment. Empty values keep what .env already holds.
+	SocialLogin sociallogin.Settings
+
+	// SMTP is the optional mail server for Zitadel from flags and the
+	// environment. Empty values keep what .env already holds.
+	SMTP smtp.Settings
 }
 
 // usage is printed for -h and on a usage error.
@@ -50,6 +66,7 @@ const usage = `alfheim-setup - interactive installer for Alfheim Sovereign OS
 Usage:
   alfheim-setup [flags]
   alfheim-setup update [--version vX.Y.Z] [--install-dir DIR] [--yes]
+  alfheim-setup apps list|enable <name>|disable <name> [--install-dir DIR]
 
 Run without arguments for a first install, or a plain re-run (Day-2: pulls
 images and restarts with the configuration already on disk). Run
@@ -74,6 +91,12 @@ Headless answers (each also readable from the environment):
   --cert-path DIR      ALFHEIM_CERT_PATH      Absolute path holding fullchain.pem and privkey.pem
   --image-tag TAG      ALFHEIM_IMAGE_TAG      Container image tag (default: latest)
 
+App selection (default on a fresh install: the Lean Core, dashboard and
+household only; a re-run keeps the stored set):
+  --apps LIST          ALFHEIM_APPS           all | none | comma-separated apps,
+                       e.g. pantry,shopping,telemetry. Change it later with
+                       "alfheim-setup apps enable|disable".
+
 Data locations (optional; absolute host paths, default: Docker named volumes).
 The installer creates each directory with the owner its container needs and
 fails if it is not writable. An earlier choice in .env is kept on a re-run.
@@ -81,6 +104,31 @@ fails if it is not writable. An earlier choice in .env is kept on a re-run.
   --object-data-path DIR   ALFHEIM_OBJECT_DATA_PATH   RustFS object storage (owner 10001)
   --metrics-data-path DIR  ALFHEIM_METRICS_DATA_PATH  VictoriaMetrics data
   --logs-data-path DIR     ALFHEIM_LOGS_DATA_PATH     VictoriaLogs data
+
+External sign-in (optional, off by default; see docs/en/how-to/social-login.md).
+An earlier choice in .env is kept on a re-run:
+  --google-client-id ID    ALFHEIM_GOOGLE_CLIENT_ID      Google OAuth client id
+                           ALFHEIM_GOOGLE_CLIENT_SECRET  Google client secret
+                           (environment only, never a flag)
+  --apple-client-id ID     ALFHEIM_APPLE_CLIENT_ID       Apple Services ID
+  --apple-team-id ID       ALFHEIM_APPLE_TEAM_ID         Apple Team ID
+  --apple-key-id ID        ALFHEIM_APPLE_KEY_ID          Apple Key ID
+  --apple-private-key-file PATH
+                           ALFHEIM_APPLE_PRIVATE_KEY_FILE
+                           Absolute path of the .p8 key; mode 0600 required
+
+E-mail (optional, off by default; see docs/en/how-to/configure-smtp.md). Without
+it Zitadel cannot send password resets, invitations or e-mail verification.
+An earlier choice in .env is kept on a re-run:
+  --smtp-host HOST         ALFHEIM_SMTP_HOST             SMTP server host name
+  --smtp-port PORT         ALFHEIM_SMTP_PORT             default 587
+  --smtp-user USER         ALFHEIM_SMTP_USER             empty: no authentication
+                           ALFHEIM_SMTP_PASSWORD         SMTP password
+                           (environment only, never a flag)
+  --smtp-sender-address ADDR
+                           ALFHEIM_SMTP_SENDER_ADDRESS   From address
+  --smtp-sender-name NAME  ALFHEIM_SMTP_SENDER_NAME      default Alfheim
+  --smtp-tls BOOL          ALFHEIM_SMTP_TLS              default true (TLS or STARTTLS)
 
 Exit codes:
   0 success   1 failure   2 usage error   130 interrupted
@@ -108,6 +156,10 @@ func ParseOptions(args []string, stderr io.Writer) (*Options, error) {
 	fs.StringVar(&opts.APIToken, "api-token", "", "DNS provider API token")
 	fs.StringVar(&opts.CertPath, "cert-path", "", "certificate directory")
 	fs.StringVar(&opts.ImageTag, "image-tag", "", "container image tag")
+	fs.StringVar(&opts.Apps, "apps", "", "optional apps: all, none or a comma-separated list")
+
+	sociallogin.RegisterFlags(fs, &opts.SocialLogin)
+	smtp.RegisterFlags(fs, &opts.SMTP)
 
 	dataFlags := make(map[string]*string, len(datapaths.Classes))
 	for _, c := range datapaths.Classes {
@@ -128,6 +180,11 @@ func ParseOptions(args []string, stderr io.Writer) (*Options, error) {
 		}
 	}
 	opts.applyEnvDefaults()
+	if opts.Apps != "" {
+		if _, err := apps.ParseSelection(opts.Apps); err != nil {
+			return nil, fmt.Errorf("alfheim-setup: --apps: %w", err)
+		}
+	}
 
 	if opts.InstallDir == "" {
 		cwd, err := os.Getwd()
@@ -152,6 +209,7 @@ func (o *Options) applyEnvDefaults() {
 		{&o.TLSStrategy, "ALFHEIM_TLS_STRATEGY"},
 		{&o.CertPath, "ALFHEIM_CERT_PATH"},
 		{&o.ImageTag, "ALFHEIM_IMAGE_TAG"},
+		{&o.Apps, "ALFHEIM_APPS"},
 		{&o.InstallDir, "ALFHEIM_INSTALL_DIR"},
 	}
 	for _, f := range fallbacks {
@@ -167,6 +225,9 @@ func (o *Options) applyEnvDefaults() {
 			}
 		}
 	}
+
+	o.SocialLogin.ApplyEnv(os.Getenv)
+	o.SMTP.ApplyEnv(os.Getenv)
 
 	if o.APIToken == "" {
 		// Accept the provider-specific names too, since those are what the

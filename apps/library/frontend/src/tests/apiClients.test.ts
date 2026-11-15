@@ -41,10 +41,8 @@ describe("library API clients", () => {
     expect(libraryClient.get).toHaveBeenNthCalledWith(1, "lookup/isbn", { searchParams: { isbn: "9780441172719" } });
     expect(libraryClient.get).toHaveBeenNthCalledWith(2, "lookup/bgg", { searchParams: { query: "catan" } });
     expect(libraryClient.get).toHaveBeenNthCalledWith(3, "lookup/tmdb", { searchParams: { query: "alien" } });
-    expect(libraryClient.post).toHaveBeenCalledWith("items", {
-      json: { title: "Dune", media_type: "BOOK", is_cookbook: false, provider_id: "p1" },
-    });
-    expect(libraryClient.put).toHaveBeenCalledWith("items/i1", { json: { provider_id: null } });
+    expect(libraryClient.post).toHaveBeenCalledWith("items", { title: "Dune", media_type: "BOOK", is_cookbook: false, provider_id: "p1" });
+    expect(libraryClient.put).toHaveBeenCalledWith("items/i1", { provider_id: null });
   });
 
   it("locations: reads the tree and writes locations", async () => {
@@ -56,8 +54,8 @@ describe("library API clients", () => {
 
     expect(libraryClient.get).toHaveBeenNthCalledWith(1, "locations", { searchParams: { tree: true } });
     expect(libraryClient.get).toHaveBeenNthCalledWith(2, "locations");
-    expect(libraryClient.post).toHaveBeenCalledWith("locations", { json: { name: "Shelf" } });
-    expect(libraryClient.put).toHaveBeenCalledWith("locations/l1", { json: { name: "Rack" } });
+    expect(libraryClient.post).toHaveBeenCalledWith("locations", { name: "Shelf" });
+    expect(libraryClient.put).toHaveBeenCalledWith("locations/l1", { name: "Rack" });
     expect(libraryClient.delete).toHaveBeenCalledWith("locations/l1");
   });
 
@@ -70,10 +68,8 @@ describe("library API clients", () => {
 
     expect(libraryClient.get).toHaveBeenNthCalledWith(1, "providers");
     expect(libraryClient.get).toHaveBeenNthCalledWith(2, "providers?is_active=true");
-    expect(libraryClient.post).toHaveBeenCalledWith("providers", {
-      json: { provider_name: "Netflix", provider_type: "STREAMING" },
-    });
-    expect(libraryClient.put).toHaveBeenCalledWith("providers/p1", { json: { is_active: false } });
+    expect(libraryClient.post).toHaveBeenCalledWith("providers", { provider_name: "Netflix", provider_type: "STREAMING" });
+    expect(libraryClient.put).toHaveBeenCalledWith("providers/p1", { is_active: false });
     expect(libraryClient.delete).toHaveBeenCalledWith("providers/p1");
   });
 
@@ -83,9 +79,9 @@ describe("library API clients", () => {
     await manualsApi.getManualUrl("i1");
     await manualsApi.deleteManual("i1");
 
-    const [endpoint, options] = vi.mocked(libraryClient.post).mock.calls[0];
+    const [endpoint, body] = vi.mocked(libraryClient.post).mock.calls[0];
     expect(endpoint).toBe("items/i1/manual");
-    expect((options?.body as FormData).get("file")).toBe(file);
+    expect((body as FormData).get("file")).toBe(file);
     expect(libraryClient.get).toHaveBeenCalledWith("items/i1/manual/url");
     expect(libraryClient.delete).toHaveBeenCalledWith("items/i1/manual");
   });

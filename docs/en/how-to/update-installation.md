@@ -3,7 +3,7 @@ title: "Update an Installation"
 description: "Update a production Alfheim installation to a new release with one command, without re-running the wizard, regenerating secrets, or logging in again."
 ---
 
-> **TL;DR:** `curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | ALFHEIM_VERSION=vX.Y.Z bash -s -- update` fetches that release's stack files, backs up the previous ones, and restarts — no wizard, no new secrets, no root CA, no re-login.
+> **TL;DR:** `curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | ALFHEIM_VERSION=vX.Y.Z bash -s -- update` fetches that release's stack files, backs up the previous ones, and restarts — no wizard, no new secrets, no root CA, no re-login. Coming from v0.4.x or older? Read [Updating from v0.4.x](#updating-from-v04x) first.
 
 ---
 
@@ -14,6 +14,7 @@ description: "Update a production Alfheim installation to a new release with one
 - [What is preserved](#what-is-preserved)
 - [What actually happens](#what-actually-happens)
 - [Verifying the result](#verifying-the-result)
+- [Updating from v0.4.x](#updating-from-v04x)
 - [Rolling back](#rolling-back)
 - [Troubleshooting](#troubleshooting)
 
@@ -88,7 +89,8 @@ reference: [alfheim-setup CLI reference](../reference/installer-cli.md#the-updat
 
 - `.env` secrets (Postgres passwords, `ZITADEL_MASTERKEY`, JWT signing keys, …)
 - `infrastructure/ca/` (the `--tls internal` root CA) or `infrastructure/caddy/pki/`
-- The Zitadel machinekey and bootstrap PAT (`infrastructure/zitadel/machinekey/`)
+- The Zitadel machinekey directory (`infrastructure/zitadel/machinekey/`), except that a
+  leftover bootstrap PAT in it is revoked and deleted
 - Any Docker volume (databases, object storage, …)
 - The Zitadel project and OIDC clients it already provisioned — the
   administrator account, its password and every app's login all keep working
@@ -101,7 +103,7 @@ Postgres init script and `vector.toml` with the target release's copies, sets
 
 The Caddyfile is not a release asset: the installer renders it. `update`
 re-renders it from the configuration stored in `.env` (hosts, scheme,
-`ALFHEIM_TLS_STRATEGY`, `ACME_EMAIL`), so ingress fixes such as new security
+`ALFHEIM_TLS_STRATEGY`, `ACME_EMAIL`, `ALFHEIM_ENABLED_APPS`), so ingress fixes such as new security
 headers or routes reach existing installations. The previous Caddyfile is part
 of the backup. An installation whose `.env` has no `ALFHEIM_TLS_STRATEGY` (a
 legacy plain-HTTP install) keeps its Caddyfile and gets a warning; run
@@ -130,10 +132,12 @@ legacy plain-HTTP install) keeps its Caddyfile and gets a warning; run
 7. Re-reconciles the Zitadel project and OIDC clients (idempotent — adds a
    missing redirect URI, changes nothing that already matches) and makes sure
    self-registration is disabled on the Zitadel login policy. Accounts are
-   created by the operator, never by a visitor of the login page. This uses
-   the bootstrap PAT stored in `.env` as `ZITADEL_BOOTSTRAP_PAT`. On an
-   existing installation this step never aborts the update: if the PAT lacks
-   the rights, or the policy cannot be changed or verified, the update
+   created by the operator, never by a visitor of the login page. This
+   authenticates with a short-lived token from the stored Zitadel machine key
+   and rotates the key (an older install migrates from its bootstrap PAT; see
+   [Updating from v0.4.x](#bootstrap-pat-replaced-by-a-machine-key)). On an
+   existing installation the reconciliation itself never aborts the update: if
+   the token lacks the rights, or the policy cannot be changed or verified, the update
    continues and prints a prominent warning (again in the final summary) that
    self-registration may still be enabled. Then disable it by hand in the
    Zitadel console: **Default settings → Login behavior and security → uncheck
@@ -141,7 +145,12 @@ legacy plain-HTTP install) keeps its Caddyfile and gets a warning; run
    own login behavior if it has a custom policy. A fresh install fails instead.
 8. Ensures every service database exists (re-runs the idempotent Postgres
    init script).
-9. `docker compose pull` followed by `docker compose up -d --remove-orphans`.
+9. `docker compose pull` followed by `docker compose up -d --remove-orphans`,
+   with `COMPOSE_PROFILES` taken from `ALFHEIM_ENABLED_APPS`. Only the apps
+   you enabled are pulled and started; a disabled app stays off and keeps its
+   data. An installation from before app selection has no
+   `ALFHEIM_ENABLED_APPS`; `update` records every app there, so it keeps
+   running everything (see [the `apps` subcommand](../reference/installer-cli.md#the-apps-subcommand)).
    If the re-rendered Caddyfile differs from the previous one, Caddy is
    restarted too, because it never reloads a changed Caddyfile on its own.
 10. Runs [`scripts/verify-stack.sh`](#verifying-the-result) against the
@@ -170,6 +179,71 @@ that every app route resolves through the gateway without a 5xx, that
 `/internal/*` is blocked at the edge, and that the household API rejects a
 request without a bearer token. It exits non-zero and prints a readable
 summary if anything fails.
+
+---
+
+## Updating from v0.4.x
+
+The release after v0.4.x changes two infrastructure components and how the installer
+authenticates to Zitadel. Each affects an existing installation once, on the first update.
+
+### Zitadel v2.66 to v4
+
+Zitadel moves from v2.66.1 to v4.20.3 and migrates its database in place on first start; no
+manual step is needed and no data is lost. Instances keep the built-in Login V1 at
+`/ui/login`, so the sign-in page looks the same.
+
+v4 signs tokens only with newly created web keys, so every token issued before the update is
+rejected:
+
+1. Run the update as usual.
+2. Wait until `alfheim_zitadel` reports `healthy` in `docker compose -f compose.prod.yaml ps`.
+3. Sign in again once, on every device. User accounts, passwords, households and the
+   `alfheim_operator` role are unchanged.
+
+If sign-in fails in the first minutes with `Errors.WebKey.NoActive`, see
+[Troubleshooting](#troubleshooting). Background: [Zitadel version and login UI](../explanation/authentication-security.md#zitadel-version-and-login-ui).
+
+### Bootstrap PAT replaced by a machine key
+
+Older installs keep a Zitadel personal access token that never expires in `.env`
+(`ZITADEL_BOOTSTRAP_PAT`). The first update uses it once: it stores a machine key in
+`infrastructure/zitadel/provisioner/machine-key.json` (mode `0600`), revokes every PAT of the
+provisioning machine user in Zitadel, deletes `infrastructure/zitadel/machinekey/pat.txt` and
+clears `ZITADEL_BOOTSTRAP_PAT`. It also adds `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE`, which the
+new `compose.prod.yaml` requires. No manual step is needed. Check it afterwards:
+
+```bash
+grep '^ZITADEL_BOOTSTRAP_PAT=' .env                        # prints an empty value
+ls -l infrastructure/zitadel/provisioner/machine-key.json  # -rw------- owned by the installer's user
+```
+
+Backups taken before the update still contain the old PAT, which no longer works against the
+running instance. Background: [How the installer authenticates to Zitadel](../explanation/authentication-security.md#how-the-installer-authenticates-to-zitadel).
+
+### PostgreSQL 16 to 18
+
+`postgres-core` moves from `postgres:16-alpine` to `postgres:18-alpine`, and the data is
+mounted at `/var/lib/postgresql` (the 18 image keeps its cluster in `18/docker` below it).
+**There is no in-place upgrade.** A cluster created by PostgreSQL 16 cannot be opened by
+PostgreSQL 18, and neither `update` nor `restore` converts it.
+
+Do not update an installation created on PostgreSQL 16 in place. Recreate it instead:
+
+1. Take a full backup on the old release, including the object storage, and copy it off the
+   host: `alfheim-setup backup` ([Backup and restore](./backup-restore.md)).
+2. Install the new release into a new, empty installation directory (or a new host), as in
+   the [first-run tutorial](../tutorials/first-run.md). Its PostgreSQL 18 cluster starts empty,
+   with data checksums on.
+
+`alfheim-setup` has no command that moves the data of the old cluster into the new one. The
+`database.sql` in the backup archive is a plain `pg_dumpall` that PostgreSQL 18 can read, but
+replaying it into a new installation is a manual database operation outside the installer.
+
+`alfheim-setup restore` of a v0.4.x archive is not a migration path: it restores that archive's
+stack files, which pin PostgreSQL 16, so the restored installation runs the old release again.
+Installations created on PostgreSQL 18 are not affected by this section. Where the cluster is
+stored: [data locations](../reference/environment-variables.md#data-locations).
 
 ---
 
@@ -209,6 +283,20 @@ version to fall back to; pass `--version vX.Y.Z` explicitly.
 
 **Checksum mismatch** — the download was corrupted or intercepted; re-run
 the command. Nothing on disk is touched until every asset verifies.
+
+**Sign-in fails right after updating from v0.4.x or older** — that update
+moves Zitadel from v2.66 to v4, which signs tokens only with newly created web
+keys. Every user has to sign in again. For the first few minutes Zitadel may
+answer token requests with `Errors.WebKey.NoActive` (and `GET /oauth/v2/keys`
+with an empty key list) until it has caught up its projections; wait and
+retry, no action is needed.
+
+**"the stored machine key … was rejected and no bootstrap PAT is available"** — the
+Zitadel machine key expired (no provisioning run for 90 days) or belongs to another
+installation. Sign in to the Zitadel console as an IAM owner, open the machine user
+`alfheim-bootstrap` under **Users → Service Users**, create a personal access token with an
+expiry of one day, and set it in `.env` as `ZITADEL_BOOTSTRAP_PAT`. Re-run the update; it
+stores a new key, revokes the token and clears the value again.
 
 **Verification fails after a successful restart** — the stack came back up
 but one of the checks in

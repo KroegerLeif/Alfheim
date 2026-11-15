@@ -49,7 +49,7 @@ Für klare Architekturgrenzen und eine schlanke externe Identitätsinfrastruktur
 ## Authentifizierungsablauf (generisches OIDC PKCE)
 
 1. **Authorization Grant**: Frontends leiten nicht authentifizierte Nutzer per Standard-OIDC-Authorization-Code-Flow mit PKCE (`S256`) an Zitadel weiter.
-2. **Token-Austausch**: Zitadel stellt ein RSA256-/Ed25519-signiertes JWT-Access-Token mit den Standard-Identity-Claims aus (`sub`, `email`, `preferred_username`).
+2. **Token-Austausch**: Zitadel stellt ein `RS256`-signiertes JWT-Access-Token mit den Standard-Identity-Claims aus (`sub`, `email`, `preferred_username`).
 3. **Session & Header**: Frontends legen das Access-Token im Session Storage ab und hängen `Authorization: Bearer <token>` an ausgehende API-Aufrufe. Haushaltsbezogene Aufrufe tragen zusätzlich `X-Household-ID: <UUID des aktiven Haushalts>`. Frontends senden nie `X-Household-Role`.
 
 ---

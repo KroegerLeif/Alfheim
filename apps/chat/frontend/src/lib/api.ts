@@ -1,5 +1,5 @@
 import { streamAssistantReply as sseStream, type StreamFailure, type StreamHandlers } from "@/lib/sse";
-import { BASE_URL, authHeaders } from "./api/client";
+import { chatApi } from "./api/client";
 
 export type { StreamFailure, StreamHandlers };
 
@@ -13,5 +13,5 @@ export function streamAssistantReply(
   handlers: StreamHandlers,
   signal?: AbortSignal
 ): Promise<void> {
-  return sseStream(BASE_URL, authHeaders, conversationId, handlers, signal);
+  return sseStream(chatApi, conversationId, handlers, signal);
 }

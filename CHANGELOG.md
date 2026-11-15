@@ -9,25 +9,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- ADR 0007 records the Lean Core app set (infrastructure, dashboard, household) and the optional modules; the apps catalog gains a `Tier` column (#855).
+- `alfheim-setup apps list|enable <name>|disable <name>` switches optional apps on and off and stores the set as `ALFHEIM_ENABLED_APPS` in `.env`; a missing key means all apps, and disabling never removes volumes or databases (#856).
+- Compose profiles: every service of an optional app gets the profile named after the app and the telemetry services get `telemetry`; the Lean Core has none. `.env.example` and the installer's `.env` set `COMPOSE_PROFILES` to every profile, so `./scripts/up.sh` and existing installs start what they did before (#857).
+- The installer applies the enabled app set: install, re-run, `update` and `restore` pass `COMPOSE_PROFILES` from `ALFHEIM_ENABLED_APPS` to every compose call, so an update never restarts a disabled app; `apps enable` creates missing databases, starts the app and waits for it; the Caddyfile answers 404 for a disabled app's API and redirects its pages (and `/grafana` without telemetry) to the dashboard (#858).
+- `alfheim-setup` installs the Lean Core by default: `--apps=all|none|<list>` (or `ALFHEIM_APPS`) selects optional apps non-interactively, and the wizard has an app step listing each optional app with its description and memory, plus a separate telemetry question (default off); a re-run keeps the stored set (#859).
+- `./scripts/up.sh --lean` and `--apps=<list>` boot the dev stack with only the Lean Core or the listed modules, with one stage per app derived from a single array; `./scripts/verify-stack.sh` skips and lists the routes of apps that are not running (#860).
+- List only the enabled apps on the dashboard: the backend reads `ALFHEIM_ENABLED_APPS` at startup (unset means every app), so a disabled app has no tile (#863).
+- Show live health on every core app card: `GET /api/v1/apps/health` probes each enabled app backend with a 2 s timeout, caches the result for 15 s with one probe round per window, and the card shows online, degraded or offline next to its configured status (#810).
+- Answer a stopped or restarting app with a clear error instead of an empty 502: Caddy's `handle_errors` returns JSON `503 service_unavailable` with `Retry-After` on API paths and a static page with a link back to the dashboard on page paths, in the dev Caddyfile and the installer template (#887).
+- Add passive retries (`lb_try_duration`) and active health checks on each backend's health path to every app backend proxy, so short backend restarts no longer surface as 502 (#811).
+- Add `GET /api/v1/shopping/capabilities` (`pantry_available`); the shopping frontend hides the pantry sync when Pantry is not installed (#864).
+- ADR 0008 records the social login policy: first-time Google or Apple users are created just in time, linked to an existing account only by a verified e-mail, start without a household, and local registration stays off (#884).
+- Add optional "Sign in with Google": `alfheim-setup` creates or updates the Zitadel identity provider from `ALFHEIM_GOOGLE_CLIENT_ID` / `ALFHEIM_GOOGLE_CLIENT_SECRET` (flag `--google-client-id`, an opt-in wizard step, or `.env`), prints the redirect URI to register, makes no change on a repeated run, and takes the provider off the login page when the values are emptied (#885).
+- Add optional "Sign in with Apple" through the same mechanism from `ALFHEIM_APPLE_CLIENT_ID`, `ALFHEIM_APPLE_TEAM_ID`, `ALFHEIM_APPLE_KEY_ID` and `ALFHEIM_APPLE_PRIVATE_KEY_FILE` (or the matching `--apple-*` flags); the `.p8` key is uploaded to Zitadel and never copied into `.env` (#886).
+- Add optional SMTP e-mail for Zitadel: `alfheim-setup` configures an SMTP provider from `ALFHEIM_SMTP_*` (the `--smtp-*` flags, an opt-in wizard step, or `.env`; the password from the environment or `.env` only), so password reset, invitations and e-mail verification work; a repeated run makes no change, and without SMTP the installer states what does not work and hides "Forgot password" on the login page (#456).
+
 ### Changed
 - Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)
 - Run gitleaks on every push and pull request; path-filter only the dependency and image scans (#867)
 - Fail `verify.sh --security` when gitleaks is missing unless `--allow-missing-gitleaks` is passed (#868)
 - Run the gitleaks pre-commit hook and the Go hooks for every `go.work` module (#868)
 - Group Dependabot security fixes and per-image major updates, and pin `pnpm/action-setup` to one SHA (#869)
+- Serve the favicon bundle and web manifest from `packages/shared` in every frontend, including budget, library and chat, which had none; frontends copy it at `predev`/`prebuild` and link it through `createAppMetadata` (#874)
+- Remove the unused per-app `assets/branding` logo copies; `packages/shared/src/assets/brand/` is the only home of the Alfheim logo (#875)
+- Use the shared `cn()` helper from `@alfheim/shared` in chores, maintenance, pantry, shopping and workout instead of five local copies (#876)
+- Give the shared `createApiClient` an 8 s default timeout (`ApiTimeoutError`), mapped errors (`ApiError`), a `session` option (bearer token, refresh on 401, household headers) and a streaming opt-out; the dashboard, household and chat frontends and the shared household membership request use it instead of their own clients. Chat now starts a new login when a 401 cannot be refreshed, like the other apps (#877)
+- Generate every tier-2 frontend's `navigation.ts`, `proxy.ts`, `i18n.ts`, `[locale]/providers.tsx` and `[locale]/loading.tsx` from shared factories (`@alfheim/shared/i18n/*`, `@alfheim/shared/app-shell`) instead of eight hand-copied variants (#878)
+- Share the frontend `tsconfig` base, the Vitest preset and the common test setup (matchers, storage, MSW lifecycle, module doubles) from `packages/shared`; the per-app copies and the eleven `jest-dom.d.ts` files go away (#879)
 - Move the Alembic `env.py` body and the startup migration runner into `backend_shared.migrations` and `backend_shared.db`; each Python backend's `env.py` is one `run_env` call and `alembic.ini` keeps only the `[alembic]` section, with revisions and advisory lock keys unchanged (#881)
 - Move the `require_writer` / `require_admin` role matrix of chores, pantry and maintenance into `backend_shared.household.permissions` and the duplicated app `test_storage.py` copies into the `backend_shared` suite (#882)
+- Make the telemetry stack optional in production: `OTEL_ENABLED` (default `false`) now controls OpenTelemetry export in every backend and Grafana's OIDC client, and follows the `telemetry` module of `ALFHEIM_ENABLED_APPS` (`alfheim-setup apps enable|disable telemetry`, or `provision --telemetry`); `/grafana` redirects to the dashboard while it is off, and an existing installation keeps telemetry on through its first update (#861)
+- Right-size `compose.prod.yaml`: memory reservations follow measured idle use with limits at about twice that (Lean Core reserves 752 MB, the full stack 3.2 GB instead of 8 GB), Next.js heaps are capped, `postgres-core` gets `POSTGRES_SHARED_BUFFERS`, `POSTGRES_MAX_CONNECTIONS` and `POSTGRES_WORK_MEM`, and healthchecks run every 30 s with a 5 s `start_interval`, which needs Docker Engine 25 (#862)
+- Validate JWTs in one shared Go package: `packages/go-shared` (`auth`, `httpmw`, `db`, `logger`) replaces the copies in the dashboard, household and chat backends. Every Go backend now requires a configured audience and a token subject and accepts RS256 only; the dashboard, household and chat images build from the repository root (#883)
+- Split the four frontend components over 200 lines (`HouseholdProvider`, budget `QuickAddModal`, chat `ModelBlockFormModal`, landing `AppsGrid`) into hooks and sibling components, and move the GitHub mark into the shared brand assets (#880)
+- Move the budget, chores, library, maintenance, pantry, shopping and workout frontends to the shared `createApiClient` instead of their own ky wrappers, and give it a `searchParams` option; `ky` is no longer a dependency, uploads keep their longer timeouts (#877)
+- Render `CHAT_MCP_SERVERS` and `PANTRY_BACKEND_URL` from the enabled apps in the installer; chat only offers tools of the listed apps and treats an unreachable MCP server as "tools unavailable" with a 2 s connect and 5 s discovery timeout (#864)
+- Move every PostgreSQL pin (compose files, CI, scripts) to `postgres:18-alpine` and mount the data at `/var/lib/postgresql`, where the 18 image keeps its cluster in `18/docker`; new clusters have data checksums on. There is no in-place upgrade: installs and dev data directories created on PostgreSQL 16 must be recreated (#871)
+- Shorten the root `AGENTS.md` to rules plus links to the convention pages, add `.ai/README.md` and `.ai/workflow.md` (the issue-to-PR loop, linking to `docs/` instead of copying it), allow exactly those two files in `scripts/check-markdown-links.py`, and correct the chat backend note on audience checks (#872).
+- Restructure `CHANGELOG.md` to Keep a Changelog: one section per release tag, summaries for v0.1.2 to v0.3.0, one heading of each type per version, and compare links (#873).
+- Upgrade Zitadel from v2.66.1 to v4.20.3, keeping the built-in Login V1 and RSA token signing for new instances; an updated installation migrates in place, and every user signs in again once because v4 replaces the token signing keys (#765).
+- Document the Lean Core setup: new how-tos for low-spec hosts and for managing apps, one hardware tier table built from the measured reservations (the stale 4 GB / 8 GB figures are gone), memory and requirements in the apps catalog, and the v0.4.x update steps for Zitadel v4 and PostgreSQL 18 (#889)
+- Regenerate the ingress matrix from the Caddyfile with a prefix-handling column, state that backends accept `RS256` only, document the gateway's CORS stance, and fix stale paths in `README.md` and the Caddy Dockerfile (#890)
+### Fixed
+- Answer Pantry failures in the shopping backend with 502 (unreachable) or 503 (not installed) instead of 400, with short timeouts on the cross-app calls (#864)
+- Show "ALFI is not available" in the chat widget when the chat app is stopped or not installed instead of failing silently, ignore a user-initiated abort, and log instead of swallowing errors in `@alfheim/shared` (#888)
 ### Security
 - Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).
 - Make `scripts/init-env.sh` replace every secret-like key that still holds its `.env.example` placeholder, printing key names only (#870).
+- Refuse an Apple sign-in key file that its group or others can access (mode must be `0600` or stricter), before any container starts and before every provisioning run (#886).
+- Never pass the Google client secret as a command-line flag: `alfheim-setup` reads it from the environment or `.env` only, and prints neither it nor the Apple key (#885).
 - Update Go 1.27.3 → 1.27.4 in `go.work`, all four `go.mod` files, the Go Dockerfiles, the Caddy builder toolchain and the CI `go-version` pins to fix the `net/http` vulnerability GO-2026-6859 reported by govulncheck.
+- Replace the never-expiring Zitadel bootstrap PAT: provisioning uses it once to store a machine key (`infrastructure/zitadel/provisioner/machine-key.json`, mode `0600`, rotated every run with a 90-day expiry), revokes every PAT of the machine user and clears `ZITADEL_BOOTSTRAP_PAT`, then authenticates with access tokens that expire within hours; existing installs migrate on their next `update`, the first-instance PAT now expires after a week (`ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE`), `provision --pat-file` is optional and `alfheim-setup zitadel-token` prints a short-lived token for manual API calls (#789).
 <!-- One line per change, imperative mood, issue or PR number in parentheses: "- Add X (#123)".
      Use only Added, Changed, Deprecated, Removed, Fixed and Security, each at most once.
      A release moves these entries under a new version heading and adds its compare link. -->
-
-### Changed
-- Shorten the root `AGENTS.md` to rules plus links to the convention pages, add `.ai/README.md` and `.ai/workflow.md` (the issue-to-PR loop, linking to `docs/` instead of copying it), allow exactly those two files in `scripts/check-markdown-links.py`, and correct the chat backend note on audience checks (#872).
-- Restructure `CHANGELOG.md` to Keep a Changelog: one section per release tag, summaries for v0.1.2 to v0.3.0, one heading of each type per version, and compare links (#873).
 
 ---
 

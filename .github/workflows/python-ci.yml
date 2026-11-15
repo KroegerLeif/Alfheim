@@ -90,7 +90,7 @@ jobs:
         working-directory: ${{ matrix.service }}
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_PASSWORD: pg
           POSTGRES_DB: migration_check

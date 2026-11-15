@@ -40,7 +40,7 @@ Source: [`apps/pantry/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/p
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 18 Core Database Server |
 | `pantry-backend` | 8000 | `/pantry/api/v1` | FastAPI REST API & FastMCP Server |
 | `pantry-frontend` | 3000 | `alfheim.loegien.localhost/pantry` | Next.js Microfrontend |
 
