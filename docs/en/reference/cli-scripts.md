@@ -78,6 +78,18 @@ Lean Core and the optional modules is recorded in
 route of an optional app (or `/grafana`) only when its container runs; it
 lists the routes it skipped, so it passes after `./scripts/up.sh --lean`.
 
+When `.env` sets `ALFHEIM_SMTP_HOST=mailpit` (see
+[Configure e-mail](../how-to/configure-smtp.md#test-it-locally-with-mailpit)),
+stage 1 also starts Mailpit, provisioning activates it as Zitadel's SMTP
+server, and `verify-stack.sh` checks that a password-reset e-mail arrives.
+
+| Variable | Effect on `verify-stack.sh` |
+| :--- | :--- |
+| `VERIFY_STACK_WAIT_SECONDS` | How long to wait for services still in their healthcheck start period (default `300`) |
+| `VERIFY_STACK_INSECURE` | `1` skips TLS certificate verification |
+| `VERIFY_STACK_MAILPIT_URL` | Mailpit's HTTP API. Set it to run the password-reset check against a Mailpit that `ALFHEIM_SMTP_HOST` does not name (default `http://127.0.0.1:8025` when the host is `mailpit`) |
+| `VERIFY_STACK_ZITADEL_TOKEN` | Zitadel API token for that check. Default: `alfheim-setup zitadel-token`, or the installer source in a repository checkout |
+
 Stage 1 boots `postgres-core → zitadel → rustfs → caddy` and then provisions
 the Zitadel project and every OIDC client (dashboard, every app frontend,
 Grafana) via `go run ./tools/installer/cmd/alfheim-setup provision`, which
@@ -170,7 +182,7 @@ rm ./pat.txt
 
 Generates cryptographically secure secrets (AES-256 chat encryption keys, Zitadel masterkey and admin password, database credentials) and populates `.env`.
 
-When `.env` already exists (and `--force` is not given), the script migrates legacy keys and replaces every secret-like key (`*PASSWORD*`, `*SECRET*`, `*TOKEN*`, `ZITADEL_MASTERKEY`) that still equals its `.env.example` placeholder. Values you changed are kept, mirrored keys (`S3_SECRET_KEY`, `ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD`) follow their source, and only key names are printed. A second run changes nothing. Keys with an empty, `${...}` or `__PROVISIONED__` example value and `CHAT_ENCRYPTION_KEY_ID` are left alone. `scripts/tests/test-init-env.sh`, run by `verify.sh --security`, checks this.
+When `.env` already exists (and `--force` is not given), the script migrates legacy keys and replaces every secret-like key (`*PASSWORD*`, `*SECRET*`, `*TOKEN*`, `ZITADEL_MASTERKEY`) that still equals its `.env.example` placeholder. Values you changed are kept, mirrored keys (`S3_SECRET_KEY`, `ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD`) follow their source, and only key names are printed. A second run changes nothing. Keys with an empty, `${...}` or `__PROVISIONED__` example value and `CHAT_ENCRYPTION_KEY_ID` are left alone. `scripts/tests/test-init-env.sh`, run by `verify.sh --security`, checks this. When `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` is missing, empty or past, the script sets it to one week from now; Zitadel refuses an expired date when it creates its first instance again after the database was wiped.
 
 ### Usage Syntax
 ```bash

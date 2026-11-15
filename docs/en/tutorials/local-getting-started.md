@@ -71,6 +71,8 @@ Add `--skip-obs` to leave out the observability stack. The script boots the clus
 
 Zitadel writes its bootstrap token (PAT) into the `zitadel_machinekey` Docker volume. A one-shot `zitadel-machinekey-init` container hands that volume to Zitadel's container user (uid 1000) before Zitadel starts, so nothing on your host needs a `chown`. `up.sh` copies the PAT out with `docker compose cp` for the first `alfheim-setup provision` run, which stores a machine key in `infrastructure/zitadel/provisioner/` and revokes the PAT. Later runs authenticate with that key, rotated on every run; `.env` holds no Zitadel token.
 
+Zitadel sends no e-mail until an SMTP server is set, and its login page then hides **Forgot password**. To try password reset locally, point it at the bundled Mailpit before `up.sh` (see [Configure e-mail](../how-to/configure-smtp.md#test-it-locally-with-mailpit)): set `ALFHEIM_SMTP_HOST=mailpit`, `ALFHEIM_SMTP_PORT=1025`, `ALFHEIM_SMTP_TLS=false` and `ALFHEIM_SMTP_SENDER_ADDRESS=alfheim@alfheim.test` in `.env`. Mails then appear at <http://127.0.0.1:8025>.
+
 ---
 
 ## Step 3: Verify Running Services & Access Applications

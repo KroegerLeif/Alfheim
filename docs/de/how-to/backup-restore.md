@@ -28,7 +28,8 @@ Ein Archiv `alfheim-backup-<UTC>.tar.gz` mit Zeitstempel (Modus `0600`):
 | `database.sql` | `pg_dumpall` des gesamten `postgres-core`-Clusters: alle `alfheim_<app>`-Datenbanken, die Zitadel-Datenbank (Benutzer, Projekte, OIDC-Clients) und alle Rollen. |
 | `rustfs-data.tar` | Das RustFS-Volume mit hochgeladenen Dateien (Budget-Belege, Bibliotheks-PDFs). Entfällt bei `--skip-media` und beim Backup vor einem Update. |
 | `files/.env` | Alle Geheimnisse. Ohne `ZITADEL_MASTERKEY` ist die Zitadel-Datenbank nicht lesbar; ohne die Anwendungsschlüssel gehen verschlüsselte Werte wie gespeicherte Chat-API-Schlüssel verloren. |
-| `files/infrastructure/zitadel/machinekey/` | Das Zitadel-Bootstrap-Token. |
+| `files/infrastructure/zitadel/machinekey/` | Das First-Instance-Verzeichnis von Zitadel; sein Bootstrap-PAT wird nach dem ersten Provisioning-Lauf gelöscht. |
+| `files/infrastructure/zitadel/provisioner/` | Der Maschinenschlüssel, mit dem sich der Installer bei Zitadel anmeldet (bei jedem Lauf rotiert, 90 Tage gültig). Ein wiederhergestellter Schlüssel funktioniert gegen die wiederhergestellte Datenbank; der Schlüssel eines älteren Archivs funktioniert nicht mehr, sobald ein späterer Lauf ihn rotiert hat. |
 | `files/infrastructure/ca/`, `files/infrastructure/caddy/pki/` | Die erzeugte Root-CA (`--tls internal`). Ohne sie muss jedes Gerät einer neuen CA vertrauen. |
 | `files/` Stack-Dateien | `compose.prod.yaml`, Caddyfile, Telemetrie- und Postgres-Init-Konfiguration, `.alfheim.installed`. |
 | `manifest.json` | Release (`IMAGE_TAG`), PostgreSQL-Version, Installer-Version und eine SHA-256-Prüfsumme je Eintrag. |

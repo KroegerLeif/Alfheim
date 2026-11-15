@@ -84,6 +84,24 @@ Sign out, choose **Forgot password** on the login page and enter your
 administrator e-mail. The reset code should arrive within a minute. If it does
 not, check the Zitadel log (`docker logs alfheim_zitadel`) for the SMTP error.
 
+## Test it locally with Mailpit
+
+The development stack ships [Mailpit](https://mailpit.axllent.org/), which
+accepts every e-mail and shows it in a web UI instead of delivering it. Set
+these values in the repository's `.env` and run `./scripts/up.sh`:
+
+```dotenv
+ALFHEIM_SMTP_HOST=mailpit
+ALFHEIM_SMTP_PORT=1025
+ALFHEIM_SMTP_TLS=false
+ALFHEIM_SMTP_SENDER_ADDRESS=alfheim@alfheim.test
+```
+
+`up.sh` starts Mailpit, provisioning activates it in Zitadel, and the e-mail
+shows up at <http://127.0.0.1:8025>. `./scripts/verify-stack.sh` then creates
+a throwaway user, requests a password reset for it, waits for the e-mail in
+Mailpit and deletes both again.
+
 ## Change a value or the password
 
 Change it in `.env` and re-run `alfheim-setup`. The installer keeps a hash of

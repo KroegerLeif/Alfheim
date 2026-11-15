@@ -83,7 +83,8 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 | `GET /api/v1/chat/mcp-servers/diagnostics`, `PATCH /api/v1/chat/mcp-servers/{id}` | 200 for the admin, 403 for others (the list itself is redacted for them) |
 | Budget receipt: attach a phone photo to a transaction | The browser posts the file to `/api/v1/budget/transactions/receipt` (never to `/storage/`); the stored object is a small WebP |
 | Chat attachment upload | 201, the object exists in RustFS |
-| Zitadel credential | `ZITADEL_BOOTSTRAP_PAT` in `.env` is empty, `infrastructure/zitadel/machinekey/pat.txt` is gone, `infrastructure/zitadel/provisioner/machine-key.json` has mode `0600`; `alfheim-setup zitadel-token --env-file .env` prints a token |
+| Zitadel credential | `ZITADEL_BOOTSTRAP_PAT` in `.env` is empty, `infrastructure/zitadel/machinekey/pat.txt` is gone, `infrastructure/zitadel/provisioner/` has mode `0700` and `machine-key.json` mode `0600`; `alfheim-setup zitadel-token --env-file .env` prints a token |
+| Password reset by e-mail (with SMTP) | **Forgot password** is shown on the login page and the reset e-mail arrives. Against Mailpit, `ALFHEIM_SMTP_HOST=mailpit` makes `scripts/verify-stack.sh` check this on its own ([Configure e-mail](./configure-smtp.md#test-it-locally-with-mailpit)); without SMTP the link is hidden |
 
 Test the "others" rows with a second user who owns a household of their own:
 household roles must not unlock installation-wide resources.
@@ -150,8 +151,8 @@ data with it, then run `alfheim-setup update --version <candidate>`. Expected:
 - registration is switched off and `alfheim_operator` is created and granted on
   the existing installation;
 - the long-lived `ZITADEL_BOOTSTRAP_PAT` is used once, revoked in Zitadel and
-  cleared from `.env`, a machine key is stored instead, and
-  `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` is added to `.env`;
+  cleared from `.env`, a machine key is stored instead (directory `0700`,
+  file `0600`), and `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` is added to `.env`;
 - all data created with the previous release is still there and writable.
 
 Upgrading from v0.4.x or older also moves Zitadel from v2.66 to v4. Expected

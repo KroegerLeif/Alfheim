@@ -128,8 +128,8 @@ legacy plain-HTTP install) keeps its Caddyfile and gets a warning; run
 6. Replaces `compose.prod.yaml` and the other stack files, sets
    `IMAGE_TAG` in `.env`, and re-renders the Caddyfile from the stored
    configuration.
-6. Appends any secret a newer release requires and `.env` lacks.
-7. Re-reconciles the Zitadel project and OIDC clients (idempotent — adds a
+7. Appends any secret a newer release requires and `.env` lacks.
+8. Re-reconciles the Zitadel project and OIDC clients (idempotent — adds a
    missing redirect URI, changes nothing that already matches) and makes sure
    self-registration is disabled on the Zitadel login policy. Accounts are
    created by the operator, never by a visitor of the login page. This
@@ -143,9 +143,9 @@ legacy plain-HTTP install) keeps its Caddyfile and gets a warning; run
    Zitadel console: **Default settings → Login behavior and security → uncheck
    "User registration allowed"**, and the same setting under the organization's
    own login behavior if it has a custom policy. A fresh install fails instead.
-8. Ensures every service database exists (re-runs the idempotent Postgres
+9. Ensures every service database exists (re-runs the idempotent Postgres
    init script).
-9. `docker compose pull` followed by `docker compose up -d --remove-orphans`,
+10. `docker compose pull` followed by `docker compose up -d --remove-orphans`,
    with `COMPOSE_PROFILES` taken from `ALFHEIM_ENABLED_APPS`. Only the apps
    you enabled are pulled and started; a disabled app stays off and keeps its
    data. An installation from before app selection has no
@@ -153,7 +153,7 @@ legacy plain-HTTP install) keeps its Caddyfile and gets a warning; run
    running everything (see [the `apps` subcommand](../reference/installer-cli.md#the-apps-subcommand)).
    If the re-rendered Caddyfile differs from the previous one, Caddy is
    restarted too, because it never reloads a changed Caddyfile on its own.
-10. Runs [`scripts/verify-stack.sh`](#verifying-the-result) against the
+11. Runs [`scripts/verify-stack.sh`](#verifying-the-result) against the
     restarted stack and prints a summary.
 
 If any step after the backup fails, the error names the exact rollback
@@ -177,8 +177,11 @@ It checks that every Compose service is healthy, that Caddy's `/livez`
 responds `OK`, that the OIDC discovery document names the configured issuer,
 that every app route resolves through the gateway without a 5xx, that
 `/internal/*` is blocked at the edge, and that the household API rejects a
-request without a bearer token. It exits non-zero and prints a readable
-summary if anything fails.
+request without a bearer token. When Zitadel sends e-mail through Mailpit
+(`ALFHEIM_SMTP_HOST=mailpit`, the local stack), it also requests a password
+reset for a throwaway user and waits for the e-mail in Mailpit; against any
+other mail server that check is skipped, so an update never sends a test
+e-mail. It exits non-zero and prints a readable summary if anything fails.
 
 ---
 
@@ -217,6 +220,11 @@ new `compose.prod.yaml` requires. No manual step is needed. Check it afterwards:
 grep '^ZITADEL_BOOTSTRAP_PAT=' .env                        # prints an empty value
 ls -l infrastructure/zitadel/provisioner/machine-key.json  # -rw------- owned by the installer's user
 ```
+
+Every run also tightens `infrastructure/zitadel/provisioner/` to mode `0700`, and refreshes
+`ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` to one week ahead when it is already past. Zitadel only
+reads that date when it creates a new instance, which happens again if the database was wiped
+while `.env` was kept, and it refuses an expired one.
 
 Backups taken before the update still contain the old PAT, which no longer works against the
 running instance. Background: [How the installer authenticates to Zitadel](../explanation/authentication-security.md#how-the-installer-authenticates-to-zitadel).
