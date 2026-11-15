@@ -324,7 +324,7 @@ services:
   # 3. OBSERVABILITY & TELEMETRY
   # ----------------------------------------------------------------------------
   victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.154.1
+    image: victoriametrics/victoria-metrics:v1.156.0
     container_name: victoriametrics
     profiles: ["telemetry"]
     restart: unless-stopped
@@ -404,8 +404,30 @@ services:
         reservations:
           memory: 32m
           cpus: 0.10
+  # VictoriaLogs >= 1.53 ships a distroless image without a shell or wget. This
+  # one-shot service copies a static busybox into a read-only volume so the
+  # VictoriaLogs healthcheck can still probe /health from inside the container.
+  victorialogs-probe:
+    image: busybox:1.38.0-musl
+    container_name: victorialogs-probe
+    profiles: ["telemetry"]
+    restart: "no"
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    network_mode: none
+    read_only: true
+    command: ["cp", "/bin/busybox", "/probe/busybox"]
+    volumes:
+      - victorialogs_probe:/probe
+    deploy:
+      resources:
+        limits:
+          memory: 16m
+          cpus: 0.10
+
   victorialogs:
-    image: victoriametrics/victoria-logs:v1.51.1
+    image: victoriametrics/victoria-logs:v1.53.0
     container_name: victorialogs
     profiles: ["telemetry"]
     restart: unless-stopped
@@ -418,8 +440,12 @@ services:
       - "-httpListenAddr=:9428"
     volumes:
       - ${ALFHEIM_LOGS_DATA_PATH:-victorialogs_data}:/victoria-logs-data
+      - victorialogs_probe:/probe:ro
+    depends_on:
+      victorialogs-probe:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:9428/health || exit 1"]
+      test: ["CMD", "/probe/busybox", "wget", "-q", "--spider", "http://127.0.0.1:9428/health"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -437,7 +463,7 @@ services:
           memory: 64m
           cpus: 0.25
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.163.2
+    image: otel/opentelemetry-collector-contrib:0.165.0
     container_name: otel-collector
     profiles: ["telemetry"]
     restart: unless-stopped
@@ -474,7 +500,7 @@ services:
   # is denied by the default-deny allowlist. It sits on a private internal
   # network that only Vector can reach.
   docker-socket-proxy:
-    image: wollomatic/socket-proxy:1.13.1
+    image: wollomatic/socket-proxy:1.13.2
     container_name: docker-socket-proxy
     profiles: ["telemetry"]
     restart: unless-stopped
@@ -516,7 +542,7 @@ services:
           memory: 16m
           cpus: 0.10
   vector:
-    image: timberio/vector:0.60.0-alpine
+    image: timberio/vector:0.61.0-alpine
     container_name: vector-shipper
     profiles: ["telemetry"]
     restart: unless-stopped
@@ -551,7 +577,7 @@ services:
           memory: 48m
           cpus: 0.25
   grafana:
-    image: grafana/grafana:13.2.4
+    image: grafana/grafana:13.3.1
     container_name: alfheim_grafana
     profiles: ["telemetry"]
     restart: unless-stopped
@@ -1594,6 +1620,7 @@ volumes:
   rustfs_data:
   victoriametrics_data:
   victorialogs_data:
+  victorialogs_probe:
   grafana_data:
 
 # ==============================================================================
