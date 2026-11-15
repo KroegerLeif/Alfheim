@@ -23,7 +23,8 @@ graph TD
 
 ### 1. MFE Base Path Proxies (`alfheim.loegien.localhost` & `alfheim.loegien.de`)
 - No locale redirects: bare paths such as `/pantry` reach the app, whose next-intl middleware picks the locale (`NEXT_LOCALE` cookie first).
-- Every site block imports the `security_headers` snippet (nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy, report-only CSP, `Server` removed). See the [ingress matrix](../../docs/en/reference/ingress-matrix.md).
+- Every site block imports the `security_headers` snippet (nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy, an enforced Content-Security-Policy, `Server` removed). See the [ingress matrix](../../docs/en/reference/ingress-matrix.md).
+- The auth host, the app host's `/api/v1` routes and the external lookups are rate-limited per client IP (`rate_limit`, the `mholt/caddy-ratelimit` module). The dev compose file therefore builds the image from `Dockerfile` instead of using the stock `caddy` image. Limits: [ingress matrix](../../docs/en/reference/ingress-matrix.md#rate-limits); test: `./scripts/test-gateway-hardening.sh`.
 - Microfrontend routes:
   - `/pantry*` -> `pantry-frontend:3000`
   - `/shopping*` -> `shopping-frontend:3010`

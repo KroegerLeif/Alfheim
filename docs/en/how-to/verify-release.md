@@ -9,6 +9,7 @@ description: "Checklist for testing a release candidate on a disposable, product
 
 ## 📋 Table of Contents
 - [Run the release dry run first](#run-the-release-dry-run-first)
+- [Verify signatures and attestations](#verify-signatures-and-attestations)
 - [Prepare a disposable host](#prepare-a-disposable-host)
 - [1. Fresh install](#1-fresh-install)
 - [2. Sample data and backup](#2-sample-data-and-backup)
@@ -33,10 +34,11 @@ gh run watch
 
 A dry run executes the same quality gates, builds every image natively for
 `linux/amd64` (`ubuntu-24.04`) and `linux/arm64` (`ubuntu-24.04-arm`) and applies
-the Trivy gate (fixable CRITICAL and HIGH findings fail the job). It skips the
+the Trivy gate (fixable CRITICAL and HIGH findings fail the job), and generates
+each image's SBOM. It skips the
 tag ancestry check and publishes nothing: no image is pushed, no manifest or
-tag is created, no GitHub release is made and no SARIF report is uploaded to
-code scanning. Manual runs with `dry_run=false` are refused; only a `v*.*.*`
+tag is created, nothing is signed or attested, no GitHub release is made and no
+SARIF report is uploaded to code scanning. Manual runs with `dry_run=false` are refused; only a `v*.*.*`
 tag push releases.
 
 The run is green when every `Build <image> (<arch>)` job passes. Only then
@@ -48,6 +50,60 @@ and fix the cause on `dev`: bump the vulnerable base image tag or dependency
 re-run the dry run. A finding with no fix available (`ignore-unfixed`) never
 fails the gate. Do not tag while a dry run is red; a tag run fails at the same
 gate after the tests have already been spent.
+
+---
+
+## Verify signatures and attestations
+
+Every tag run (release candidates included) signs and attests what it
+publishes, keyless through Sigstore with the release workflow's GitHub OIDC
+identity. Nothing is signed with a long-lived key. Releases before `v0.5.0`
+carry no signatures.
+
+| Artifact | Signature | Attestations |
+| --- | --- | --- |
+| Each multi-arch image (`ghcr.io/kroegerleif/alfheim/<name>:<tag>`) | cosign, on the index and every platform manifest | SLSA build provenance on the index, SPDX SBOM on each platform image |
+| `SHA256SUMS` | cosign bundle `SHA256SUMS.sigstore.json` (release asset) | – |
+| Installer binaries and stack files listed in `SHA256SUMS` | through the signed `SHA256SUMS` | SLSA build provenance |
+
+Check them on the candidate before the install below. You need
+[cosign](https://docs.sigstore.dev/cosign/system_config/installation/) and the
+GitHub CLI.
+
+```bash
+TAG="v0.5.0-rc.1"
+IMAGE="ghcr.io/kroegerleif/alfheim/caddy"
+IDENTITY='^https://github\.com/KroegerLeif/Alfheim/\.github/workflows/release\.yml@refs/tags/v'
+ISSUER="https://token.actions.githubusercontent.com"
+
+# Image signature, bound to release.yml on a v* tag
+cosign verify "${IMAGE}:${TAG}" \
+  --certificate-identity-regexp "${IDENTITY}" --certificate-oidc-issuer "${ISSUER}"
+
+# Build provenance of the multi-arch image
+gh attestation verify "oci://${IMAGE}:${TAG}" --repo KroegerLeif/Alfheim \
+  --signer-workflow KroegerLeif/Alfheim/.github/workflows/release.yml
+
+# SBOM of the amd64 image (use arm64 for the other platform)
+DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${TAG}" --format '{{json .Manifest}}' \
+  | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
+gh attestation verify "oci://${IMAGE}@${DIGEST}" --repo KroegerLeif/Alfheim \
+  --predicate-type https://spdx.dev/Document/v2.3
+```
+
+For the installer assets, download `SHA256SUMS`, `SHA256SUMS.sigstore.json`
+and the binary from the release page, then:
+
+```bash
+cosign verify-blob SHA256SUMS --bundle SHA256SUMS.sigstore.json \
+  --certificate-identity-regexp "${IDENTITY}" --certificate-oidc-issuer "${ISSUER}"
+sha256sum --check --ignore-missing SHA256SUMS
+gh attestation verify alfheim-setup_linux_amd64 --repo KroegerLeif/Alfheim
+```
+
+Every command must end with a successful verification. A failure on a tag the
+workflow published means the release did not sign or attest correctly: do not
+promote it.
 
 ---
 

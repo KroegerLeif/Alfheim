@@ -103,7 +103,19 @@ curl -fsSLO "${BASE}/victoriametrics-scrape.yml"
 sha256sum --check --ignore-missing SHA256SUMS
 ```
 
-Every file must report `OK`. Then move the assets to where `compose.prod.yaml` expects them:
+Every file must report `OK`. From `v0.5.0` on, `SHA256SUMS` is signed by the
+release workflow; with [cosign](https://docs.sigstore.dev/cosign/system_config/installation/)
+installed you can also prove the checksums come from that workflow (see
+[Verify signatures and attestations](verify-release.md#verify-signatures-and-attestations)):
+
+```bash
+curl -fsSLO "${BASE}/SHA256SUMS.sigstore.json"
+cosign verify-blob SHA256SUMS --bundle SHA256SUMS.sigstore.json \
+  --certificate-identity-regexp '^https://github\.com/KroegerLeif/Alfheim/\.github/workflows/release\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+Then move the assets to where `compose.prod.yaml` expects them:
 
 ```bash
 mv otelcol-config.yaml infrastructure/telemetry/collector/config.yaml

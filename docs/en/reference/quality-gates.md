@@ -69,9 +69,9 @@ Every FastMCP tool has a docstring and type annotations, handles exceptions and 
 | `go-ci.yml` | gofmt, `go vet`, revive, `go test -race` per module, installer coverage gate and cross-compile |
 | `frontend-ci.yml` | `pnpm check-types`, `pnpm -r test`, `next build` for every frontend (matrix) |
 | `security-scan.yml` | gitleaks on every push and pull request; pip-audit, govulncheck, pnpm audit and Trivy when dependencies change; all scans weekly |
-| `smoke-test.yml` | Caddy gateway and production core stack startup |
+| `smoke-test.yml` | Caddy gateway startup, gateway rate limits and CSP (`scripts/test-gateway-hardening.sh`), production core stack startup |
 | `deploy-docs.yml` | Markdown link check and docs build; deploys from `main` |
-| `release.yml` | Tag-triggered release: ancestry check, quality gates, image build, Trivy gate, push, GitHub release |
+| `release.yml` | Tag-triggered release: ancestry check, quality gates, image build, Trivy gate, SBOM, push, cosign signature and SLSA provenance, signed `SHA256SUMS`, GitHub release |
 
 Workflow rules: every action is pinned to a full commit SHA with a `# vX.Y.Z` comment (Dependabot updates them); workflows default to `permissions: contents: read` and jobs raise only the scope they need; release images are scanned with Trivy before they are pushed, and pre-release tags (`-rc`, `-beta`, `-alpha`) never receive `latest`.
 

@@ -182,10 +182,11 @@ blocked.
 
 Apple POSTs the result to `/ui/login/login/externalidp/callback/form` on the
 auth host. Caddy proxies the whole auth host to Zitadel without rewrites, so
-the POST reaches Zitadel unchanged. The `form-action 'self'` directive in
-Caddy's `Content-Security-Policy-Report-Only` header is report-only and applies
-to forms on Alfheim's own pages, not to Apple's form, so it blocks nothing;
-Zitadel's own enforced CSP on the login pages sets no `form-action`.
+the POST reaches Zitadel unchanged. Caddy's `Content-Security-Policy` applies
+only to Alfheim's own pages: Zitadel sends its own policy on the login pages,
+which Caddy keeps and which sets no `form-action`, so it does not block
+Apple's form. The `auth_login` rate limit (30 login posts per minute and IP)
+does not cover this callback path.
 
 ## Rotate a secret or key
 

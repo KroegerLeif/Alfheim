@@ -17,6 +17,7 @@ sidebar:
 - [API Gateway Domain Routing (`api.alfheim.loegien.localhost`)](#api-gateway-domain-routing-apialfheimloegienlocalhost)
 - [Installer-Generated App Host: Household & Internal Routes](#installer-generated-app-host-household--internal-routes)
 - [Response Security Headers](#response-security-headers)
+- [Rate Limits](#rate-limits)
 - [Routes of Disabled Apps](#routes-of-disabled-apps)
 - [Stopped Apps and Upstream Health Checks](#stopped-apps-and-upstream-health-checks)
 - [Installer-Generated Route Table](#installer-generated-route-table)
@@ -130,13 +131,46 @@ Every site block (the app host, the `auth.*` host and, in the dev stack, the `ap
 | :--- | :--- | :--- |
 | `X-Content-Type-Options` | `nosniff` | Disables MIME sniffing |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | No path or query leaks to other origins |
-| `X-Frame-Options`, `Content-Security-Policy` | `SAMEORIGIN`, `frame-ancestors 'self'` | Clickjacking protection; the library PDF viewer frames a same-origin `/storage` URL |
+| `X-Frame-Options` | `SAMEORIGIN` | Clickjacking protection; the library PDF viewer frames a same-origin `/storage` URL |
 | `Permissions-Policy` | camera, microphone, geolocation, payment, usb disabled | No Alfheim app needs them |
-| `Content-Security-Policy-Report-Only` | same-origin baseline plus the `auth.*` host in `connect-src` | Report-only: Next.js emits inline bootstrap scripts, so enforcing `script-src` needs nonces first. Violations appear in the browser console. |
+| `Content-Security-Policy` | enforced; see [the policy below](#content-security-policy) | Limits scripts, connections, images and frames to the same origin and a few named third parties |
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Installer-generated HTTPS deployments only; the dev stack serves plain HTTP |
 | `Server` | removed | Hides the proxy banner |
 
 The dev `api.*` host adds no CORS headers. Every frontend calls the API through its own origin (`NEXT_PUBLIC_API_URL` is derived from `ALFHEIM_BASE_URL`), so browsers never make cross-origin requests there. `./scripts/verify-stack.sh` checks these headers on a running stack.
+
+### Content-Security-Policy
+
+The gateway enforces this policy on every Alfheim page. Zitadel (login and console) and Grafana (`GF_SECURITY_CONTENT_SECURITY_POLICY=true`) send their own nonce-based policies, which the `?` prefix keeps.
+
+| Directive | Sources | Why |
+| :--- | :--- | :--- |
+| `default-src` | `'self'` | Everything not listed below stays on the Alfheim origin |
+| `script-src` | `'self' 'unsafe-inline'` | Next.js emits inline bootstrap scripts without nonces; external scripts and `eval` are blocked |
+| `style-src` | `'self' 'unsafe-inline'` | Inline styles from React and Leaflet |
+| `img-src` | `'self' data: blob: https://*.basemaps.cartocdn.com https://cdnjs.cloudflare.com` | CARTO map tiles and the Leaflet marker icons of `OSMMapViewer` |
+| `font-src` | `'self' data:` | `next/font` serves fonts from the app itself |
+| `connect-src` | `'self'`, the `auth.*` host, `https://nominatim.openstreetmap.org` | APIs are same-origin; the browser talks to Zitadel's OIDC endpoints and to Nominatim (`AddressAutocomplete`) directly |
+| `worker-src` | `'self' blob:` | Same-origin and blob workers |
+| `frame-src`, `frame-ancestors` | `'self'` | The library PDF viewer frames `/storage`; no other site may frame Alfheim |
+| `object-src` | `'none'` | No plugins |
+| `base-uri`, `form-action` | `'self'` | No base-tag or form hijacking |
+
+A new third-party source in a frontend (a CDN, a tile server, an external API called from the browser) must be added to both Caddyfiles and to this table; otherwise the browser blocks it and logs a CSP violation in the console.
+
+## Rate Limits
+
+The gateway limits requests per client IP with the [`caddy-ratelimit`](https://github.com/mholt/caddy-ratelimit) module, which the Caddy image compiles in. Each zone counts requests in a sliding one-minute window. A request above a limit gets `429 Too Many Requests` with `Retry-After`; API clients get `{"error":"rate_limited",...}`, browsers a plain-text page. A request can match several zones and counts against each of them.
+
+| Zone | Host | Matches | Default per minute | Variable |
+| :--- | :--- | :--- | :--- | :--- |
+| `auth_login` | `auth.*` | `POST /ui/login/*`, `POST /ui/v2/login/*` | 30 | `ALFHEIM_RATE_LIMIT_LOGIN` |
+| `auth` | `auth.*` | every request | 600 | `ALFHEIM_RATE_LIMIT_AUTH` |
+| `lookup` | app host | `/api/v1/library/lookup*`, `/api/v1/pantry/products/barcode/*` and their `/<app>/api/v1` forms | 60 | `ALFHEIM_RATE_LIMIT_LOOKUP` |
+| `api` | app host | `/api/v1/*`, `*/api/v1/*` | 1200 | `ALFHEIM_RATE_LIMIT_API` |
+| `api_host_lookup`, `api_host` | dev `api.*` host | the same lookups; everything except `/storage*` and `/grafana*` | 60, 1200 | as above |
+
+Pages, static assets, `/storage` and `/livez` are not limited. [Tune the rate limits](../how-to/tune-rate-limits.md) explains when and how to change them. `./scripts/test-gateway-hardening.sh` checks every zone against a running gateway container.
 
 ## Routes of Disabled Apps
 
