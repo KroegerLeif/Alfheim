@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
@@ -47,28 +48,14 @@ func TestBuildRouter_PanicsWithoutAuth(t *testing.T) {
 			t.Fatal("expected buildRouter to panic when auth middleware is nil")
 		}
 	}()
-	buildRouter(log, &db.Client{Pool: nil}, nil, "", []string{})
+	buildRouter(log, &db.Client{Pool: nil}, nil, nil, "", []string{})
 }
 
 func TestBuildRouter(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dbClient := &db.Client{Pool: nil}
 
-	router := buildRouter(log, dbClient, passthroughAuth, "test-token", []string{})
-
-	t.Run("/healthz endpoint returns 200 healthy", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
-		rec := httptest.NewRecorder()
-
-		router.ServeHTTP(rec, req)
-
-		if rec.Code != http.StatusOK {
-			t.Errorf("expected status 200, got %d", rec.Code)
-		}
-		if !strings.Contains(rec.Body.String(), `"status":"healthy"`) {
-			t.Errorf("expected body to contain healthy status, got %s", rec.Body.String())
-		}
-	})
+	router := buildRouter(log, dbClient, nil, passthroughAuth, "test-token", []string{})
 
 	t.Run("internal membership API is mounted without JWT and requires the internal token", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/internal/v1/memberships/0b9f6c2e-4f5a-4c1d-9e0a-6a1c2b3d4e5f/user-1", nil)
@@ -89,17 +76,9 @@ func TestBuildRouter(t *testing.T) {
 		}
 	})
 
-	t.Run("/readyz endpoint returns 200 ready when pool is nil", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
-		rec := httptest.NewRecorder()
-
-		router.ServeHTTP(rec, req)
-
-		if rec.Code != http.StatusOK {
-			t.Errorf("expected status 200, got %d", rec.Code)
-		}
-		if !strings.Contains(rec.Body.String(), `"status":"ready"`) {
-			t.Errorf("expected body to contain ready status, got %s", rec.Body.String())
+	t.Run("a router without a readiness check is never ready", func(t *testing.T) {
+		if got := probeStatus(t, router, "/readyz"); got != http.StatusServiceUnavailable {
+			t.Errorf("/readyz = %d, want 503", got)
 		}
 	})
 }
@@ -237,5 +216,76 @@ func TestMain_Function(t *testing.T) {
 
 	if exitCode != 1 {
 		t.Errorf("expected exit code 1, got %d", exitCode)
+	}
+}
+
+// probeStatus returns the status router answers path with.
+func probeStatus(t *testing.T, router http.Handler, path string) int {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+	return rec.Code
+}
+
+func TestBuildRouter_Probes(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	up := func(context.Context) error { return nil }
+	down := func(context.Context) error { return errors.New("connection refused") }
+
+	healthy := buildRouter(log, &db.Client{}, up, passthroughAuth, "test-token", []string{})
+	if got := probeStatus(t, healthy, "/healthz"); got != http.StatusOK {
+		t.Errorf("/healthz = %d, want 200", got)
+	}
+	if got := probeStatus(t, healthy, "/readyz"); got != http.StatusOK {
+		t.Errorf("/readyz with a reachable database = %d, want 200", got)
+	}
+
+	degraded := buildRouter(log, &db.Client{}, down, passthroughAuth, "test-token", []string{})
+	if got := probeStatus(t, degraded, "/healthz"); got != http.StatusOK {
+		t.Errorf("/healthz with the database down = %d, want 200 (liveness ignores it)", got)
+	}
+	if got := probeStatus(t, degraded, "/readyz"); got != http.StatusServiceUnavailable {
+		t.Errorf("/readyz with the database down = %d, want 503", got)
+	}
+}
+
+func TestReadinessCheck_UnreadableMigrationsStaysUnready(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	check := readinessCheck(&db.Client{}, filepath.Join(t.TempDir(), "missing"), log)
+	if err := check(context.Background()); err == nil {
+		t.Error("a missing migrations directory must keep the backend unready")
+	}
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "000001_init.up.sql"), []byte("SELECT 1;"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := readinessCheck(&db.Client{}, dir, log)(context.Background()); err == nil {
+		t.Error("a client without a pool must not be ready")
+	}
+}
+
+func TestSignupOptions(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	t.Setenv("ALFHEIM_EXTRA_CA_FILE", "")
+	t.Setenv("ALFHEIM_SIGNUP_ALLOWLIST", "")
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if opts, err := signupOptions(cfg, log); err != nil || len(opts) != 0 {
+		t.Errorf("no allowlist: %v %v", opts, err)
+	}
+
+	t.Setenv("ALFHEIM_SIGNUP_ALLOWLIST", "@family.example")
+	if cfg, err = config.Load(); err != nil {
+		t.Fatal(err)
+	}
+	if opts, err := signupOptions(cfg, log); err != nil || len(opts) != 1 {
+		t.Errorf("allowlist set: %v %v", opts, err)
+	}
+
+	t.Setenv("ALFHEIM_EXTRA_CA_FILE", filepath.Join(t.TempDir(), "missing.pem"))
+	if _, err := signupOptions(cfg, log); err == nil {
+		t.Error("an unreadable extra CA file must fail")
 	}
 }

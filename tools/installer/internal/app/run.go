@@ -498,13 +498,14 @@ func carryForwardProvisioned(existing map[string]string) map[string]string {
 }
 
 // operatorTunedEnvKeys are optional .env keys an operator sets by hand to
-// tune the stack. env.tmpl does not render them, because compose.prod.yaml
-// supplies their defaults.
+// tune the stack. env.tmpl renders them empty or not at all, because
+// compose.prod.yaml supplies their defaults, so a re-render must restore them.
 var operatorTunedEnvKeys = []string{
 	"ALFHEIM_RATE_LIMIT_LOGIN",
 	"ALFHEIM_RATE_LIMIT_AUTH",
 	"ALFHEIM_RATE_LIMIT_API",
 	"ALFHEIM_RATE_LIMIT_LOOKUP",
+	"ALFHEIM_SIGNUP_ALLOWLIST",
 }
 
 // carryForwardOperatorTuned picks out the operator-tuned values present in

@@ -63,6 +63,13 @@ describe('describeApiError (issue #574)', () => {
     )
   })
 
+  it('explains a sign-up allowlist refusal (ADR 0009)', async () => {
+    const body = JSON.stringify({ error: 'signup_not_allowed', message: 'restricted' })
+    expect(describeApiError(await failingRequest(403, body, 'application/json'), t)).toBe(
+      'Creating a household is restricted on this instance. Ask a member of a household to invite you.',
+    )
+  })
+
   it('falls back to the error message for non-HTTP errors', () => {
     expect(describeApiError(new Error('offline'), t)).toBe('Something went wrong: offline')
     expect(getServerMessage(new Error('offline'))).toBeUndefined()

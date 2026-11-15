@@ -678,9 +678,10 @@ func TestCarryForwardOperatorTuned(t *testing.T) {
 		"ALFHEIM_RATE_LIMIT_LOOKUP": "120",
 		"ALFHEIM_RATE_LIMIT_API":    "",
 		"ALFHEIM_HOST":              "alfheim.example.com",
+		"ALFHEIM_SIGNUP_ALLOWLIST":  "@family.example",
 	})
-	if len(got) != 1 || got["ALFHEIM_RATE_LIMIT_LOOKUP"] != "120" {
-		t.Fatalf("carryForwardOperatorTuned() = %v, want only ALFHEIM_RATE_LIMIT_LOOKUP=120", got)
+	if len(got) != 2 || got["ALFHEIM_RATE_LIMIT_LOOKUP"] != "120" || got["ALFHEIM_SIGNUP_ALLOWLIST"] != "@family.example" {
+		t.Fatalf("carryForwardOperatorTuned() = %v, want the rate limit and the sign-up allowlist", got)
 	}
 }
 

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"testing"
 	"time"
 )
@@ -112,5 +113,56 @@ func TestLoad_InvalidIntConversion(t *testing.T) {
 	// Should fall back to default value of 25
 	if cfg.Database.MaxConns != 25 {
 		t.Errorf("expected fallback MaxConns 25 for invalid int input, got %d", cfg.Database.MaxConns)
+	}
+}
+
+// TestLoad_CORSOrigins covers #921: production never falls back to the dev
+// hosts, operator origins are used as configured and a malformed list fails
+// startup.
+func TestLoad_CORSOrigins(t *testing.T) {
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("CORS_ALLOWED_ORIGINS", "") // registers the restore
+	if err := os.Unsetenv("CORS_ALLOWED_ORIGINS"); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if len(cfg.CORS.AllowedOrigins) != 0 {
+		t.Errorf("production without CORS_ALLOWED_ORIGINS allows %v, want none", cfg.CORS.AllowedOrigins)
+	}
+
+	t.Setenv("CORS_ALLOWED_ORIGINS", "https://alfheim.example.com")
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if len(cfg.CORS.AllowedOrigins) != 1 || cfg.CORS.AllowedOrigins[0] != "https://alfheim.example.com" {
+		t.Errorf("AllowedOrigins = %v", cfg.CORS.AllowedOrigins)
+	}
+
+	t.Setenv("CORS_ALLOWED_ORIGINS", "*")
+	if _, err := Load(); err == nil {
+		t.Error("a wildcard origin must fail Load()")
+	}
+}
+
+// TestLoad_SignupAllowlist covers #923: empty keeps the instance open, a list
+// is parsed and a malformed entry fails startup.
+func TestLoad_SignupAllowlist(t *testing.T) {
+	t.Setenv("ALFHEIM_SIGNUP_ALLOWLIST", "")
+	cfg, err := Load()
+	if err != nil || cfg.SignupAllowlist.Enabled() {
+		t.Fatalf("empty allowlist: %+v %v", cfg, err)
+	}
+	t.Setenv("ALFHEIM_SIGNUP_ALLOWLIST", "@family.example")
+	cfg, err = Load()
+	if err != nil || !cfg.SignupAllowlist.Allows("a@family.example") {
+		t.Fatalf("listed domain: %v", err)
+	}
+	t.Setenv("ALFHEIM_SIGNUP_ALLOWLIST", "*")
+	if _, err := Load(); err == nil {
+		t.Error("a wildcard must fail Load()")
 	}
 }

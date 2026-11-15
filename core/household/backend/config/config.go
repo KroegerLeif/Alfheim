@@ -2,12 +2,15 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"alfheim/go-shared/db"
+	"alfheim/go-shared/httpmw"
+	"alfheim/household/internal/features/signup"
 )
 
 // Config encapsulates all backend service configurations.
@@ -17,6 +20,9 @@ type Config struct {
 	Database    DatabaseConfig
 	OIDC        OIDCConfig
 	CORS        CORSConfig
+	// SignupAllowlist restricts who may create a first household
+	// (ALFHEIM_SIGNUP_ALLOWLIST, ADR 0009). Empty leaves the instance open.
+	SignupAllowlist signup.Allowlist
 	// InternalToken is the shared secret (ALFHEIM_INTERNAL_TOKEN) guarding the
 	// service-to-service membership API. Empty disables that API (503).
 	InternalToken string
@@ -61,20 +67,25 @@ func Load() (*Config, error) {
 
 	internalToken := strings.TrimSpace(os.Getenv("ALFHEIM_INTERNAL_TOKEN"))
 
-	// Parse CORS allowed origins from environment variable
-	corsOriginsStr := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8000,http://alfheim.loegien.localhost,http://api.alfheim.loegien.localhost")
-	corsOrigins := []string{}
-	if corsOriginsStr != "" {
-		corsOrigins = strings.Split(corsOriginsStr, ",")
-		for i := range corsOrigins {
-			corsOrigins[i] = strings.TrimSpace(corsOrigins[i])
-		}
+	// CORS allowlist (#921): production allows no cross-origin access unless
+	// CORS_ALLOWED_ORIGINS names the public origins; a malformed entry fails
+	// startup instead of widening the list.
+	corsRaw, corsSet := os.LookupEnv("CORS_ALLOWED_ORIGINS")
+	corsOrigins, err := httpmw.ResolveAllowedOrigins(corsRaw, corsSet, env)
+	if err != nil {
+		return nil, fmt.Errorf("CORS_ALLOWED_ORIGINS: %w", err)
+	}
+
+	signupAllowlist, err := signup.ParseAllowlist(os.Getenv("ALFHEIM_SIGNUP_ALLOWLIST"))
+	if err != nil {
+		return nil, fmt.Errorf("ALFHEIM_SIGNUP_ALLOWLIST: %w", err)
 	}
 
 	cfg := &Config{
-		Environment:   env,
-		Port:          port,
-		InternalToken: internalToken,
+		SignupAllowlist: signupAllowlist,
+		Environment:     env,
+		Port:            port,
+		InternalToken:   internalToken,
 		Database: DatabaseConfig{
 			URL:             dbURL,
 			MaxConns:        maxConns,

@@ -112,6 +112,7 @@
     "errors": {
       "unauthorized": "Twoja sesja wygasła. Zaloguj się ponownie.",
       "forbidden": "Nie masz uprawnień do wykonania tej czynności w tym gospodarstwie.",
+      "signup_not_allowed": "Tworzenie gospodarstw jest na tej instancji ograniczone. Poproś członka gospodarstwa o zaproszenie.",
       "household_not_found": "To gospodarstwo nie istnieje lub nie jesteś już jego członkiem.",
       "invite_not_found": "Ten kod zaproszenia jest nieprawidłowy, wygasł lub został unieważniony.",
       "conflict": "To koliduje z bieżącym stanem. {detail}",
