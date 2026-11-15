@@ -140,6 +140,11 @@ class ShoppingItem(SQLModel, table=True):
         index=True,
         description="True if successfully synced ('eingelagert') to pantry inventory.",
     )
+    history_logged: bool = Field(
+        default=False,
+        sa_column=Column(Boolean, nullable=False, server_default="false"),
+        description="True once the purchase was counted in the shopping history (at most once per item).",
+    )
     product_id: uuid.UUID | None = Field(
         default=None,
         nullable=True,
