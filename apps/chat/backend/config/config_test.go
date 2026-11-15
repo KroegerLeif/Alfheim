@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -209,7 +210,7 @@ func TestLoad_MCPServersSpecSet(t *testing.T) {
 // startup.
 func TestLoad_CORSOrigins(t *testing.T) {
 	t.Setenv("ALFHEIM_INTERNAL_TOKEN", "secret")
-	t.Setenv("CHAT_ATTACHMENT_URL_SECRET", "0123456789abcdef0123456789abcdef")
+	t.Setenv("CHAT_ATTACHMENT_URL_SECRET", strings.Repeat("s", 32)) // test-only placeholder, not a secret
 	t.Setenv("ENVIRONMENT", "production")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "") // registers the restore
 	if err := os.Unsetenv("CORS_ALLOWED_ORIGINS"); err != nil {
