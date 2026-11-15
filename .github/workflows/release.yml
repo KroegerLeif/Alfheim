@@ -256,7 +256,10 @@ jobs:
     permissions:
       # upload-sarif >= 4.39 reads the workflow run to attribute the analysis.
       actions: read
+      # attest-sbom stores the SBOM attestation and signs it keyless (OIDC).
+      attestations: write
       contents: read
+      id-token: write
       packages: write
       security-events: write
     strategy:
@@ -345,6 +348,36 @@ jobs:
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.name }}-${{ matrix.arch }}
+          # No unsigned buildx attestations: they would wrap the platform
+          # image in an index, so the digest below (the subject of the signed
+          # SBOM attestation) would not be the platform manifest listed in
+          # the final multi-arch index. Signed provenance and SBOM come from
+          # the attest steps instead.
+          provenance: false
+          sbom: false
+
+      # SPDX SBOM of the image that passed the gate. It also runs in a dry
+      # run, so a broken SBOM step shows up before a release does.
+      - name: Generate SBOM
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: scan/${{ matrix.name }}:${{ github.sha }}-${{ matrix.arch }}
+          format: spdx-json
+          output-file: ${{ runner.temp }}/sbom-${{ matrix.name }}-${{ matrix.arch }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      # Signed (Sigstore keyless) SBOM attestation on the pushed platform
+      # digest, stored next to the image in GHCR and in the repository's
+      # attestation store (gh attestation verify).
+      - name: Attest SBOM
+        if: env.DRY_RUN != 'true'
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-name: ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          sbom-path: ${{ runner.temp }}/sbom-${{ matrix.name }}-${{ matrix.arch }}.spdx.json
+          push-to-registry: true
 
       - name: Export Digest
         if: env.DRY_RUN != 'true'
@@ -375,7 +408,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
+      # Provenance attestation and keyless (GitHub OIDC) cosign signature.
+      attestations: write
       contents: read
+      id-token: write
       packages: write
     strategy:
       fail-fast: false
@@ -426,10 +462,38 @@ jobs:
           docker buildx imagetools create "${tags[@]}" "${sources[@]}"
 
       - name: Inspect Manifest
+        id: manifest
         env:
           REF_NAME: ${{ github.ref_name }}
           IMAGE: ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }}
-        run: docker buildx imagetools inspect "${IMAGE}:${REF_NAME}"
+        run: |
+          docker buildx imagetools inspect "${IMAGE}:${REF_NAME}"
+          digest=$(docker buildx imagetools inspect "${IMAGE}:${REF_NAME}" --format '{{json .Manifest}}' | jq -r .digest)
+          if [[ "${digest}" != sha256:* ]]; then
+            echo "Error: could not resolve the manifest digest of ${IMAGE}:${REF_NAME}."
+            exit 1
+          fi
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+      # Keyless signature bound to this workflow's GitHub OIDC identity. Signs
+      # by digest, never by tag, and --recursive signs every platform manifest
+      # of the index too, so `cosign verify` works on either.
+      - name: Sign Manifest (Cosign Keyless)
+        env:
+          IMAGE: ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }}
+          DIGEST: ${{ steps.manifest.outputs.digest }}
+        run: cosign sign --yes --recursive "${IMAGE}@${DIGEST}"
+
+      # SLSA build provenance for the multi-arch index, pushed to GHCR.
+      - name: Attest Build Provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }}
+          subject-digest: ${{ steps.manifest.outputs.digest }}
+          push-to-registry: true
 
   build-installer:
     name: Build Installer Binaries (${{ matrix.goarch }})
@@ -481,7 +545,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
+      # Provenance attestations and the keyless SHA256SUMS signature.
+      attestations: write
       contents: write
+      id-token: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -519,6 +586,22 @@ jobs:
           sha256sum alfheim-setup_linux_* compose.prod.yaml otelcol-config.yaml init-multiple-dbs.sh vector.toml victoriametrics-scrape.yml verify-stack.sh > SHA256SUMS
           cat SHA256SUMS
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+      # install.sh trusts SHA256SUMS for every asset it downloads; the
+      # Sigstore bundle proves the file came from this workflow on a tag.
+      - name: Sign Checksums (Cosign Keyless)
+        working-directory: dist
+        run: cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
+
+      # SLSA build provenance for every asset listed in SHA256SUMS (installer
+      # binaries and the standalone stack files).
+      - name: Attest Build Provenance for Release Assets
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist/SHA256SUMS
+
       - name: Create GitHub Release & Attach Production Artifacts
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
@@ -531,6 +614,7 @@ jobs:
             dist/alfheim-setup_linux_amd64
             dist/alfheim-setup_linux_arm64
             dist/SHA256SUMS
+            dist/SHA256SUMS.sigstore.json
             dist/compose.prod.yaml
             dist/otelcol-config.yaml
             dist/init-multiple-dbs.sh
