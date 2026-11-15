@@ -23,6 +23,7 @@ membership API confirms.
 | `apps/<name>` | Tier-2 apps: `backend/` (FastAPI or Go), `frontend/` (Next.js), `compose.yml` |
 | `packages/shared` | `@alfheim/shared`: UI primitives, i18n, auth, household context, assets |
 | `packages/backend-shared` | `backend_shared` Python package: auth, household checks, storage |
+| `packages/go-shared` | `alfheim/go-shared` Go module: JWT auth, HTTP middleware, database, logger |
 | `tools/installer` | `alfheim-setup` (Go): install, update, backup, restore |
 | `infrastructure/` | Caddy, Postgres init, telemetry, dev compose files |
 | `docs/` | Diátaxis docs; `en/` is the source of truth, `de/` is translated |

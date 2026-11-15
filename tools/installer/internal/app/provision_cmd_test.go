@@ -19,16 +19,28 @@ import (
 // with self-registration enabled like a fresh Zitadel, and the organisation
 // policy that inherits it.
 type loginPolicyStub struct {
+	// creds answers the machine key rotation every run starts with.
+	creds        *credentialStub
 	mu           sync.Mutex
 	registerOpen bool
 	puts         int
+	// mail fakes the e-mail provider endpoints, see smtp_test.go.
+	mail emailStub
 }
 
-func newLoginPolicyStub() *loginPolicyStub { return &loginPolicyStub{registerOpen: true} }
+func newLoginPolicyStub() *loginPolicyStub {
+	return &loginPolicyStub{creds: newCredentialStub(), registerOpen: true}
+}
 
 // handle answers a login policy request and reports whether it did.
 func (l *loginPolicyStub) handle(w http.ResponseWriter, r *http.Request) bool {
+	if l.creds.handle(w, r) {
+		return true
+	}
 	if handleOperatorAccess(w, r) {
+		return true
+	}
+	if l.handleEmail(w, r) {
 		return true
 	}
 	if r.URL.Path != "/admin/v1/policies/login" && r.URL.Path != "/management/v1/policies/login" {
@@ -41,12 +53,13 @@ func (l *loginPolicyStub) handle(w http.ResponseWriter, r *http.Request) bool {
 		var body map[string]any
 		_ = json.NewDecoder(r.Body).Decode(&body)
 		l.registerOpen, _ = body["allowRegister"].(bool)
+		l.mail.resetHidden, _ = body["hidePasswordReset"].(bool)
 		l.puts++
 		_ = json.NewEncoder(w).Encode(map[string]any{})
 		return true
 	}
 	_ = json.NewEncoder(w).Encode(map[string]any{"policy": map[string]any{
-		"allowRegister": l.registerOpen, "isDefault": true,
+		"allowRegister": l.registerOpen, "isDefault": true, "hidePasswordReset": l.mail.resetHidden,
 	}})
 	return true
 }
@@ -278,13 +291,13 @@ func assertProvisionedEnv(t *testing.T, envPath string) {
 	}
 }
 
-func TestRunProvision_RequiresBothFlags(t *testing.T) {
+func TestRunProvision_RequiresEnvFile(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	code := RunProvision([]string{"--env-file", "/tmp/x"}, &stdout, &stderr)
+	code := RunProvision([]string{"--pat-file", "/tmp/x"}, &stdout, &stderr)
 	if code != ExitUsage {
 		t.Fatalf("RunProvision() = %d, want %d", code, ExitUsage)
 	}
-	if !strings.Contains(stderr.String(), "--pat-file") {
+	if !strings.Contains(stderr.String(), "--env-file") {
 		t.Errorf("stderr = %q", stderr.String())
 	}
 }

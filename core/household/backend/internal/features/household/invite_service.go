@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"time"
 
-	"alfheim/household/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 const (
@@ -128,7 +128,7 @@ func (s *service) RevokeInvite(ctx context.Context, requesterID string, househol
 }
 
 // JoinHousehold redeems an invite token atomically (see RedeemInviteTx).
-func (s *service) JoinHousehold(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error) {
+func (s *service) JoinHousehold(ctx context.Context, claims *auth.UserClaims, token string) (*HouseholdResponse, error) {
 	invite, err := s.repo.RedeemInviteTx(ctx, token, claims.Subject, claims.Email, claims.PreferredUsername)
 	if err != nil {
 		return nil, err

@@ -9,8 +9,8 @@ x-logging: &default-logging
 services:
   chat-backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: apps/chat/backend/Dockerfile
     container_name: chat-backend
     profiles: ["chat"]
     restart: always

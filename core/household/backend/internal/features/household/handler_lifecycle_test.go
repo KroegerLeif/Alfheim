@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"alfheim/household/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -19,7 +19,7 @@ func newTestRouter(svc Service, noAuth bool) http.Handler {
 	NewHandler(svc).RegisterRoutes(r, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			if !noAuth {
-				req = req.WithContext(context.WithValue(req.Context(), middleware.UserContextKey, &middleware.UserClaims{Subject: "user-1"}))
+				req = req.WithContext(context.WithValue(req.Context(), auth.UserContextKey, &auth.UserClaims{Subject: "user-1"}))
 			}
 			next.ServeHTTP(w, req)
 		})
@@ -293,7 +293,7 @@ func TestHouseholdHandler_CreateInviteRoleErrors(t *testing.T) {
 func TestHouseholdHandler_CreateHouseholdInvalidName(t *testing.T) {
 	runRouteCases(t, []routeCase{{
 		name: "invalid name", method: http.MethodPost, path: "/api/v1/households", body: `{"name":"   "}`,
-		svc: &mockService{createHouseholdFn: func(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
+		svc: &mockService{createHouseholdFn: func(ctx context.Context, claims *auth.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
 			return nil, ErrInvalidHouseholdName
 		}},
 		wantStatus: http.StatusBadRequest, wantSubstr: "household name",

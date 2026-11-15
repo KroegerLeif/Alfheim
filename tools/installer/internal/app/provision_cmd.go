@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"alfheim/installer/internal/features/apps"
 	"alfheim/installer/internal/features/provisioning"
+	"alfheim/installer/internal/features/security"
+	"alfheim/installer/internal/features/smtp"
+	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/features/telemetry"
 	"alfheim/installer/internal/shared/envfile"
-	"alfheim/installer/internal/shared/paths"
 )
 
 // provisionUsage documents the hidden `provision` subcommand, which exists so
@@ -22,16 +22,24 @@ import (
 const provisionUsage = `alfheim-setup provision - reconcile Zitadel OIDC clients for an existing .env
 
 Usage:
-  alfheim-setup provision --env-file PATH --pat-file PATH
+  alfheim-setup provision --env-file PATH [--pat-file PATH]
                           [--zitadel-url URL] [--zitadel-tls-addr HOST:PORT] [--ca-file PATH]
-                          [--telemetry[=true|false]]
+                          [--telemetry[=true|false]] [--google-client-id ID]
+                          [--apple-client-id ID --apple-team-id ID --apple-key-id ID
+                           --apple-private-key-file PATH]
+                          [--smtp-host HOST --smtp-sender-address ADDR [--smtp-port PORT]
+                           [--smtp-user USER] [--smtp-sender-name NAME] [--smtp-tls BOOL]]
 
 Flags:
   --env-file PATH      The .env to read (for ZITADEL_EXTERNALDOMAIN,
                        ALFHEIM_BASE_URL, ZITADEL_EXTERNALSECURE and any
                        previously provisioned credentials) and update in place.
-  --pat-file PATH      The Zitadel bootstrap machine user's personal access
-                       token file (ZITADEL_FIRSTINSTANCE_PATPATH).
+  --pat-file PATH      A personal access token of the Zitadel provisioning
+                       machine user. Needed only when no working machine key
+                       is stored at infrastructure/zitadel/provisioner/
+                       machine-key.json next to the .env: on first use, or for
+                       recovery after the key expired. The run then stores a
+                       machine key and revokes every PAT of that user.
   --zitadel-url URL    Caddy's plain-HTTP listener, used only when
                        ZITADEL_EXTERNALSECURE is not true.
                        Default: http://127.0.0.1:80.
@@ -49,15 +57,33 @@ Flags:
                        .env decides (missing means off). Apply the change with
                        alfheim-setup update, which re-renders the Caddyfile's
                        /grafana route and recreates the services.
+  --google-client-id ID
+                       Turn on Sign in with Google with this OAuth client id.
+                       The secret comes from ALFHEIM_GOOGLE_CLIENT_SECRET in
+                       the environment or the .env. Both are stored in the .env.
+                       Without the flag, the .env decides; empty values there
+                       take the provider off the login page.
+  --apple-client-id ID, --apple-team-id ID, --apple-key-id ID,
+  --apple-private-key-file PATH
+                       Turn on Sign in with Apple. The key file must have
+                       mode 0600; only its path is stored in the .env, the
+                       key itself is uploaded to Zitadel.
+  --smtp-host HOST, --smtp-port PORT, --smtp-user USER,
+  --smtp-sender-address ADDR, --smtp-sender-name NAME, --smtp-tls BOOL
+                       Configure Zitadel's SMTP e-mail provider. The password
+                       comes from ALFHEIM_SMTP_PASSWORD in the environment or
+                       the .env. Without the flags, the .env decides; an empty
+                       ALFHEIM_SMTP_HOST there removes the installer's provider
+                       and hides "Forgot password" on the login page.
 
 Exit codes:
   0 success   1 failure   2 usage error
 `
 
 // RunProvision implements the `provision` subcommand: it reconciles the
-// Alfheim project and OIDC applications against an existing .env and PAT
-// file, without running the wizard or touching any container. It is the
-// shared implementation behind both a fresh install's runBootstrap step and
+// Alfheim project and OIDC applications against an existing .env, without
+// running the wizard or touching any container. It is the shared
+// implementation behind both a fresh install's runBootstrap step and
 // scripts/up.sh, which invokes it via `go run ./cmd/alfheim-setup provision`.
 func RunProvision(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("alfheim-setup provision", flag.ContinueOnError)
@@ -65,11 +91,15 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 	fs.Usage = func() { fmt.Fprint(stderr, provisionUsage) }
 
 	envFile := fs.String("env-file", "", "path to the .env file to read and update")
-	patFile := fs.String("pat-file", "", "path to the Zitadel bootstrap PAT file")
+	patFile := fs.String("pat-file", "", "Zitadel PAT file, needed only when no machine key works yet")
 	zitadelURL := fs.String("zitadel-url", provisioning.DefaultPlainURL, "Caddy's plain-HTTP base URL")
 	tlsAddr := fs.String("zitadel-tls-addr", provisioning.DefaultTLSAddr, "Caddy's HTTPS listener address")
 	caFile := fs.String("ca-file", "", "extra root CA to trust")
 	telemetryFlag := fs.Bool("telemetry", false, "turn the optional observability stack on (OTEL_ENABLED)")
+	var social sociallogin.Settings
+	sociallogin.RegisterFlags(fs, &social)
+	var mail smtp.Settings
+	smtp.RegisterFlags(fs, &mail)
 
 	if err := fs.Parse(args); err != nil {
 		return ExitUsage
@@ -78,8 +108,8 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprint(stderr, provisionUsage)
 		return ExitUsage
 	}
-	if *envFile == "" || *patFile == "" {
-		fmt.Fprintln(stderr, "Error: --env-file and --pat-file are required")
+	if *envFile == "" {
+		fmt.Fprintln(stderr, "Error: --env-file is required")
 		fmt.Fprint(stderr, provisionUsage)
 		return ExitUsage
 	}
@@ -89,57 +119,68 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "Error: read %s: %v\n", *envFile, err)
 		return ExitFailure
 	}
-
-	authHost := existing["ZITADEL_EXTERNALDOMAIN"]
-	baseURL := existing["ALFHEIM_BASE_URL"]
-	if authHost == "" || baseURL == "" {
-		fmt.Fprintf(stderr,
-			"Error: %s is missing ZITADEL_EXTERNALDOMAIN or ALFHEIM_BASE_URL\n", *envFile)
-		return ExitFailure
-	}
-	secure := existing["ZITADEL_EXTERNALSECURE"] == "true"
-
-	patBytes, err := os.ReadFile(*patFile)
-	if err != nil {
-		fmt.Fprintf(stderr, "Error: read PAT file %s: %v\n", *patFile, err)
-		return ExitFailure
-	}
-	pat := strings.TrimSpace(string(patBytes))
-	if pat == "" {
-		fmt.Fprintf(stderr, "Error: %s is empty\n", *patFile)
-		return ExitFailure
-	}
-
-	rootCA := *caFile
-	if rootCA == "" {
-		rootCA = existingRootCA(paths.Layout{Root: filepath.Dir(*envFile)})
-	}
-	endpointURL, httpClient, err := provisioning.Endpoint{
-		Secure:          secure,
-		AuthHost:        authHost,
-		PlainURL:        *zitadelURL,
-		TLSAddr:         *tlsAddr,
-		ExtraRootCAFile: rootCA,
-	}.Client()
+	target, err := resolveZitadelTarget(*envFile, existing, zitadelEndpointFlags{*zitadelURL, *tlsAddr, *caFile})
 	if err != nil {
 		fmt.Fprintf(stderr, "Error: %v\n", err)
 		return ExitFailure
 	}
-	client := &provisioning.HTTPClient{BaseURL: endpointURL, Host: authHost, PAT: pat, HTTP: httpClient}
-	in := provisioning.BuildInput(defaultProjectName, baseURL, !secure, provisioning.AppSlugs)
+	bootstrap, err := patFileBootstrap(*patFile, target.layout.ZitadelProvisionerKeyFile())
+	if err != nil {
+		fmt.Fprintf(stderr, "Error: %v\n", err)
+		return ExitFailure
+	}
+	social.ApplyEnv(os.Getenv)
+	socialUpdates, err := applySocialLoginOverrides(existing, social)
+	if err != nil {
+		fmt.Fprintf(stderr, "Error: %v\n", err)
+		return ExitFailure
+	}
+	mail.ApplyEnv(os.Getenv)
+	mailUpdates, err := applySMTPOverrides(existing, mail)
+	if err != nil {
+		fmt.Fprintf(stderr, "Error: %v\n", err)
+		return ExitFailure
+	}
+
+	in := provisioning.BuildInput(defaultProjectName, target.baseURL, !target.secure, provisioning.AppSlugs)
+	in.AuthOrigin = authOrigin(target.client.Host, target.secure)
+	if in.IDPs, err = socialLoginSpecs(existing, security.ReadPrivateKeyFile); err != nil {
+		fmt.Fprintf(stderr, "Error: %v\n", err)
+		return ExitFailure
+	}
+	if in.SMTP, err = smtpSpec(existing); err != nil {
+		fmt.Fprintf(stderr, "Error: %v\n", err)
+		return ExitFailure
+	}
+
+	// Authenticate only once every local input is valid, since this rotates
+	// the stored machine key.
+	ctx := context.Background()
+	client, credentialWarnings, err := authenticateZitadel(ctx, zitadelCredentials{
+		client: target.client, issuer: target.issuer, layout: target.layout, existing: existing, bootstrap: bootstrap,
+	})
+	if err != nil {
+		fmt.Fprintf(stderr, "Error: authenticate to Zitadel: %v\n", err)
+		return ExitFailure
+	}
 	telemetrySet := flagWasSet(fs, "telemetry")
 	in.Telemetry = telemetry.Enabled(existing)
 	if telemetrySet {
 		in.Telemetry = *telemetryFlag
 	}
 
-	result, err := provisioning.Provision(context.Background(), client, in, existing)
+	result, err := provisioning.Provision(ctx, client, in, existing)
 	if err != nil {
 		fmt.Fprintf(stderr, "Error: provision Zitadel: %v\n", err)
 		return ExitFailure
 	}
 
 	updates := result.EnvUpdates()
+	for _, extra := range []map[string]string{socialUpdates, mailUpdates} {
+		for k, v := range extra {
+			updates[k] = v
+		}
+	}
 	if telemetrySet {
 		// The flag toggles the telemetry module, so ALFHEIM_ENABLED_APPS,
 		// COMPOSE_PROFILES and OTEL_ENABLED stay in step with
@@ -164,7 +205,9 @@ func RunProvision(args []string, stdout, stderr io.Writer) int {
 	} else {
 		fmt.Fprintln(stdout, "  Telemetry is off (OTEL_ENABLED=false): the Grafana client was skipped.")
 	}
-	printWarnings(stderr, result.Warnings)
+	printSocialLogin(stdout, result.IDPs)
+	printSMTP(stdout, result.SMTP)
+	printWarnings(stderr, append(credentialWarnings, result.Warnings...))
 	return ExitOK
 }
 

@@ -15,6 +15,8 @@ import (
 
 	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
+	"alfheim/installer/internal/features/smtp"
+	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/features/tls"
 	"alfheim/installer/internal/shared/paths"
 )
@@ -34,6 +36,12 @@ type Model struct {
 	// DataPaths are the optional host directories for persistent data. A
 	// class without one keeps its named volume.
 	DataPaths datapaths.Paths
+	// SocialLogin are the optional social login credentials. Empty values
+	// render empty variables, which keeps the provider switched off.
+	SocialLogin sociallogin.Settings
+	// SMTP is the optional mail server for Zitadel. An empty host renders
+	// empty variables, which keeps e-mail switched off.
+	SMTP smtp.Settings
 	// Telemetry renders OTEL_ENABLED. It follows the telemetry module of the
 	// enabled app set, which also decides the Caddyfile's /grafana route
 	// (DisabledApps). It is off for a fresh install (Lean Core).
@@ -67,6 +75,19 @@ func (m Model) Secret(key string) string { return m.Secrets[key] }
 // GeneratedStamp renders the generation timestamp in UTC.
 func (m Model) GeneratedStamp() string {
 	return m.Generated.UTC().Format(time.RFC3339)
+}
+
+// BootstrapPATLifetime bounds the personal access token Zitadel creates for
+// the provisioning machine user on first init. alfheim-setup revokes that
+// token minutes later, when it switches to a machine key (issue #789); the
+// expiry only matters if that never happens, and leaves room for a first
+// boot that is retried within a week of rendering .env.
+const BootstrapPATLifetime = 7 * 24 * time.Hour
+
+// BootstrapPATExpiry renders ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE: the
+// generation time plus BootstrapPATLifetime, in UTC.
+func (m Model) BootstrapPATExpiry() string {
+	return m.Generated.Add(BootstrapPATLifetime).UTC().Format(time.RFC3339)
 }
 
 // ExternalPort is the port Zitadel advertises in its issuer metadata.

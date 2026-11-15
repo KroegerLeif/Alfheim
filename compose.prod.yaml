@@ -247,12 +247,14 @@ services:
       # the mail round-trip an unconfigured SMTP setup could never complete.
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_ADDRESS: "${ZITADEL_ADMIN_EMAIL:?ZITADEL_ADMIN_EMAIL must be set}"
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_VERIFIED: "true"
-      # Machine user whose personal access token the installer's Zitadel
-      # provisioning step (internal/features/provisioning) authenticates
-      # with, mirroring infrastructure/compose.yml's dev setup.
+      # Machine user the installer's Zitadel provisioning step authenticates
+      # as. Its first-instance personal access token is short-lived (the
+      # installer renders the expiry into .env) and only used once: the first
+      # provisioning run registers a rotated machine key for the same user and
+      # revokes the token (tools/installer/internal/features/zitadelauth).
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: "${ZITADEL_BOOTSTRAP_USERNAME:?ZITADEL_BOOTSTRAP_USERNAME must be set}"
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: "Alfheim Bootstrap"
-      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "2519-04-01T08:45:00Z"
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "${ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE:?ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE must be set}"
       ZITADEL_FIRSTINSTANCE_PATPATH: /machinekey/pat.txt
     volumes:
       - ./infrastructure/zitadel/machinekey:/machinekey
