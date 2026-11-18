@@ -77,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enforce mode `0700` on `infrastructure/zitadel/provisioner/` when the installer writes the machine key; a git checkout or an older install had created it `0755`, and `MkdirAll` keeps an existing directory's mode.
 - Refresh `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` to one week ahead on `update` and on a plain re-run when it is missing, unparseable or past, as `scripts/init-env.sh` does; Zitadel refuses an expired date when it creates its first instance again after the database was wiped while `.env` was kept.
 - Roll the dashboard schema back past migration 4: the down migration of 000006 recreates `app_catalog`; a PostgreSQL round-trip test runs in the Go CI matrix (#916).
+- Make `scripts/verify-stack.sh` check the dev stack in a repository checkout: with both compose files present it picks `compose.yaml` when only that project is running, instead of always `compose.prod.yaml`, whose empty project failed the service and TOAST checks.
 - Hide pantry's ALFI chat button and widget when the optional chat app is not installed; an installed but stopped chat app still shows "not available" (#917).
 - Answer the dashboard shell's `status`, `apps`, `uptime` and `ping` from the app health probe, the telemetry metrics and a measured round trip instead of fixed text (#640).
 - Reject chat model blocks with a provider type the backend cannot run (`anthropic`, `gemini`, `openrouter`, ...) with `400`; OpenRouter works as `openai_compatible` (#632).

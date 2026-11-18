@@ -17,7 +17,8 @@
 #   - compose.prod.yaml (a production install, run from the install root)
 #   - compose.yaml      (the local dev stack scripts/up.sh starts)
 # and reads its target URLs from the .env sitting next to whichever compose
-# file it finds, so it needs no flags for the common case.
+# file it finds, so it needs no flags for the common case. In a repository
+# checkout, where both files exist, it picks the one whose project is running.
 #
 # Usage:
 #   ./scripts/verify-stack.sh                       # auto-detect compose file & .env
@@ -56,7 +57,9 @@ Usage: verify-stack.sh [--dir DIR] [--compose-file NAME]
   --dir DIR             Directory holding the compose file and .env
                          (default: the current directory).
   --compose-file NAME    compose.prod.yaml or compose.yaml. Auto-detected
-                         when omitted: compose.prod.yaml wins if both exist.
+                         when omitted: if both exist, compose.yaml wins
+                         when only its project is running, otherwise
+                         compose.prod.yaml.
 EOF
 }
 
@@ -71,8 +74,23 @@ done
 
 cd "${DIR}"
 
+# compose_running FILE succeeds when the Compose project of FILE has running
+# containers. A file whose interpolation fails (compose.prod.yaml against a dev
+# .env) counts as not running.
+compose_running() {
+  [[ -n "$(docker compose -f "$1" ps -q 2>/dev/null || true)" ]]
+}
+
 if [[ -z "${COMPOSE_FILE_NAME}" ]]; then
-  if [[ -f compose.prod.yaml ]]; then
+  # A repository checkout holds both files under different project names
+  # (alfheim and alfheim-prod). Preferring compose.prod.yaml blindly would
+  # check an empty project there while scripts/up.sh runs the dev stack, so
+  # compose.yaml wins when only its project is running. An install root ships
+  # compose.prod.yaml alone and is unaffected.
+  if [[ -f compose.prod.yaml && -f compose.yaml ]] \
+    && compose_running compose.yaml && ! compose_running compose.prod.yaml; then
+    COMPOSE_FILE_NAME="compose.yaml"
+  elif [[ -f compose.prod.yaml ]]; then
     COMPOSE_FILE_NAME="compose.prod.yaml"
   elif [[ -f compose.yaml ]]; then
     COMPOSE_FILE_NAME="compose.yaml"
