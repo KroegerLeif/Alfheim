@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+<!-- One line per change, imperative mood, issue or PR number in parentheses: "- Add X (#123)".
+     Use only Added, Changed, Deprecated, Removed, Fixed and Security, each at most once.
+     A release moves these entries under a new version heading and adds its compare link. -->
+
+---
+
+## [v0.5.0] - 2026-11-18
+
+Release from the v0.5.0 milestone: the Lean Core (infrastructure, dashboard and household, about 752 MB reserved) becomes the default install, with every other app and the telemetry stack as optional modules switched by `alfheim-setup apps`. PostgreSQL moves to 18 and Zitadel to v4.20.3, provisioning uses a rotated machine key instead of the never-expiring bootstrap PAT, and optional Google and Apple sign-in and SMTP e-mail are configured by the installer. The gateway enforces its CSP and rate limits, and release images are signed. Breaking: PostgreSQL 16 data cannot be upgraded in place, so follow [Updating from v0.4.x](docs/en/how-to/update-installation.md#updating-from-v04x) (full backup, fresh install, data import); every user signs in again once after the Zitadel upgrade.
+
 ### Added
 - ADR 0007 records the Lean Core app set (infrastructure, dashboard, household) and the optional modules; the apps catalog gains a `Tier` column (#855).
 - `alfheim-setup apps list|enable <name>|disable <name>` switches optional apps on and off and stores the set as `ALFHEIM_ENABLED_APPS` in `.env`; a missing key means all apps, and disabling never removes volumes or databases (#856).
@@ -104,10 +114,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sign every release image (multi-arch index and platform manifests) with cosign keyless, attach SLSA build provenance and a per-platform SPDX SBOM as signed attestations, sign `SHA256SUMS` (`SHA256SUMS.sigstore.json`) and attest the provenance of every release asset; the verify-release how-to shows the `cosign` and `gh attestation verify` commands (#787).
 - Remove the `pnpm audit` ignores for `http-cache-semantics` (patched 4.3.0 is locked) and `braces` (advisory withdrawn), and raise the `fast-uri` override to 3.1.9 (#645).
 - Restrict production CORS to the operator's own origin: the installer renders `ALFHEIM_CORS_ORIGINS` from the app host and `compose.prod.yaml` passes it to every backend; without it a production backend allows no cross-origin access instead of the development hosts, and a wildcard or malformed origin stops the backend at startup (#921).
-
-<!-- One line per change, imperative mood, issue or PR number in parentheses: "- Add X (#123)".
-     Use only Added, Changed, Deprecated, Removed, Fixed and Security, each at most once.
-     A release moves these entries under a new version heading and adds its compare link. -->
 
 ---
 
@@ -454,7 +460,8 @@ Never tagged in git, so there is no compare link.
 - VictoriaStack observability pipeline (Vector, OTel Collector, VictoriaMetrics, VictoriaLogs, Grafana).
 - Automated staged cluster boot orchestrator (`scripts/up.sh`) and verification suite (`scripts/verify.sh`).
 
-[Unreleased]: https://github.com/KroegerLeif/Alfheim/compare/v0.4.0...dev
+[Unreleased]: https://github.com/KroegerLeif/Alfheim/compare/v0.5.0...dev
+[v0.5.0]: https://github.com/KroegerLeif/Alfheim/compare/v0.4.0...v0.5.0
 [v0.4.0]: https://github.com/KroegerLeif/Alfheim/compare/v0.3.1...v0.4.0
 [v0.3.1]: https://github.com/KroegerLeif/Alfheim/compare/v0.3.0...v0.3.1
 [v0.3.0]: https://github.com/KroegerLeif/Alfheim/compare/v0.2.2...v0.3.0
