@@ -338,6 +338,14 @@ if [[ "$RUN_SECURITY" == true ]]; then
         ERRORS=$((ERRORS + 1))
     fi
 
+    log_section "verify-stack.sh Picks the Running Compose File"
+    if ./scripts/tests/test-verify-stack-detect.sh; then
+        log_success "verify-stack.sh checks the compose project that is running"
+    else
+        log_fail "verify-stack.sh picked the wrong compose file"
+        ERRORS=$((ERRORS + 1))
+    fi
+
     # Only the check-type hooks run here. The full pre-commit set also contains
     # fixers (end-of-file-fixer, trailing-whitespace, ruff --fix, gofmt -w) that
     # rewrite files, which a verification run must never do. Formatting is

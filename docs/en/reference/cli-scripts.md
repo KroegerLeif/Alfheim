@@ -77,6 +77,9 @@ Lean Core and the optional modules is recorded in
 `./scripts/verify-stack.sh` checks the routes of the core apps always and the
 route of an optional app (or `/grafana`) only when its container runs; it
 lists the routes it skipped, so it passes after `./scripts/up.sh --lean`.
+In a repository checkout, where `compose.yaml` and `compose.prod.yaml` both
+exist, it checks `compose.yaml` when only the dev stack is running and
+`compose.prod.yaml` otherwise; `--compose-file` overrides the choice.
 
 When `.env` sets `ALFHEIM_SMTP_HOST=mailpit` (see
 [Configure e-mail](../how-to/configure-smtp.md#test-it-locally-with-mailpit)),

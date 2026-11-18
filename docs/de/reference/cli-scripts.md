@@ -76,6 +76,9 @@ festgehalten.
 `./scripts/verify-stack.sh` prüft die Routen der Kern-Apps immer und die Route
 einer optionalen App (oder `/grafana`) nur, wenn ihr Container läuft; es listet
 die übersprungenen Routen auf und besteht daher auch nach `./scripts/up.sh --lean`.
+In einem Repository-Checkout, in dem `compose.yaml` und `compose.prod.yaml` beide
+liegen, prüft es `compose.yaml`, wenn nur der Dev-Stack läuft, sonst
+`compose.prod.yaml`; `--compose-file` übersteuert die Wahl.
 
 Setzt die `.env` `ALFHEIM_SMTP_HOST=mailpit` (siehe
 [E-Mail einrichten](../how-to/configure-smtp.md#lokal-mit-mailpit-testen)),

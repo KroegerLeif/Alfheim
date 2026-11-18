@@ -87,8 +87,9 @@ Checks a *running* stack end to end instead of the source tree: every Compose se
 healthy, Caddy's `/livez`, that OIDC discovery names the configured issuer, every app route
 resolves through the gateway without a 5xx, `/internal/*` is blocked at the edge, and the
 household API rejects a request with no bearer token. Auto-detects `compose.yaml` (local dev)
-or `compose.prod.yaml` (a production install); `alfheim-setup update` runs it automatically
-after a Day-2 upgrade.
+or `compose.prod.yaml` (a production install); where both exist, as in a repository checkout,
+it picks `compose.yaml` when only its project is running. `alfheim-setup update` runs it
+automatically after a Day-2 upgrade.
 * **Usage**: `./scripts/verify-stack.sh [--dir DIR] [--compose-file NAME]`
 * **Flags**:
   * `--dir DIR`: Directory holding the compose file and `.env` (default: repository root).
