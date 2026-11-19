@@ -22,7 +22,7 @@ Source: [`apps/maintenance/`](https://github.com/KroegerLeif/Alfheim/tree/main/a
 
 ## 🏗️ Architecture & Tech Stack
 
-- **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy) and FastMCP AI tools.
+- **Backend:** Python 3.14 / FastAPI microservice with SQLModel (async SQLAlchemy) and FastMCP AI tools.
 - **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
 - **Database:** Hosted on `postgres-core` (`alfheim_maintenance` database, owned by `maintenance_user`).
 

@@ -23,7 +23,7 @@ Source: [`apps/pantry/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/p
 
 ## 🏗️ Architecture & Tech Stack
 
-- **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy), Pint unit conversion, and FastMCP AI tools.
+- **Backend:** Python 3.14 / FastAPI microservice with SQLModel (async SQLAlchemy), Pint unit conversion, and FastMCP AI tools.
 - **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
 - **Database:** Hosted on `postgres-core` (`alfheim_pantry` database, owned by `pantry_user`).
 

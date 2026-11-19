@@ -22,7 +22,7 @@ Source: [`apps/budget/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/b
 
 ## 🏗️ Architecture & Tech Stack
 
-- **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy), RustFS S3 integration, and OpenTelemetry.
+- **Backend:** Python 3.14 / FastAPI microservice with SQLModel (async SQLAlchemy), RustFS S3 integration, and OpenTelemetry.
 - **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
 - **Database:** Hosted on `postgres-core` (`alfheim_budget` database, owned by `budget_user`).
 

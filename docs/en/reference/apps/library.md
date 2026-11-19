@@ -28,7 +28,7 @@ Source: [`apps/library/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/
 
 ## 🏗️ Architecture & Tech Stack
 
-- **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy) and OpenLibrary API client.
+- **Backend:** Python 3.14 / FastAPI microservice with SQLModel (async SQLAlchemy) and OpenLibrary API client.
 - **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
 - **Database:** Hosted on `postgres-core` (`alfheim_library` database, owned by `library_user`).
 

@@ -23,7 +23,7 @@ Source: [`apps/chores/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/c
 
 ## 🏗️ Architecture & Tech Stack
 
-- **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy), FastMCP AI tools, and background reset scheduler loop.
+- **Backend:** Python 3.14 / FastAPI microservice with SQLModel (async SQLAlchemy), FastMCP AI tools, and background reset scheduler loop.
 - **Frontend:** Next.js 16 (App Router) microfrontend, TanStack Query, Tailwind CSS v4, and `@alfheim/shared`.
 - **Database:** Hosted on `postgres-core` (`alfheim_chores` database, owned by `chores_user`).
 

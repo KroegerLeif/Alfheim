@@ -200,7 +200,7 @@ Follow Feature-Driven Design (FDD) in `apps/recipes/backend/src/features/catalog
 [project]
 name = "recipes-backend"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "fastapi", "uvicorn[standard]", "sqlmodel", "pydantic-settings", "asyncpg",
     "httpx", "opentelemetry-sdk", "opentelemetry-instrumentation-fastapi",
@@ -343,32 +343,45 @@ async def test_missing_household_header(client: AsyncClient):
 
 ### Backend `Dockerfile` and `.dockerignore`
 
-Build each backend standalone so the workspace lockfile does not leak into the image:
+Build each backend with the repository root as the build context (`context: ../..` and
+`dockerfile: apps/recipes/backend/Dockerfile` in `apps/recipes/compose.yml`), so `uv` installs
+exactly the versions in the root `uv.lock`. The Python version comes from `versions.json`
+(see [`VERSIONS.md`](../../../VERSIONS.md)); `./scripts/sync-versions.sh --check` fails if the
+image tags differ from it.
 
 ```dockerfile
-FROM ghcr.io/astral-sh/uv:python3.12-alpine AS builder
+FROM ghcr.io/astral-sh/uv:python3.14-alpine AS builder
+ENV UV_COMPILE_BYTECODE=1
 WORKDIR /app
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
-COPY pyproject.toml ./
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --no-dev --no-install-project
-COPY . .
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --no-dev
+COPY pyproject.toml uv.lock ./
+COPY packages/backend-shared ./packages/backend-shared
+COPY apps/recipes/backend/pyproject.toml ./apps/recipes/backend/
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --package recipes-backend --no-install-project --no-editable
+COPY apps/recipes/backend ./apps/recipes/backend
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --package recipes-backend --no-editable
 
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 WORKDIR /app
-COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/src /app/src
-COPY --from=builder /app/main.py /app/main.py
+# Patched Alpine packages for the release Trivy gate; the app does not need the image's pip.
+RUN apk upgrade --no-cache \
+    && python -m pip uninstall --yes --no-cache-dir pip
+RUN addgroup -S -g 10001 appgroup && adduser -S -u 10001 -G appgroup appuser
+COPY --from=builder --chown=appuser:appgroup /app/.venv /app/.venv
+COPY --from=builder --chown=appuser:appgroup /app/apps/recipes/backend /app/apps/recipes/backend
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
+WORKDIR /app/apps/recipes/backend
+USER appuser
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8000/readyz || exit 1
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 The service mounts the shared probes with `app.include_router(health_router(engine, service="<name>-backend", backend_dir=BACKEND_DIR))` from `backend_shared.health`: `/healthz` for liveness and `/readyz`, which answers `200` only when the database runs `SELECT 1` and its Alembic revision is at head. Point every healthcheck at `/readyz`.
 
-`.dockerignore` excludes `.venv`, `uv.lock`, `__pycache__`, `.pytest_cache`, `.ruff_cache`,
+`.dockerignore` excludes `.venv`, `__pycache__`, `.pytest_cache`, `.ruff_cache`,
 `.coverage`, `.env*`, `*.sqlite3` and `.git`.
 
 ---

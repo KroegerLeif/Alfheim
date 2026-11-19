@@ -26,7 +26,7 @@ sidebar:
 Before starting, ensure your machine meets the following requirements:
 * **Docker Engine** (>= 24.0) & **Docker Compose** v2 (>= 2.20)
 * **Node.js** (>= 22.0) & **pnpm** (>= 9.0)
-* **Python** (>= 3.12) & **uv** package manager
+* **Python** (>= 3.14) & **uv** package manager
 * **Go** (>= 1.25)
 * **cURL** & **Git**
 
