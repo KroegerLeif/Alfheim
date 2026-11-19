@@ -365,6 +365,14 @@ if [[ "$RUN_SECURITY" == true ]]; then
         log_success "Pre-commit check hooks passed"
     fi
 
+    log_section "Stack Version Pins Match versions.json"
+    if ./scripts/sync-versions.sh --check; then
+        log_success "Every version pin and VERSIONS.md match versions.json"
+    else
+        log_fail "Version drift: edit versions.json and run ./scripts/sync-versions.sh --write"
+        ERRORS=$((ERRORS + 1))
+    fi
+
     log_section "Compose Guard (bounded logs, memory limits)"
     if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
         if python3 -m unittest discover scripts/tests \

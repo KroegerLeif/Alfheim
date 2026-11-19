@@ -5,6 +5,9 @@ This is the central orchestration repository for `alfheim`, managing common infr
 [![Release](https://img.shields.io/github/v/release/KroegerLeif/Alfheim?include_prereleases)](https://github.com/KroegerLeif/Alfheim/releases)
 [![Installation](https://img.shields.io/badge/docs-homelab--deployment.md-success.svg)](docs/en/how-to/homelab-deployment.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Stack versions](https://img.shields.io/badge/stack-versions-blue.svg)](VERSIONS.md)
+
+**Stack versions** (Go, Python, Node.js, Next.js, PostgreSQL, Zitadel, Caddy, RustFS): see [VERSIONS.md](VERSIONS.md), generated from [`versions.json`](versions.json).
 
 ---
 

@@ -89,7 +89,7 @@ class PantrySyncService:
             if product_id:
                 try:
                     product_uuid = uuid.UUID(str(product_id))
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     logger.warning("Invalid product id from pantry: %r", product_id)
 
             db_item = ShoppingItem(

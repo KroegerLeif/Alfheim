@@ -3,7 +3,7 @@ name = "backend-shared"
 version = "0.1.0"
 description = "Shared backend infrastructure library for Alfheim microservices"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "aioboto3>=13.0.0",
     "alembic>=1.13.0",

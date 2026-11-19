@@ -22,10 +22,10 @@ class Device(SQLModel, table=True):
     household_id: uuid.UUID = Field(index=True)
 
     # Relationships
-    steps: list["MaintenanceStep"] = Relationship(
+    steps: list[MaintenanceStep] = Relationship(
         back_populates="device", sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
-    history_events: list["ServiceHistoryEvent"] = Relationship(
+    history_events: list[ServiceHistoryEvent] = Relationship(
         back_populates="device", sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
 

@@ -19,7 +19,7 @@ DATABASE_URL = settings.DATABASE_URL
 engine, async_session_factory = db.create_engine_and_session(settings)
 
 
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_db_session() -> AsyncGenerator[AsyncSession]:
     """Provide a database session dependency for FastAPI routes."""
     async with async_session_factory() as session:
         yield session

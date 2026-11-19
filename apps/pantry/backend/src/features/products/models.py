@@ -113,7 +113,9 @@ class Product(SQLModel, table=True):
     )
 
     # 1:1 relationship with Cascade deletion
-    nutrition: Optional["ProductNutrition"] = Relationship(
+    # SQLAlchemy resolves this relationship target from the annotation string;
+    # keep the quoted forward reference inside Optional so it resolves on 3.14.
+    nutrition: Optional["ProductNutrition"] = Relationship(  # noqa: UP037, UP045
         back_populates="product",
         sa_relationship_kwargs={
             "uselist": False,

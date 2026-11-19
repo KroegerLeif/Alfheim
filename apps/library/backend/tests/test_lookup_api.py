@@ -25,7 +25,7 @@ async def test_app() -> FastAPI:
 
 
 @pytest_asyncio.fixture
-async def client(test_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
+async def client(test_app: FastAPI) -> AsyncGenerator[AsyncClient]:
     """Create AsyncClient bound to test app."""
     async with AsyncClient(
         transport=ASGITransport(app=test_app),

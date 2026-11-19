@@ -121,7 +121,7 @@ class DeviceUpdate(BaseModel):
     notes: str | None = Field(default=None, max_length=5000)
 
     @model_validator(mode="after")
-    def reject_null_required_fields(self) -> "DeviceUpdate":
+    def reject_null_required_fields(self) -> DeviceUpdate:
         """Reject ``null`` for columns that cannot be empty; ``notes`` and the interval may be cleared."""
         _reject_explicit_nulls(self, frozenset({"name", "model", "serial", "category", "location", "status"}))
         return self
@@ -136,7 +136,7 @@ class StepUpdate(BaseModel):
     supply_item: str | None = Field(default=None, max_length=200)
 
     @model_validator(mode="after")
-    def reject_null_required_fields(self) -> "StepUpdate":
+    def reject_null_required_fields(self) -> StepUpdate:
         """Reject ``null`` for the title and the interval; description and supply item may be cleared."""
         _reject_explicit_nulls(self, frozenset({"title", "recurrence"}))
         return self

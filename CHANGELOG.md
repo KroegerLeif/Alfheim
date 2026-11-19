@@ -45,6 +45,8 @@ Release from the v0.5.0 milestone: the Lean Core (infrastructure, dashboard and 
 - Add `GET /api/v1/apps/enabled` (dashboard backend) and `useAppEnabled` in `@alfheim/shared`, so frontends can leave out entry points into an optional app that is not installed (#917).
 - Add `HouseholdMembershipClient.list_members`, `find_member` and the `get_member_directory` dependency to `backend_shared.household`, reading the household app's member listing with the user id apps store (#583).
 - Add `useAutoClear` to `@alfheim/shared` for flash and toast messages that hide themselves (#647).
+- Track the core stack versions (Go, Python, Node.js, Next.js, PostgreSQL, Zitadel, Caddy, RustFS) in `versions.json`: `./scripts/sync-versions.sh --write` rewrites every pin and the generated [`VERSIONS.md`](VERSIONS.md), and `--check` fails `./scripts/verify.sh --security` and the new `Stack Version Pins` job of `ci-required` on any drift.
+- Merge Dependabot pull requests into `dev` once CI passes when every bump is a minor or patch update (`dependabot-auto-merge.yml`); majors, PRs with non-Dependabot commits and bumps of a version tracked in `versions.json` stay open for review.
 
 ### Changed
 - Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)
@@ -80,6 +82,8 @@ Release from the v0.5.0 milestone: the Lean Core (infrastructure, dashboard and 
 - Recreate `dashboard-backend` and, while chat is enabled, `chat-backend` after `alfheim-setup apps enable|disable` and wait for them, so dashboard tiles and ALFI's tools follow the change without `alfheim-setup update` (#922).
 - Enforce Go coverage gates in `verify.sh --go` and CI through `scripts/check-go-coverage.sh`: chat 94 %, dashboard 95 %, household 97 %, go-shared 96 %, installer 80 % (#813).
 - Run the Go backends with `ENVIRONMENT=production` in `compose.prod.yaml`, so they log at INFO instead of DEBUG.
+- Run every Python backend on Python 3.14 (`python:3.14-alpine`, `requires-python = ">=3.14"` across the root `uv` workspace, CI and `ruff` target `py314`); 3.15 was not chosen because PyYAML has no musllinux wheel for it yet. Docker builds install from the root `uv.lock` with `uv sync --frozen --package <backend>`, the runtime images drop the base image's unused `pip` (whose vendored msgpack, setuptools and urllib3 failed the Trivy gate), the per-app `.python-version` files are gone in favour of the root one, and pantry keeps quoted `Optional[...]` relationship annotations that SQLAlchemy resolves from the annotation string.
+- Build the Next.js production check in CI on Node.js 24, the version the frontend images use, instead of 22, and run the Caddy image on `caddy:2.11.9-alpine`, matching its 2.11.9 builder.
 
 ### Fixed
 - Answer Pantry failures in the shopping backend with 502 (unreachable) or 503 (not installed) instead of 400, with short timeouts on the cross-app calls (#864)

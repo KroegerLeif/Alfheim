@@ -75,7 +75,7 @@ class ShoppingList(SQLModel, table=True):
     )
 
     # Relationships
-    items: list["ShoppingItem"] = Relationship(
+    items: list[ShoppingItem] = Relationship(
         back_populates="shopping_list",
         sa_relationship_kwargs={"cascade": "all, delete-orphan", "lazy": "selectin"},
     )

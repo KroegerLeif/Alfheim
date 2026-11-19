@@ -187,7 +187,7 @@
       "badge": "Engineering",
       "title": "Technology Stack",
       "frontend": "Frontends: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide Icons",
-      "backend": "Backends: Python 3.12 (FastAPI), Go 1.23, SQLAlchemy / asyncpg / sqlx",
+      "backend": "Backends: Python 3.14 (FastAPI), Go 1.27, SQLAlchemy / asyncpg / sqlx",
       "database": "Databases: PostgreSQL 18 (dedicated instances per app), ClickHouse",
       "infra": "Infra: Docker Compose, Caddy 2, Zitadel 4, RustFS (S3-compatible)",
       "categories": {
@@ -197,7 +197,7 @@
         "platform": "Platform & Mesh"
       },
       "items": {
-        "controlPlane": "Go 1.23 (Control Plane & Chat)",
+        "controlPlane": "Go 1.27 (Control Plane & Chat)",
         "postgres": "PostgreSQL 18 (Isolated instances)",
         "rustfs": "RustFS (High-performance S3)",
         "victoria": "VictoriaStack (Metrics & Logs)",

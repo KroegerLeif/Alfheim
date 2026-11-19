@@ -11,7 +11,7 @@ sidebar:
 
 ## Stack
 
-Python 3.12+, FastAPI, FastMCP, SQLModel / SQLAlchemy (async), Pydantic v2, Alembic. The `uv` workspace in the root `pyproject.toml` globs `apps/*/backend`. Shared code lives in `backend_shared`.
+Python 3.14+, FastAPI, FastMCP, SQLModel / SQLAlchemy (async), Pydantic v2, Alembic. The `uv` workspace in the root `pyproject.toml` globs `apps/*/backend`. Shared code lives in `backend_shared`.
 
 ## Feature module layout
 

@@ -22,7 +22,7 @@ Quelle: [`apps/shopping/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps
 
 ## 🏗️ Architektur & Tech Stack
 
-- **Backend:** Python 3.12 / FastAPI-Microservice mit SQLModel (async SQLAlchemy) und Pantry REST-Client.
+- **Backend:** Python 3.14 / FastAPI-Microservice mit SQLModel (async SQLAlchemy) und Pantry REST-Client.
 - **Frontend:** Next.js 16 (App Router) Microfrontend, TanStack Query, Tailwind CSS v4 und `@alfheim/shared`.
 - **Datenbank:** Gehostet auf `postgres-core` (`alfheim_shopping`-Datenbank, Besitzer `shopping_user`).
 

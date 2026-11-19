@@ -254,9 +254,9 @@ class InventoryService:
     @staticmethod
     async def bulk_add_items(
         session: AsyncSession,
-        payload: "BulkAddInventoryPayload",
+        payload: BulkAddInventoryPayload,
         home_id: uuid.UUID,
-    ) -> "BulkAddResponse":
+    ) -> BulkAddResponse:
         """Process bulk addition of items from a shopping list into the pantry.
 
         Attempts to match items by barcode first (with OFF lookup), and falls back to

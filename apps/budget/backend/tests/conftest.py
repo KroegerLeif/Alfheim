@@ -39,7 +39,7 @@ async def init_test_db():
 
 
 @pytest_asyncio.fixture
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
+async def db_session() -> AsyncGenerator[AsyncSession]:
     """Provide a transactional database session for a single test case."""
     async with test_engine.connect() as conn:
         transaction = await conn.begin()
@@ -49,7 +49,7 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest_asyncio.fixture
-async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient]:
     """Provide an asynchronous HTTPX client configured for FastAPI app testing."""
 
     async def _get_test_db():

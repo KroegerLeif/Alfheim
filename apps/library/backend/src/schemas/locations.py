@@ -66,7 +66,7 @@ class LocationResponse(LocationBase):
 class LocationTreeNode(LocationResponse):
     """Schema for hierarchical tree nodes of locations."""
 
-    children: list["LocationTreeNode"] = Field(
+    children: list[LocationTreeNode] = Field(
         default_factory=list,
         description="Nested child locations.",
     )
