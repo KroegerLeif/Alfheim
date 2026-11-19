@@ -1,0 +1,80 @@
+name: Dependabot Auto-Merge
+
+# Merges Dependabot pull requests into dev once the CI workflow (whose
+# `ci-required` job is the required check) has passed, when every bumped
+# dependency is a minor or patch update. Major updates stay open for review.
+#
+# GitHub auto-merge is off for this repository and Actions may not approve pull
+# requests, so this workflow merges directly instead of enabling auto-merge;
+# dev requires no approving review. workflow_run only fires for the copy of
+# this file on the default branch (main).
+#
+# A bump of a version tracked in versions.json fails the `Stack Version Pins`
+# job, so the CI run never succeeds and such a pull request stays open until
+# versions.json is updated by hand.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    name: Merge Minor and Patch Updates
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merge When Every Update Is Minor or Patch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          # The pull request whose head is exactly the commit CI just passed.
+          pr="$(gh api "repos/${REPO}/pulls?state=open&base=dev&per_page=100" \
+            | jq -r --arg sha "${HEAD_SHA}" --arg repo "${REPO}" \
+              'map(select(.head.sha == $sha and .user.login == "dependabot[bot]" and .head.repo.full_name == $repo)) | .[0].number // empty')"
+          if [[ -z "${pr}" ]]; then
+            echo "No open Dependabot pull request into dev has head ${HEAD_SHA}; nothing to merge."
+            exit 0
+          fi
+
+          commits="$(gh api "repos/${REPO}/pulls/${pr}/commits?per_page=100")"
+
+          # Only Dependabot's own signed commits; anything pushed on top of them
+          # needs a human review.
+          foreign="$(jq '[.[] | select(.author.login != "dependabot[bot]" or .commit.verification.verified != true)] | length' <<<"${commits}")"
+          if [[ "${foreign}" != "0" ]]; then
+            echo "Pull request #${pr} has ${foreign} commit(s) not signed by Dependabot; leaving it for review."
+            exit 0
+          fi
+
+          # Dependabot lists every bumped dependency with its update type in the
+          # commit message (the same data dependabot/fetch-metadata reads).
+          types="$(jq -r '.[].commit.message' <<<"${commits}" \
+            | sed -n 's/^ *update-type: version-update:semver-\([a-z]*\).*/\1/p' | sort -u)"
+          if [[ -z "${types}" ]]; then
+            echo "Pull request #${pr} names no semver update type; leaving it for review."
+            exit 0
+          fi
+          if [[ "$(grep -cvE '^(minor|patch)$' <<<"${types}" || true)" != "0" ]]; then
+            echo "Pull request #${pr} contains a $(tr '\n' ' ' <<<"${types}")update; leaving it for review."
+            exit 0
+          fi
+
+          gh pr merge "${pr}" --repo "${REPO}" --merge --match-head-commit "${HEAD_SHA}"
+          echo "Merged pull request #${pr} (${types//$'\n'/, } updates)."
