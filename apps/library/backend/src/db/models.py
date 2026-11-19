@@ -79,17 +79,17 @@ class Location(SQLModel, table=True):
     )
 
     # Self-referential hierarchy relationships
-    parent: "Location" = Relationship(
+    parent: Location = Relationship(
         back_populates="children",
         sa_relationship_kwargs={"remote_side": "Location.id", "lazy": "selectin"},
     )
-    children: list["Location"] = Relationship(
+    children: list[Location] = Relationship(
         back_populates="parent",
         sa_relationship_kwargs={"cascade": "all, delete-orphan", "lazy": "selectin"},
     )
 
     # Items stored at this location
-    items: list["Item"] = Relationship(
+    items: list[Item] = Relationship(
         back_populates="location",
         sa_relationship_kwargs={"lazy": "selectin"},
     )
@@ -218,11 +218,11 @@ class Item(SQLModel, table=True):
         back_populates="items",
         sa_relationship_kwargs={"lazy": "selectin"},
     )
-    provider: "ProviderSubscription" = Relationship(
+    provider: ProviderSubscription = Relationship(
         back_populates="items",
         sa_relationship_kwargs={"lazy": "selectin"},
     )
-    lending_records: list["LendingRecord"] = Relationship(
+    lending_records: list[LendingRecord] = Relationship(
         back_populates="item",
         sa_relationship_kwargs={"cascade": "all, delete-orphan", "lazy": "selectin"},
     )

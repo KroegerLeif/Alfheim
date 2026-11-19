@@ -3,7 +3,7 @@ name = "pantry-backend"
 version = "0.1.0"
 description = "Backend microservice for the alfheim Pantry application"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "backend-shared",
     "alembic>=1.13.0",

@@ -42,7 +42,7 @@ class Plan(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False),
     )
 
-    days: list["PlanDay"] = Relationship(
+    days: list[PlanDay] = Relationship(
         sa_relationship_kwargs={"lazy": "selectin", "order_by": "PlanDay.day_order", "cascade": "all, delete-orphan"}
     )
 
@@ -61,7 +61,7 @@ class PlanDay(SQLModel, table=True):
     day_order: int = Field(nullable=False, description="0-based position of this day within the split.")
     label: str = Field(min_length=1, max_length=100, nullable=False)
 
-    exercises: list["PlanExercise"] = Relationship(
+    exercises: list[PlanExercise] = Relationship(
         sa_relationship_kwargs={
             "lazy": "selectin",
             "order_by": "PlanExercise.exercise_order",
@@ -81,7 +81,7 @@ class PlanExercise(SQLModel, table=True):
     exercise_id: uuid.UUID = Field(foreign_key="exercises.id", nullable=False, index=True)
     exercise_order: int = Field(nullable=False)
 
-    sets: list["PlanSet"] = Relationship(
+    sets: list[PlanSet] = Relationship(
         sa_relationship_kwargs={
             "lazy": "selectin",
             "order_by": "PlanSet.set_order",

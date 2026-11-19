@@ -16,7 +16,7 @@ export const TechStackSection: React.FC = () => {
       category: t('docs.techStack.categories.backends'),
       icon: Server,
       color: 'text-emerald-400',
-      items: ['Python 3.12 (FastAPI)', t('docs.techStack.items.controlPlane'), 'SQLAlchemy 2.0 & asyncpg', 'Pydantic v2'],
+      items: ['Python 3.14 (FastAPI)', t('docs.techStack.items.controlPlane'), 'SQLAlchemy 2.0 & asyncpg', 'Pydantic v2'],
     },
     {
       category: t('docs.techStack.categories.storage'),

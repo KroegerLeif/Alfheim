@@ -109,7 +109,7 @@ class TransactionUpdate(BaseModel):
     is_quick_add: bool | None = None
 
     @model_validator(mode="after")
-    def reject_explicit_null_for_required_columns(self) -> "TransactionUpdate":
+    def reject_explicit_null_for_required_columns(self) -> TransactionUpdate:
         """Reject an explicit ``null`` for a column that cannot be empty (#790).
 
         ``None`` is the default that marks a field as omitted, so a PATCH without the field

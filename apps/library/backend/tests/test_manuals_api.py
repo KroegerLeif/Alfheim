@@ -22,7 +22,7 @@ HOUSEHOLD_2 = uuid.uuid4()
 
 
 @pytest_asyncio.fixture
-async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
+async def test_engine() -> AsyncGenerator[AsyncEngine]:
     """Create in-memory SQLite engine for tests."""
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
     async with engine.begin() as conn:
@@ -57,7 +57,7 @@ async def test_app(test_engine: AsyncEngine, mock_storage_service) -> FastAPI:
         expire_on_commit=False,
     )
 
-    async def _get_test_db() -> AsyncGenerator[AsyncSession, None]:
+    async def _get_test_db() -> AsyncGenerator[AsyncSession]:
         async with session_factory() as session:
             yield session
 
@@ -67,7 +67,7 @@ async def test_app(test_engine: AsyncEngine, mock_storage_service) -> FastAPI:
 
 
 @pytest_asyncio.fixture
-async def client(test_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
+async def client(test_app: FastAPI) -> AsyncGenerator[AsyncClient]:
     """Create AsyncClient bound to test app."""
     async with AsyncClient(
         transport=ASGITransport(app=test_app),

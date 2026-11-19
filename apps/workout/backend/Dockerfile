@@ -1,11 +1,6 @@
-# Multi-stage production build using uv.
-#
-# NOTE: unlike pantry/chores (which build with `context: ./backend` and fail to
-# resolve their `backend-shared = { workspace = true }` dependency — verified during
-# workout's Phase 0 scaffolding), this Dockerfile is built with the repo root as the
-# build context so the uv workspace (root pyproject.toml + packages/backend-shared)
-# is visible. See apps/workout/compose.yml for the corresponding build block.
-FROM ghcr.io/astral-sh/uv:python3.12-alpine AS builder
+# Multi-stage production build using uv with monorepo root context, so the uv
+# workspace (root pyproject.toml, uv.lock, packages/backend-shared) is visible.
+FROM ghcr.io/astral-sh/uv:python3.14-alpine AS builder
 
 # Enable Python bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
@@ -23,23 +18,26 @@ WORKDIR /app/apps/workout/backend
 
 # Sync dependencies (excluding development libraries and the project itself)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --no-install-project --no-editable
+    uv sync --frozen --no-dev --package workout-backend --no-install-project --no-editable
 
 # Copy application source files
 COPY apps/workout/backend/. .
 
 # Run project sync to register the package
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --no-editable
+    uv sync --frozen --no-dev --package workout-backend --no-editable
 
 # Final slim runtime container
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 
 WORKDIR /app
 
 # The base image lags behind Alpine security fixes (krb5-libs); upgrade its
-# packages so the release Trivy gate sees the patched versions.
-RUN apk upgrade --no-cache
+# packages so the release Trivy gate sees the patched versions. The app runs
+# from the uv-built /app/.venv, so the image's own pip (and the packages it
+# vendors, which Trivy flags) is removed.
+RUN apk upgrade --no-cache \
+    && python -m pip uninstall --yes --no-cache-dir pip
 
 RUN addgroup -S -g 10001 appgroup \
     && adduser -S -u 10001 -G appgroup appuser

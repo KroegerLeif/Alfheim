@@ -68,14 +68,14 @@ async def _current_revision(engine: AsyncEngine) -> str | None:
 
 
 @pytest_asyncio.fixture
-async def sqlite_engine() -> AsyncGenerator[AsyncEngine, None]:
+async def sqlite_engine() -> AsyncGenerator[AsyncEngine]:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     yield engine
     await engine.dispose()
 
 
 @pytest_asyncio.fixture
-async def postgres_engine() -> AsyncGenerator[AsyncEngine, None]:
+async def postgres_engine() -> AsyncGenerator[AsyncEngine]:
     assert POSTGRES_URL
     engine = create_async_engine(POSTGRES_URL)
     async with engine.begin() as connection:
