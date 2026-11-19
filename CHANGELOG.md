@@ -114,6 +114,8 @@ Release from the v0.5.0 milestone: the Lean Core (infrastructure, dashboard and 
 - Sign every release image (multi-arch index and platform manifests) with cosign keyless, attach SLSA build provenance and a per-platform SPDX SBOM as signed attestations, sign `SHA256SUMS` (`SHA256SUMS.sigstore.json`) and attest the provenance of every release asset; the verify-release how-to shows the `cosign` and `gh attestation verify` commands (#787).
 - Remove the `pnpm audit` ignores for `http-cache-semantics` (patched 4.3.0 is locked) and `braces` (advisory withdrawn), and raise the `fast-uri` override to 3.1.9 (#645).
 - Restrict production CORS to the operator's own origin: the installer renders `ALFHEIM_CORS_ORIGINS` from the app host and `compose.prod.yaml` passes it to every backend; without it a production backend allows no cross-origin access instead of the development hosts, and a wildcard or malformed origin stops the backend at startup (#921).
+- Upgrade the Alpine packages in the runtime stage of every Python app backend image, so `krb5-libs` moves from 1.22.2-r1 to the patched 1.22.3-r0 (16 HIGH CVEs, among them CVE-2026-107364) instead of waiting for a rebuilt `python:3.12-alpine`.
+- Raise `golang.org/x/net` in the custom Caddy build from v0.60.0 to v0.62.0 (CVE-2026-78661, HIGH).
 
 ---
 

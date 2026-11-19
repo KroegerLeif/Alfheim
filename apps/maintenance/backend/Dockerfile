@@ -27,6 +27,10 @@ FROM python:3.12-alpine
 
 WORKDIR /app
 
+# The base image lags behind Alpine security fixes (krb5-libs); upgrade its
+# packages so the release Trivy gate sees the patched versions.
+RUN apk upgrade --no-cache
+
 RUN addgroup -S -g 10001 appgroup \
     && adduser -S -u 10001 -G appgroup appuser
 
