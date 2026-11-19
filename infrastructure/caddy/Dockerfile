@@ -29,7 +29,7 @@ ENV GOTOOLCHAIN=go1.27.4
 # caddy and plugin releases still resolve to vulnerable versions.
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH xcaddy build \
     --replace github.com/go-jose/go-jose/v4=github.com/go-jose/go-jose/v4@v4.1.6 \
-    --replace golang.org/x/net=golang.org/x/net@v0.60.0 \
+    --replace golang.org/x/net=golang.org/x/net@v0.62.0 \
     --with github.com/caddy-dns/hetzner@v1.0.0 \
     --with github.com/caddy-dns/cloudflare@v0.2.4 \
     --with github.com/caddy-dns/desec@v1.1.0 \
