@@ -9,7 +9,8 @@ class MaintenanceStep(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     title: str
-    description: str | None = None
+    description: str | None = None  # the procedure, set when the step is created or edited
+    comment: str | None = None  # the latest inspection note, kept apart from the procedure (#620)
     recurrence: int  # in months
     supply_item: str | None = None
     supply_needed_date: str | None = None
@@ -17,7 +18,7 @@ class MaintenanceStep(SQLModel, table=True):
     device_id: int = Field(foreign_key="device.id")
 
     # Relationship back to device
-    device: "Device" = Relationship(back_populates="steps")
+    device: Device = Relationship(back_populates="steps")
 
 
 class ServiceHistoryEvent(SQLModel, table=True):
@@ -33,7 +34,7 @@ class ServiceHistoryEvent(SQLModel, table=True):
     completed_steps: list[str] | None = Field(default=None, sa_column=Column(JSON))
 
     # Relationship back to device
-    device: "Device" = Relationship(back_populates="history_events")
+    device: Device = Relationship(back_populates="history_events")
 
 
 # Avoid circular imports for type hints

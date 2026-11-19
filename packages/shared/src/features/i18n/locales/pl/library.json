@@ -67,6 +67,7 @@
       "title": "Śledzenie Wypożyczeń",
       "subtitle": "Przegląd wypożyczonych mediów i kontaktów",
       "lendItem": "Wypożycz pozycję",
+      "lendFromCatalog": "Wypożycz pozycję",
       "markReturned": "Oznacz jako zwrócone",
       "statusAvailable": "Dostępne",
       "statusLent": "Wypożyczone",

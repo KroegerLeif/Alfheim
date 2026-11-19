@@ -93,6 +93,20 @@ func (l Layout) ZitadelMachineKeyDir() string {
 	return filepath.Join(l.Root, "infrastructure", "zitadel", "machinekey")
 }
 
+// ZitadelProvisionerDir holds the machine key alfheim-setup authenticates to
+// Zitadel with. It is separate from ZitadelMachineKeyDir, which belongs to
+// Zitadel's container user and is mounted into that container, so the key
+// stays readable by the installer's own user only (directory 0700).
+func (l Layout) ZitadelProvisionerDir() string {
+	return filepath.Join(l.Root, "infrastructure", "zitadel", "provisioner")
+}
+
+// ZitadelProvisionerKeyFile is the provisioning machine user's current
+// machine key (mode 0600), rotated on every provisioning run (issue #789).
+func (l Layout) ZitadelProvisionerKeyFile() string {
+	return filepath.Join(l.ZitadelProvisionerDir(), "machine-key.json")
+}
+
 // BackupDir is the default destination of `alfheim-setup backup` archives.
 func (l Layout) BackupDir() string { return filepath.Join(l.Root, "backups") }
 

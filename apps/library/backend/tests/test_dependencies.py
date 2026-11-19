@@ -28,10 +28,10 @@ def _headers(household_id: uuid.UUID | str | None, sub: str = USER_SUB) -> dict[
 
 
 @pytest_asyncio.fixture
-async def auth_app(db_session: AsyncSession) -> AsyncGenerator[FastAPI, None]:
+async def auth_app(db_session: AsyncSession) -> AsyncGenerator[FastAPI]:
     """Main app with only the database overridden: authorization runs for real against a stubbed membership API."""
 
-    async def _get_test_db() -> AsyncGenerator[AsyncSession, None]:
+    async def _get_test_db() -> AsyncGenerator[AsyncSession]:
         yield db_session
 
     app.dependency_overrides[get_db_session] = _get_test_db
@@ -40,7 +40,7 @@ async def auth_app(db_session: AsyncSession) -> AsyncGenerator[FastAPI, None]:
 
 
 @pytest_asyncio.fixture
-async def auth_client(auth_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
+async def auth_client(auth_app: FastAPI) -> AsyncGenerator[AsyncClient]:
     async with AsyncClient(transport=ASGITransport(app=auth_app), base_url="http://testserver") as ac:
         yield ac
 

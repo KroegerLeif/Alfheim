@@ -3,8 +3,12 @@ package app
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"time"
+
+	"alfheim/installer/internal/features/apps"
 
 	"alfheim/installer/internal/features/onboarding"
 	"alfheim/installer/internal/features/templating"
@@ -20,7 +24,8 @@ import (
 // already in the update backup (assets.GeneratedAssets).
 //
 // Everything the Caddyfile depends on is read back from .env: the hosts, the
-// scheme, ALFHEIM_TLS_STRATEGY and ACME_EMAIL. DNS API tokens are referenced
+// scheme, ALFHEIM_TLS_STRATEGY, ACME_EMAIL and ALFHEIM_ENABLED_APPS (the
+// app and /grafana routes). DNS API tokens are referenced
 // as {env.NAME} and never rendered, and a custom certificate's container
 // paths are fixed. An installation without a recognised ALFHEIM_TLS_STRATEGY
 // (a legacy plain-HTTP .env) is left untouched, since guessing a strategy
@@ -28,15 +33,28 @@ import (
 // --reconfigure. It reports whether the effective content changed; the
 // generation stamp is ignored.
 func (u *UpdateApp) rerenderCaddyfile(layout paths.Layout, env map[string]string, version string) (bool, error) {
+	return rerenderCaddyfile(u.Stdout, u.Stderr, layout, env, version, u.now())
+}
+
+// rerenderCaddyfile is the shared implementation behind update and the apps
+// command. The enabled set in env decides which app routes are proxied and
+// which answer 404 or redirect to the dashboard.
+func rerenderCaddyfile(
+	stdout, stderr io.Writer, layout paths.Layout, env map[string]string, version string, now time.Time,
+) (bool, error) {
 	strategy := tls.Strategy(env["ALFHEIM_TLS_STRATEGY"])
 	if !strategy.Known() {
-		fmt.Fprintf(u.Stderr, "Warning: ALFHEIM_TLS_STRATEGY is %q in .env, so the Caddyfile was not "+
+		fmt.Fprintf(stderr, "Warning: ALFHEIM_TLS_STRATEGY is %q in .env, so the Caddyfile was not "+
 			"regenerated. Run alfheim-setup --reconfigure to pick up ingress changes.\n",
 			orDefault(env["ALFHEIM_TLS_STRATEGY"], "unset"))
 		return false, nil
 	}
 
 	on, err := onboarding.HeadlessConfigFromEnv(env)
+	if err != nil {
+		return false, err
+	}
+	set, err := apps.Enabled(env)
 	if err != nil {
 		return false, err
 	}
@@ -48,7 +66,9 @@ func (u *UpdateApp) rerenderCaddyfile(layout paths.Layout, env map[string]string
 		Onboarding: on,
 		TLS:        tls.Config{Strategy: strategy, ACMEEmail: env["ACME_EMAIL"]},
 		Version:    orUnknown(version),
-		Generated:  u.now(),
+		Generated:  now,
+		// An app switched off gets a 404 API and a redirect to the dashboard.
+		DisabledApps: set.Disabled(),
 	})
 	if err != nil {
 		return false, fmt.Errorf("regenerate the Caddyfile: %w", err)
@@ -65,7 +85,7 @@ func (u *UpdateApp) rerenderCaddyfile(layout paths.Layout, env map[string]string
 	if err := os.WriteFile(path, rendered, 0o644); err != nil {
 		return false, fmt.Errorf("write the Caddyfile: %w", err)
 	}
-	fmt.Fprintf(u.Stdout, "Regenerated %s from the stored configuration.\n", path)
+	fmt.Fprintf(stdout, "Regenerated %s from the stored configuration.\n", path)
 	return !bytes.Equal(withoutGeneratedStamp(previous), withoutGeneratedStamp(rendered)), nil
 }
 

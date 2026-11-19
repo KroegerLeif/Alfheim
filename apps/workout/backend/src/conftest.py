@@ -78,7 +78,7 @@ async def init_test_db():
 
 
 @pytest_asyncio.fixture
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
+async def db_session() -> AsyncGenerator[AsyncSession]:
     """Provide a transactional database session for a single test case.
 
     Automatically rolls back the transaction at the end of the test.
@@ -110,7 +110,7 @@ def member_headers(membership: StaticMembershipLookup) -> Callable[..., dict[str
 
 
 @pytest.fixture
-def membership() -> Generator[StaticMembershipLookup, None, None]:
+def membership() -> Generator[StaticMembershipLookup]:
     """Stub the household membership API: the default test user OWNs the default test household.
 
     Tests add or remove memberships with ``membership.set(household_id, sub, role)``.
@@ -121,7 +121,7 @@ def membership() -> Generator[StaticMembershipLookup, None, None]:
 
 
 @pytest_asyncio.fixture
-async def client(db_session: AsyncSession, membership: StaticMembershipLookup) -> AsyncGenerator[AsyncClient, None]:
+async def client(db_session: AsyncSession, membership: StaticMembershipLookup) -> AsyncGenerator[AsyncClient]:
     """Provide an asynchronous HTTPX client configured to make calls to the FastAPI app.
 
     Overrides the db session dependency on the app and sends the default test

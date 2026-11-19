@@ -12,6 +12,8 @@ sidebar:
 ## 📋 Inhaltsverzeichnis
 - [Root-Plattformkonfiguration](#root-plattformkonfiguration)
 - [Identität & Zugriffsverwaltung (Generisches OIDC & Zitadel)](#identität--zugriffsverwaltung-generisches-oidc--zitadel)
+- [Social Login](#social-login)
+- [E-Mail (SMTP)](#e-mail-smtp)
 - [Objektspeicher (RustFS S3)](#objektspeicher-rustfs-s3)
 - [Datenverzeichnisse](#datenverzeichnisse)
 - [Beobachtungs-Stack (VictoriaStack & Telemetrie)](#beobachtungs-stack-victoriastack--telemetrie)
@@ -30,6 +32,7 @@ Zentral konfiguriert in Root `.env` (generiert aus `.env.example` via `./scripts
 | Variable | Standardwert | Beschreibung |
 | :--- | :--- | :--- |
 | `ALFHEIM_BASE_URL` | `https://alfheim.loegien.de` | Öffentliche Root-Domain für Frontend-Ingress |
+| `ALFHEIM_CORS_ORIGINS` | _(gerendert: `ALFHEIM_BASE_URL`)_ | Origins, die die produktiven Backends Cross-Origin aufrufen dürfen: kommagetrennte, exakte `scheme://host[:port]`-Einträge, nie ein Wildcard (#921). Der Installer rendert bei jedem Lauf den öffentlichen App-Origin; `compose.prod.yaml` gibt ihn als `CORS_ORIGINS` (FastAPI) und `CORS_ALLOWED_ORIGINS` (Go) an jedes Backend weiter und greift ohne Wert auf `ALFHEIM_BASE_URL` zurück. Leer erlaubt keinen Cross-Origin-Zugriff |
 | `ALFHEIM_HOST` | `alfheim.loegien.de` | Kanonischer Hostname für die Hauptanwendung |
 | `DOMAIN` | `loegien.de` | Root-Domain für alle Dienste |
 | `IMAGE_REGISTRY` | `ghcr.io` | Container-Image-Registry |
@@ -58,6 +61,51 @@ Zentral konfiguriert in Root `.env` (generiert aus `.env.example` via `./scripts
 | `ZITADEL_DB_NAME` | `zitadel` | Zitadel-Datenbankname |
 | `ZITADEL_DB_USER` | `zitadel_user` | Zitadel-Datenbankbenutzer |
 | `ZITADEL_DB_PASSWORD` | `postgres` | Zitadel-Datenbankpasswort |
+| `ZITADEL_BOOTSTRAP_USERNAME` | `alfheim-bootstrap` | Maschinenbenutzer, den Zitadel mit seiner ersten Instanz anlegt; `alfheim-setup` provisioniert als dieser Benutzer |
+| `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` | _(Zeitpunkt des Renderns + 7 Tage, UTC)_ | Ablauf des PATs, das Zitadel beim ersten Start für diesen Benutzer anlegt. Von `compose.prod.yaml` vorausgesetzt. `alfheim-setup update` und ein erneuter Lauf von `alfheim-setup` ergänzen es, wenn es fehlt, und schieben es eine Woche nach vorn, wenn es vergangen ist (eine gelöschte Datenbank bei behaltener `.env`), wie es auch `scripts/init-env.sh` tut. Wird ignoriert, sobald die Instanz existiert. |
+| `ZITADEL_BOOTSTRAP_PAT` | _(leer)_ | Bleibt leer. Nur zur Wiederherstellung setzen, wenn der Maschinenschlüssel abgelaufen ist; der nächste Provisioning-Lauf verwendet es einmal, widerruft es in Zitadel und leert es. Siehe [Zitadel-Zugangsdaten](installer-cli.md#zitadel-zugangsdaten). |
+
+Der Zitadel-Dienst in `compose.prod.yaml` und `infrastructure/compose.yml` setzt außerdem zwei Werte, die nicht aus der `.env` gelesen werden, weil der übrige Stack von ihnen abhängt. Beide wirken nur, wenn Zitadel seine Instanz anlegt:
+
+| Variable | Wert | Beschreibung |
+| :--- | :--- | :--- |
+| `ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED` | `false` | Behält das eingebaute Login V1 unter `/ui/login`; Login V2 bräuchte einen separaten Container `zitadel-login` |
+| `ZITADEL_DEFAULTINSTANCE_WEBKEYS_TYPE` | `rsa` | Signiert Tokens mit RSA-Web-Keys, passend zur `RS256`-Prüfung in jedem Backend |
+
+---
+
+## Social Login
+
+Optional. Nur `alfheim-setup` liest sie (Installation, erneuter Lauf, `update`, `provision`) und richtet damit die Provider in Zitadel ein; kein Container liest sie, außer `ALFHEIM_SIGNUP_ALLOWLIST`, das `household-backend` liest. Leere Werte lassen einen Provider aus. Siehe [Set up social login](../../en/how-to/social-login.md) und [ADR 0008](../../en/explanation/decisions/0008-social-login-policy.md) (beide englisch).
+
+| Variable | Standardwert | Beschreibung |
+| :--- | :--- | :--- |
+| `ALFHEIM_GOOGLE_CLIENT_ID` | _(leer)_ | Google-OAuth-Client-ID. Zusammen mit dem Secret setzen, um „Sign in with Google" hinzuzufügen; Flag `--google-client-id`. |
+| `ALFHEIM_GOOGLE_CLIENT_SECRET` | _(leer)_ | Google-OAuth-Client-Secret. Nur über Umgebung oder `.env` (kein Flag), wird nie ausgegeben. |
+| `ZITADEL_GOOGLE_IDP_FINGERPRINT` | _(vom Provisioning geschrieben)_ | SHA-256 über die konfigurierten Google-Zugangsdaten, damit der nächste Lauf ein rotiertes Secret erkennt. Ein Hash, nicht das Secret. Nicht bearbeiten. |
+| `ALFHEIM_APPLE_CLIENT_ID` | _(leer)_ | Apple Services ID. Alle vier Apple-Werte setzen, um „Sign in with Apple" hinzuzufügen; Flag `--apple-client-id`. |
+| `ALFHEIM_APPLE_TEAM_ID` | _(leer)_ | Team ID des Apple-Entwicklerkontos (10 Zeichen); Flag `--apple-team-id`. |
+| `ALFHEIM_APPLE_KEY_ID` | _(leer)_ | Key ID des Sign-in-with-Apple-Schlüssels (10 Zeichen); Flag `--apple-key-id`. |
+| `ALFHEIM_APPLE_PRIVATE_KEY_FILE` | _(leer)_ | Absoluter Pfad der `.p8`-Schlüsseldatei, Modus `0600` oder strenger (der Installer lehnt alles Offenere ab). Gespeichert wird nur der Pfad; der Schlüssel wird nach Zitadel hochgeladen. Flag `--apple-private-key-file`. |
+| `ZITADEL_APPLE_IDP_FINGERPRINT` | _(vom Provisioning geschrieben)_ | SHA-256 über die konfigurierten Apple-Werte einschließlich Schlüssel, damit ein ersetzter Schlüssel erkannt wird. Nicht bearbeiten. |
+| `ALFHEIM_SIGNUP_ALLOWLIST` | _(leer)_ | Optionale Sign-up-Allowlist ([ADR 0009](../../en/explanation/decisions/0009-signup-allowlist.md)): kommagetrennte E-Mail-Adressen (`alice@example.com`) und Domains (`@example.com` oder `example.com`). Gesetzt darf jemand ohne Haushalt nur dann einen anlegen, wenn seine **verifizierte** E-Mail-Adresse oder deren Domain gelistet ist; Eingeladene können immer beitreten. Leer behält das offene Verhalten aus ADR 0008. Ein fehlerhafter Eintrag stoppt `household-backend` beim Start. Bleibt bei Installer-Läufen erhalten. |
+
+---
+
+## E-Mail (SMTP)
+
+Optional. Nur `alfheim-setup` liest sie (Installation, erneuter Lauf, `update`, `provision`) und richtet damit den SMTP-E-Mail-Provider von Zitadel ein; kein Container liest sie. Ein leerer Host lässt E-Mail aus: Passwort-Zurücksetzung, Einladungen und E-Mail-Verifizierung funktionieren dann nicht, und die Login-Seite blendet **Forgot password** aus. Siehe [E-Mail einrichten (SMTP)](../how-to/configure-smtp.md).
+
+| Variable | Standardwert | Beschreibung |
+| :--- | :--- | :--- |
+| `ALFHEIM_SMTP_HOST` | _(leer)_ | Hostname des SMTP-Servers, ohne Port oder Schema; Flag `--smtp-host`. Im lokalen Stack `mailpit`. |
+| `ALFHEIM_SMTP_PORT` | `587`, sobald ein Host gesetzt ist | SMTP-Port; Flag `--smtp-port`. |
+| `ALFHEIM_SMTP_USER` | _(leer)_ | SMTP-Benutzer; leer für ein Relay ohne Authentifizierung. Zusammen mit dem Passwort setzen; Flag `--smtp-user`. |
+| `ALFHEIM_SMTP_PASSWORD` | _(leer)_ | SMTP-Passwort. Nur über Umgebung oder `.env` (kein Flag), wird nie ausgegeben. |
+| `ALFHEIM_SMTP_SENDER_ADDRESS` | _(leer)_ | Absenderadresse jeder E-Mail, mit einem Host erforderlich; Flag `--smtp-sender-address`. |
+| `ALFHEIM_SMTP_SENDER_NAME` | `Alfheim`, sobald ein Host gesetzt ist | Absendername; Flag `--smtp-sender-name`. |
+| `ALFHEIM_SMTP_TLS` | `true`, sobald ein Host gesetzt ist | `true` nutzt implizites TLS oder STARTTLS; `false` nur für ein Relay auf demselben Host. Flag `--smtp-tls`. |
+| `ZITADEL_SMTP_FINGERPRINT` | _(vom Provisioning geschrieben)_ | SHA-256 über die konfigurierten SMTP-Werte einschließlich Passwort, damit ein geändertes Passwort erkannt wird. Ein Hash, nicht das Passwort. Nicht bearbeiten. |
 
 ---
 
@@ -116,6 +164,8 @@ Der Grafana-SSO ist auf Nutzer mit der Zitadel-Projektrolle `alfheim_operator` b
 | Variable | Standardwert | Beschreibung |
 | :--- | :--- | :--- |
 | `{SERVICE}_DATABASE_URL` | _(konstruiert)_ | Explizite PostgreSQL-Verbindungszeichenkette für einen Dienst (z.B. `DASHBOARD_DATABASE_URL`, `PANTRY_DATABASE_URL`); wenn leer, konstruieren Dienste sie aus `{SERVICE}_POSTGRES_*`-Variablen |
+| `CORS_ORIGINS` / `CORS_ALLOWED_ORIGINS` | _(Dev-Hosts in Entwicklung, keine in Produktion)_ | Cross-Origin-Allowlist der FastAPI- und Go-Backends, kommagetrennt (FastAPI akzeptiert auch eine JSON-Liste). `compose.prod.yaml` setzt beide aus `ALFHEIM_CORS_ORIGINS`. Ein Wildcard oder ein fehlerhafter Eintrag stoppt das Backend beim Start |
+| `ENVIRONMENT` | `development` | In `compose.prod.yaml` für jedes Backend `production`: produktives Logging (INFO, ohne Quellangabe) und kein Rückfall auf die Dev-CORS-Hosts |
 | `TESTING` | _(nicht gesetzt)_ | Nur in Backend-Testsuites auf `true` setzen; umgeht die JWT-Prüfung. Niemals in einem deployten Stack setzen |
 | `OTEL_ENABLED` | _(je Compose-Datei)_ | Aktiviert die OpenTelemetry-Erfassung in den FastAPI-Backends |
 | `CHAT_ENCRYPTION_KEY` | _(leer)_ | AES-256-GCM-Schlüssel (Base64-codiert) zum Verschlüsseln gespeicherter LLM-API-Schlüssel und Anmeldedaten |
@@ -144,7 +194,7 @@ Bootstrap-Modellblöcke (aus `CHAT_BOOTSTRAP_*`) werden von der Server-Umgebung 
 
 ## Haushalts- & Rollendienst (`core/household`)
 
-Tier-1-Kerndienst, dem Haushalte und Mitgliederrollen gehören. `compose.prod.yaml` betreibt ihn als `household-backend` (Go, Port `8080`, Health-Check `GET /healthz`) und `household-frontend` (Next.js, Port `3000`, basePath `/household`). Das Frontend erhält dieselben Variablen wie `dashboard-frontend` (`NEXT_PUBLIC_OIDC_ISSUER`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` aus `ALFHEIM_WEB_CLIENT_ID`, `ALFHEIM_BASE_URL`).
+Tier-1-Kerndienst, dem Haushalte und Mitgliederrollen gehören. `compose.prod.yaml` betreibt ihn als `household-backend` (Go, Port `8080`, Liveness `GET /healthz`, Readiness `GET /readyz`) und `household-frontend` (Next.js, Port `3000`, basePath `/household`). Das Frontend erhält dieselben Variablen wie `dashboard-frontend` (`NEXT_PUBLIC_OIDC_ISSUER`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` aus `ALFHEIM_WEB_CLIENT_ID`, `ALFHEIM_BASE_URL`).
 
 | Variable | Standardwert | Beschreibung |
 | :--- | :--- | :--- |
@@ -191,6 +241,17 @@ Automatische TLS-Zertifikat-Ausstellung via Let's Encrypt. Siehe `docs/en/how-to
 | `HETZNER_API_TOKEN` | _(leer)_ | Hetzner DNS API-Token für DNS-01-Challenges (erforderlich wenn Hetzner DNS verwendet wird) |
 | `CLOUDFLARE_API_TOKEN` | _(leer)_ | Cloudflare API-Token für DNS-01-Challenges (erforderlich wenn Cloudflare DNS verwendet wird) |
 | `DESEC_TOKEN` | _(leer)_ | deSEC API-Token für DNS-01-Challenges (erforderlich wenn deSEC verwendet wird) |
+
+### Rate-Limits des Gateways
+
+Anfragen pro Minute und Client-IP, die Caddy zulässt, bevor es mit `429` antwortet. Optional: Ohne Wert gilt der Standard, und `alfheim-setup --reconfigure` behält einen gesetzten Wert. Siehe [Rate-Limits des Gateways anpassen](../how-to/tune-rate-limits.md).
+
+| Variable | Standardwert | Beschreibung |
+| :--- | :--- | :--- |
+| `ALFHEIM_RATE_LIMIT_LOGIN` | `30` | Formular-Posts an den Zitadel-Login (`POST /ui/login/*`, `/ui/v2/login/*`) |
+| `ALFHEIM_RATE_LIMIT_AUTH` | `600` | Jede Anfrage an den `auth.*`-Host |
+| `ALFHEIM_RATE_LIMIT_API` | `1200` | Jede `/api/v1`-Anfrage |
+| `ALFHEIM_RATE_LIMIT_LOOKUP` | `60` | ISBN-/BGG-/TMDB-Lookups der Bibliothek und Barcode-Lookups der Vorratskammer |
 
 ---
 

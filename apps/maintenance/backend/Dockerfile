@@ -1,5 +1,5 @@
 # Multi-stage production build using uv with monorepo root context
-FROM ghcr.io/astral-sh/uv:python3.12-alpine AS builder
+FROM ghcr.io/astral-sh/uv:python3.14-alpine AS builder
 
 # Enable Python bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
@@ -13,19 +13,26 @@ COPY apps/maintenance/backend/pyproject.toml ./apps/maintenance/backend/
 
 # Sync dependencies for maintenance-backend workspace package
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --package maintenance-backend --no-install-project --no-editable
+    uv sync --frozen --no-dev --package maintenance-backend --no-install-project --no-editable
 
 # Copy application source files
 COPY apps/maintenance/backend ./apps/maintenance/backend
 
 # Run project sync to register the package
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --package maintenance-backend --no-editable
+    uv sync --frozen --no-dev --package maintenance-backend --no-editable
 
 # Final slim runtime container
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 
 WORKDIR /app
+
+# The base image lags behind Alpine security fixes (krb5-libs); upgrade its
+# packages so the release Trivy gate sees the patched versions. The app runs
+# from the uv-built /app/.venv, so the image's own pip (and the packages it
+# vendors, which Trivy flags) is removed.
+RUN apk upgrade --no-cache \
+    && python -m pip uninstall --yes --no-cache-dir pip
 
 RUN addgroup -S -g 10001 appgroup \
     && adduser -S -u 10001 -G appgroup appuser

@@ -9,6 +9,7 @@ description: "Checklist for testing a release candidate on a disposable, product
 
 ## 📋 Table of Contents
 - [Run the release dry run first](#run-the-release-dry-run-first)
+- [Verify signatures and attestations](#verify-signatures-and-attestations)
 - [Prepare a disposable host](#prepare-a-disposable-host)
 - [1. Fresh install](#1-fresh-install)
 - [2. Sample data and backup](#2-sample-data-and-backup)
@@ -33,10 +34,11 @@ gh run watch
 
 A dry run executes the same quality gates, builds every image natively for
 `linux/amd64` (`ubuntu-24.04`) and `linux/arm64` (`ubuntu-24.04-arm`) and applies
-the Trivy gate (fixable CRITICAL and HIGH findings fail the job). It skips the
+the Trivy gate (fixable CRITICAL and HIGH findings fail the job), and generates
+each image's SBOM. It skips the
 tag ancestry check and publishes nothing: no image is pushed, no manifest or
-tag is created, no GitHub release is made and no SARIF report is uploaded to
-code scanning. Manual runs with `dry_run=false` are refused; only a `v*.*.*`
+tag is created, nothing is signed or attested, no GitHub release is made and no
+SARIF report is uploaded to code scanning. Manual runs with `dry_run=false` are refused; only a `v*.*.*`
 tag push releases.
 
 The run is green when every `Build <image> (<arch>)` job passes. Only then
@@ -48,6 +50,60 @@ and fix the cause on `dev`: bump the vulnerable base image tag or dependency
 re-run the dry run. A finding with no fix available (`ignore-unfixed`) never
 fails the gate. Do not tag while a dry run is red; a tag run fails at the same
 gate after the tests have already been spent.
+
+---
+
+## Verify signatures and attestations
+
+Every tag run (release candidates included) signs and attests what it
+publishes, keyless through Sigstore with the release workflow's GitHub OIDC
+identity. Nothing is signed with a long-lived key. Releases before `v0.5.0`
+carry no signatures.
+
+| Artifact | Signature | Attestations |
+| --- | --- | --- |
+| Each multi-arch image (`ghcr.io/kroegerleif/alfheim/<name>:<tag>`) | cosign, on the index and every platform manifest | SLSA build provenance on the index, SPDX SBOM on each platform image |
+| `SHA256SUMS` | cosign bundle `SHA256SUMS.sigstore.json` (release asset) | – |
+| Installer binaries and stack files listed in `SHA256SUMS` | through the signed `SHA256SUMS` | SLSA build provenance |
+
+Check them on the candidate before the install below. You need
+[cosign](https://docs.sigstore.dev/cosign/system_config/installation/) and the
+GitHub CLI.
+
+```bash
+TAG="v0.5.0-rc.1"
+IMAGE="ghcr.io/kroegerleif/alfheim/caddy"
+IDENTITY='^https://github\.com/KroegerLeif/Alfheim/\.github/workflows/release\.yml@refs/tags/v'
+ISSUER="https://token.actions.githubusercontent.com"
+
+# Image signature, bound to release.yml on a v* tag
+cosign verify "${IMAGE}:${TAG}" \
+  --certificate-identity-regexp "${IDENTITY}" --certificate-oidc-issuer "${ISSUER}"
+
+# Build provenance of the multi-arch image
+gh attestation verify "oci://${IMAGE}:${TAG}" --repo KroegerLeif/Alfheim \
+  --signer-workflow KroegerLeif/Alfheim/.github/workflows/release.yml
+
+# SBOM of the amd64 image (use arm64 for the other platform)
+DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${TAG}" --format '{{json .Manifest}}' \
+  | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
+gh attestation verify "oci://${IMAGE}@${DIGEST}" --repo KroegerLeif/Alfheim \
+  --predicate-type https://spdx.dev/Document/v2.3
+```
+
+For the installer assets, download `SHA256SUMS`, `SHA256SUMS.sigstore.json`
+and the binary from the release page, then:
+
+```bash
+cosign verify-blob SHA256SUMS --bundle SHA256SUMS.sigstore.json \
+  --certificate-identity-regexp "${IDENTITY}" --certificate-oidc-issuer "${ISSUER}"
+sha256sum --check --ignore-missing SHA256SUMS
+gh attestation verify alfheim-setup_linux_amd64 --repo KroegerLeif/Alfheim
+```
+
+Every command must end with a successful verification. A failure on a tag the
+workflow published means the release did not sign or attest correctly: do not
+promote it.
 
 ---
 
@@ -74,6 +130,7 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 | Check | Expected |
 | --- | --- |
 | Installer exit code and `scripts/verify-stack.sh` | 0, every service healthy |
+| Zitadel login | Signing in from the dashboard redirects to `/ui/login/login` (Login V1), not `/ui/v2/login`; `GET /oauth/v2/keys` lists `RS256` keys |
 | Zitadel `GET /admin/v1/policies/login` | `allowRegister` absent or `false`; `/ui/login/register` answers "Registration is not allowed" |
 | Project `alfheim_operator` role | exists, granted to the admin, `projectRoleAssertion: true` |
 | Admin access token | carries `alfheim_operator` under `urn:zitadel:iam:org:project:roles` |
@@ -82,6 +139,8 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 | `GET /api/v1/chat/mcp-servers/diagnostics`, `PATCH /api/v1/chat/mcp-servers/{id}` | 200 for the admin, 403 for others (the list itself is redacted for them) |
 | Budget receipt: attach a phone photo to a transaction | The browser posts the file to `/api/v1/budget/transactions/receipt` (never to `/storage/`); the stored object is a small WebP |
 | Chat attachment upload | 201, the object exists in RustFS |
+| Zitadel credential | `ZITADEL_BOOTSTRAP_PAT` in `.env` is empty, `infrastructure/zitadel/machinekey/pat.txt` is gone, `infrastructure/zitadel/provisioner/` has mode `0700` and `machine-key.json` mode `0600`; `alfheim-setup zitadel-token --env-file .env` prints a token |
+| Password reset by e-mail (with SMTP) | **Forgot password** is shown on the login page and the reset e-mail arrives. Against Mailpit, `ALFHEIM_SMTP_HOST=mailpit` makes `scripts/verify-stack.sh` check this on its own ([Configure e-mail](./configure-smtp.md#test-it-locally-with-mailpit)); without SMTP the link is hidden |
 
 Test the "others" rows with a second user who owns a household of their own:
 household roles must not unlock installation-wide resources.
@@ -99,7 +158,7 @@ alfheim-setup backup
 ```
 
 The archive must contain `database.sql`, `rustfs-data.tar`, `.env`, the Zitadel
-machinekey, the CA and Caddy PKI, the stack files and `manifest.json`.
+machinekey and provisioner key, the CA and Caddy PKI, the stack files and `manifest.json`.
 
 ---
 
@@ -113,7 +172,10 @@ alfheim-setup update --version v0.3.0-rc.2
 
 Expected: a pre-update backup is written before anything changes, the
 Caddyfile is re-rendered, Zitadel provisioning runs, every service restarts
-healthy and the final verification passes. All sample data is unchanged.
+healthy and the final verification passes. All sample data is unchanged. The
+`keyId` in `infrastructure/zitadel/provisioner/machine-key.json` has changed
+(the key is rotated), and the previous key is gone from the machine user in
+the Zitadel console.
 
 ---
 
@@ -144,4 +206,20 @@ data with it, then run `alfheim-setup update --version <candidate>`. Expected:
 - `.env` repairs are reported (`minio` → `rustfs`, `DOCKER_SOCKET_GID`);
 - registration is switched off and `alfheim_operator` is created and granted on
   the existing installation;
+- the long-lived `ZITADEL_BOOTSTRAP_PAT` is used once, revoked in Zitadel and
+  cleared from `.env`, a machine key is stored instead (directory `0700`,
+  file `0600`), and `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` is added to `.env`;
 - all data created with the previous release is still there and writable.
+
+Upgrading from v0.4.x or older also moves Zitadel from v2.66 to v4. Expected
+in addition:
+
+- Zitadel starts on the same database and masterkey and runs its setup
+  migrations on its own (`start-from-init` skips the init steps it already
+  finds);
+- tokens issued before the update are rejected (401), because v4 signs only
+  with new web keys; users sign in again and keep their Zitadel user ID, so
+  their households are unchanged;
+- for the first few minutes after the update, `GET /oauth/v2/keys` may return
+  `{"keys":null}` and sign-in may fail with `Errors.WebKey.NoActive` while
+  Zitadel catches up its projections; it recovers without intervention.

@@ -4,11 +4,11 @@ import uuid
 from datetime import date
 
 from backend_shared import mcp_middleware
-from backend_shared.household import derive_user_id
+from backend_shared.household import derive_user_id, find_member
 from backend_shared.mcp_middleware import get_mcp_household_context
+from backend_shared.mcp_permissions import mcp_requires_role
 from sqlmodel import select
 from src.core.database import async_session_factory
-from src.core.permissions import mcp_requires_role
 from src.features.chore_management.models import ChoreInstance, ChoreTemplate
 from src.features.chore_management.schemas import ChoreAssignRequest
 from src.features.chore_management.service import ChoreService
@@ -139,9 +139,12 @@ async def assign_chore(chore_instance_id: str, assignee_user_id: str) -> str:
             return "Error: Only household owners or admins may assign a chore to someone else."
 
         if user_uuid != context.user_id:
-            role = await mcp_middleware.get_membership_client()(home_uuid, assignee_user_id)
-            if role is None:
+            # Matched by the derived user id, so members with a non-UUID subject are found too (#583).
+            member = await find_member(mcp_middleware.get_membership_client(), home_uuid, user_uuid)
+            if member is None:
                 return "Error: The assignee is not a member of this household."
+            if not InstanceService.can_hold_assignment(member.role):
+                return "Error: A guest has read-only access and cannot be assigned chores."
 
         async with async_session_factory() as session:
             payload = ChoreAssignRequest(assigned_to=user_uuid)

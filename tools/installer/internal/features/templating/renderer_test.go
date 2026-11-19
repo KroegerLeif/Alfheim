@@ -3,6 +3,7 @@ package templating
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -67,6 +68,7 @@ func model(t *testing.T, preset onboarding.PresetID, tlsCfg tls.Config) Model {
 		Generated:  fixedTime,
 
 		DockerSocketGID: "998",
+		Telemetry:       true,
 	}
 }
 
@@ -544,16 +546,18 @@ func TestRenderedCaddyfileSecurityHeaders(t *testing.T) {
 			}
 			caddy := string(out)
 
-			if got := strings.Count(caddy, "\timport security_headers\n"); got != 2 {
-				t.Errorf("security_headers is imported %d times, want 2 (auth host and app host)", got)
+			// Auth host, app host and the app_unavailable and rate_limited
+			// error routes.
+			if got := strings.Count(caddy, "\timport security_headers\n"); got != 4 {
+				t.Errorf("security_headers is imported %d times, want 4 (auth host, app host, two error routes)", got)
 			}
 			for _, want := range []string{
 				"?X-Content-Type-Options \"nosniff\"",
 				"?Referrer-Policy \"strict-origin-when-cross-origin\"",
 				"?X-Frame-Options \"SAMEORIGIN\"",
 				"?Permissions-Policy ",
-				"?Content-Security-Policy \"frame-ancestors 'self'\"",
-				"?Content-Security-Policy-Report-Only ",
+				"?Content-Security-Policy \"default-src 'self'; ",
+				"; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'\"",
 				"-Server\n",
 			} {
 				if !strings.Contains(caddy, want) {
@@ -563,6 +567,9 @@ func TestRenderedCaddyfileSecurityHeaders(t *testing.T) {
 			if strings.Contains(caddy, "\n\t\tContent-Security-Policy ") {
 				t.Error("the enforced CSP must use the ? prefix so upstream policies win")
 			}
+			if strings.Contains(caddy, "Content-Security-Policy-Report-Only") {
+				t.Error("the CSP is enforced (#786); no report-only header may remain")
+			}
 
 			hasHSTS := strings.Contains(caddy, "Strict-Transport-Security \"max-age=31536000; includeSubDomains\"")
 			if hasHSTS != m.Onboarding.Secure {
@@ -570,6 +577,81 @@ func TestRenderedCaddyfileSecurityHeaders(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestRenderedCaddyfileRateLimits pins the gateway rate limits (#785): the
+// rate_limit directive is ordered before every other handler, the auth host
+// limits login posts and all traffic, the app host limits the APIs and the
+// external lookups, every limit is keyed by client IP and tunable through an
+// ALFHEIM_RATE_LIMIT_* variable, and both hosts answer 429 via handle_errors.
+func TestRenderedCaddyfileRateLimits(t *testing.T) {
+	r, err := NewRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range tls.Strategies {
+		t.Run(string(s.ID), func(t *testing.T) {
+			m := model(t, onboarding.PresetCustom, tls.Config{Strategy: s.ID, APIToken: "tok"})
+			out, err := r.RenderCaddyfile(m)
+			if err != nil {
+				t.Fatal(err)
+			}
+			caddy := string(out)
+
+			for _, want := range []string{
+				"\torder rate_limit before basic_auth\n",
+				"\t\tzone auth_login {\n\t\t\tmatch {\n\t\t\t\tmethod POST\n\t\t\t\tpath /ui/login/* /ui/v2/login/*\n",
+				"\t\t\tevents {$ALFHEIM_RATE_LIMIT_LOGIN:30}\n",
+				"\t\t\tevents {$ALFHEIM_RATE_LIMIT_AUTH:600}\n",
+				"\t\t\t\tpath /api/v1/library/lookup* /library/api/v1/lookup* /api/v1/pantry/products/barcode/* /pantry/api/v1/products/barcode/*\n",
+				"\t\t\tevents {$ALFHEIM_RATE_LIMIT_LOOKUP:60}\n",
+				"\t\t\t\tpath /api/v1/* */api/v1/*\n",
+				"\t\t\tevents {$ALFHEIM_RATE_LIMIT_API:1200}\n",
+				"\thandle_errors 429 {\n",
+			} {
+				if !strings.Contains(caddy, want) {
+					t.Errorf("the %s Caddyfile lacks %q", s.ID, want)
+				}
+			}
+			if got, want := strings.Count(caddy, "\t\t\tkey {client_ip}\n"), 4; got != want {
+				t.Errorf("%d rate-limit zones are keyed by client IP, want %d", got, want)
+			}
+			if got := strings.Count(caddy, "\t\t\twindow 1m\n"); got != 4 {
+				t.Errorf("%d rate-limit zones use a one-minute window, want 4", got)
+			}
+
+			// Each site block imports its limits and the 429 handler.
+			auth := siteBlock(t, caddy, m.Onboarding.Scheme()+"://"+m.Onboarding.AuthHost+" {")
+			app := siteBlock(t, caddy, m.Onboarding.Scheme()+"://"+m.Onboarding.AppHost+" {")
+			for name, block := range map[string]string{"auth": auth, "app": app} {
+				if !strings.Contains(block, "\timport rate_limited\n") {
+					t.Errorf("the %s host does not import rate_limited", name)
+				}
+			}
+			if !strings.Contains(auth, "\timport auth_rate_limit\n") || strings.Contains(auth, "import api_rate_limit") {
+				t.Error("the auth host must import auth_rate_limit only")
+			}
+			if !strings.Contains(app, "\timport api_rate_limit\n") || strings.Contains(app, "import auth_rate_limit") {
+				t.Error("the app host must import api_rate_limit only")
+			}
+		})
+	}
+}
+
+// siteBlock returns the site block that opens with header, up to the closing
+// brace at column zero.
+func siteBlock(t *testing.T, caddy, header string) string {
+	t.Helper()
+	start := strings.Index(caddy, "\n"+header+"\n")
+	if start < 0 {
+		t.Fatalf("no site block %q", header)
+	}
+	rest := caddy[start+1:]
+	end := strings.Index(rest, "\n}\n")
+	if end < 0 {
+		t.Fatalf("site block %q is not closed", header)
+	}
+	return rest[:end]
 }
 
 // TestRenderedCaddyfileRouting pins the API routing contract shared with
@@ -592,22 +674,58 @@ func TestRenderedCaddyfileRouting(t *testing.T) {
 		t.Error("the gateway must not redirect bare app paths; next-intl owns locale selection")
 	}
 	for _, want := range []string{
-		"\thandle /api/v1/shopping* {\n\t\treverse_proxy shopping-backend:8000\n",
+		"\thandle /api/v1/shopping* {\n\t\timport app_backend shopping-backend:8000 /readyz\n",
 		"\thandle_path /shopping/api/v1* {\n\t\trewrite * /api/v1{path}\n",
-		"\thandle /api/v1/chores* {\n\t\treverse_proxy chores-backend:8000\n",
+		"\thandle /api/v1/chores* {\n\t\timport app_backend chores-backend:8000 /readyz\n",
 		"\thandle_path /chores/api/v1* {\n\t\trewrite * /api/v1/chores{path}\n",
-		"\thandle /api/v1/library* {\n\t\treverse_proxy library-backend:8000\n",
+		"\thandle /api/v1/library* {\n\t\timport app_backend library-backend:8000 /readyz\n",
 		"\thandle_path /library/api/v1* {\n\t\trewrite * /api/v1/library{path}\n",
-		"\thandle /api/v1/chat* {\n\t\treverse_proxy chat-backend:8080\n",
+		"\thandle /api/v1/chat* {\n\t\timport app_backend chat-backend:8080 /readyz\n",
 		"\thandle_path /chat/api/v1* {\n\t\trewrite * /api/v1/chat{path}\n",
 		"\thandle_path /api/v1/pantry* {\n\t\trewrite * /api/v1{path}\n",
 		"\thandle_path /api/v1/budget* {\n\t\trewrite * /api/v1{path}\n",
-		"\thandle /api/v1/* {\n\t\treverse_proxy dashboard-backend:8080\n",
+		"\thandle /api/v1/* {\n\t\timport app_backend dashboard-backend:8080 /readyz\n",
 		"\thandle /shopping* {\n\t\treverse_proxy shopping-frontend:3010\n",
 		"\thandle /pantry* {\n\t\treverse_proxy pantry-frontend:3000\n",
 	} {
 		if !strings.Contains(caddy, want) {
 			t.Errorf("the Caddyfile lacks %q", want)
+		}
+	}
+}
+
+// TestRenderTelemetrySwitch pins OTEL_ENABLED in .env and the /grafana route
+// to Model.Telemetry, so a Lean Core install exposes no Grafana path.
+func TestRenderTelemetrySwitch(t *testing.T) {
+	r, err := NewRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, on := range []bool{true, false} {
+		m := model(t, onboarding.PresetCustom, tls.Config{Strategy: tls.StrategyInternal})
+		m.Telemetry = on
+		if !on {
+			// The app set drives the route; the installer keeps both in step.
+			m.DisabledApps = []string{"telemetry"}
+		}
+		env, err := r.RenderEnv(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		caddy, err := r.RenderCaddyfile(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		wantEnv := fmt.Sprintf("\nOTEL_ENABLED=%t\n", on)
+		if !strings.Contains(string(env), wantEnv) {
+			t.Errorf("Telemetry=%t: .env lacks %q", on, wantEnv)
+		}
+		hasRoute := strings.Contains(string(caddy), "reverse_proxy grafana:3000")
+		if hasRoute != on {
+			t.Errorf("Telemetry=%t: Caddyfile routes /grafana = %t", on, hasRoute)
+		}
+		if !strings.Contains(string(caddy), "handle /grafana*") {
+			t.Errorf("Telemetry=%t: /grafana must always be handled (proxy or redirect)", on)
 		}
 	}
 }
@@ -640,6 +758,82 @@ func TestRenderEnvDataPaths(t *testing.T) {
 	for _, want := range []string{"\nALFHEIM_DB_DATA_PATH=/mnt/db\n", "\nALFHEIM_OBJECT_DATA_PATH='/mnt/my disk/objects'\n", "\nALFHEIM_LOGS_DATA_PATH=\n"} {
 		if !strings.Contains(string(env), want) {
 			t.Errorf("rendered .env lacks %q", want)
+		}
+	}
+}
+
+// TestRenderedCaddyfileResilience pins issues #811 and #887: every app
+// backend is proxied through app_backend (passive retries plus an active
+// health check on the backend's own health path), and the app host answers a
+// stopped or missing app with the JSON or static error from app_unavailable.
+func TestRenderedCaddyfileResilience(t *testing.T) {
+	r, err := NewRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := model(t, onboarding.PresetCustom, tls.Config{Strategy: tls.StrategyInternal})
+	out, err := r.RenderCaddyfile(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	caddy := string(out)
+
+	for _, want := range []string{
+		"(app_backend) {\n\treverse_proxy {args[0]} {\n\t\tlb_try_duration 3s\n",
+		"\t\thealth_uri {args[1]}\n",
+		"(app_unavailable) {\n\thandle_errors 502 503 504 {\n",
+		"\t\theader Retry-After \"30\"\n",
+		"\t\t@api path */api/v1*\n",
+		`respond ` + "`" + `{"error":"service_unavailable",`,
+		"\t\t\troot * /srv/alfheim-errors\n\t\t\trewrite * /app-unavailable.html\n",
+		"\t\t\t\tstatus 503\n",
+		"\timport security_headers\n\timport app_unavailable\n",
+		"\t\timport app_backend household-backend:8080 /readyz\n",
+	} {
+		if !strings.Contains(caddy, want) {
+			t.Errorf("the Caddyfile lacks %q", want)
+		}
+	}
+	if got := strings.Count(caddy, "\timport app_unavailable\n"); got != 1 {
+		t.Errorf("app_unavailable is imported %d times, want 1 (app host)", got)
+	}
+	for _, route := range m.EnabledRoutes() {
+		if route.HealthPath == "" {
+			t.Errorf("%s has no health path", route.Slug)
+		}
+		want := "import app_backend " + route.Upstream + " " + route.HealthPath + "\n"
+		if strings.Count(caddy, want) < 2 {
+			t.Errorf("%s backend is not proxied through app_backend: %q", route.Slug, want)
+		}
+	}
+	// Every backend upstream goes through the snippet; only frontends,
+	// Zitadel, RustFS and Grafana use reverse_proxy directly.
+	for _, line := range strings.Split(caddy, "\n") {
+		if strings.Contains(line, "reverse_proxy ") && strings.Contains(line, "-backend:") {
+			t.Errorf("backend proxied without health checks: %q", strings.TrimSpace(line))
+		}
+	}
+}
+
+func TestBootstrapPATExpiryIsOneWeekAfterGeneration(t *testing.T) {
+	m := Model{Generated: time.Date(2026, 11, 14, 10, 0, 0, 0, time.FixedZone("CET", 3600))}
+	if got := m.BootstrapPATExpiry(); got != "2026-11-21T09:00:00Z" {
+		t.Errorf("BootstrapPATExpiry() = %q", got)
+	}
+}
+
+// TestCORSOrigins covers #921: the rendered allowlist is the public app origin
+// and never a wildcard.
+func TestCORSOrigins(t *testing.T) {
+	for base, want := range map[string]string{
+		"https://alfheim.example.com":  "https://alfheim.example.com",
+		"http://alfheim.localhost/":    "http://alfheim.localhost",
+		"https://home.example.org:443": "https://home.example.org:443",
+	} {
+		m := Model{}
+		m.Onboarding.BaseURL = base
+		if got := m.CORSOrigins(); got != want || strings.Contains(got, "*") {
+			t.Errorf("CORSOrigins(%q) = %q, want %q", base, got, want)
 		}
 	}
 }

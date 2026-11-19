@@ -106,7 +106,7 @@ class OpenFoodFactsClient:
             # Convert kJ to kcal if kcal is missing (1 kcal = 4.184 kJ)
             try:
                 calories = float(nutriments["energy_100g"]) / 4.184
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 pass
 
         try:
@@ -154,5 +154,5 @@ class OpenFoodFactsClient:
         try:
             val = float(value)
             return val if val >= 0 else None
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return None

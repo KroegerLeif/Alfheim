@@ -165,3 +165,96 @@ async def test_retry_with_unknown_item_ids_is_a_no_op(
     assert response.status_code == 200
     assert response.json()["synced_count"] == 0
     mock_bulk_add.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@patch("src.features.shopping_lists.clients.PantryClient.bulk_add_items", new_callable=AsyncMock)
+async def test_full_resync_does_not_count_a_skipped_item_again(
+    mock_bulk_add: AsyncMock, client: AsyncClient, db_session: AsyncSession
+):
+    """An item Pantry did not recognize stays unsynced; later full syncs must not re-count it (#628)."""
+    shopping_list, (skipped,) = await _list_with_completed_items(db_session, {"name": "Mystery Jar", "unit": "piece"})
+    unrecognized = {
+        "successful_items": [],
+        "unrecognized_items": [
+            {
+                "shopping_item_id": str(skipped.id),
+                "name": "Mystery Jar",
+                "quantity": 1.0,
+                "unit": "piece",
+                "reason": "pantry.error.product_not_found",
+            }
+        ],
+    }
+    mock_bulk_add.return_value = unrecognized
+
+    for _ in range(3):
+        response = await client.post(f"/api/v1/shopping-lists/{shopping_list.id}/sync-to-pantry")
+        assert response.json()["unrecognized_count"] == 1
+
+    histories = (await db_session.exec(select(ShoppingHistory))).all()
+    assert len(histories) == 1
+    assert histories[0].purchase_count == 1
+    await db_session.refresh(skipped)
+    assert skipped.history_logged is True
+    assert skipped.is_synced is False
+
+
+@pytest.mark.asyncio
+@patch("src.features.shopping_lists.clients.PantryClient.bulk_add_items", new_callable=AsyncMock)
+async def test_new_items_are_counted_on_a_later_sync_next_to_a_skipped_one(
+    mock_bulk_add: AsyncMock, client: AsyncClient, db_session: AsyncSession
+):
+    """A later sync still counts items it sees for the first time, but not the already counted ones."""
+    shopping_list, (skipped,) = await _list_with_completed_items(db_session, {"name": "Mystery Jar", "unit": "piece"})
+    mock_bulk_add.return_value = {
+        "successful_items": [],
+        "unrecognized_items": [
+            {
+                "shopping_item_id": str(skipped.id),
+                "name": "Mystery Jar",
+                "quantity": 1.0,
+                "unit": "piece",
+                "reason": "pantry.error.product_not_found",
+            }
+        ],
+    }
+    await client.post(f"/api/v1/shopping-lists/{shopping_list.id}/sync-to-pantry")
+
+    fresh = ShoppingItem(list_id=shopping_list.id, name="Oat Milk", unit="piece", is_completed=True, is_synced=False)
+    db_session.add(fresh)
+    await db_session.commit()
+    await db_session.refresh(fresh)
+    mock_bulk_add.return_value = {
+        "successful_items": [
+            {"shopping_item_id": str(fresh.id), "product_id": PRODUCT_ID, "quantity_added": 1.0, "unit": "piece"}
+        ],
+        "unrecognized_items": mock_bulk_add.return_value["unrecognized_items"],
+    }
+    await client.post(f"/api/v1/shopping-lists/{shopping_list.id}/sync-to-pantry")
+
+    counts = {h.name: h.purchase_count for h in (await db_session.exec(select(ShoppingHistory))).all()}
+    assert counts == {"Mystery Jar": 1, "Oat Milk": 1}
+
+
+@pytest.mark.asyncio
+async def test_unchecking_an_item_lets_its_next_purchase_count(client: AsyncClient, db_session: AsyncSession):
+    """Unchecking an item clears history_logged; changing other fields keeps it (#628)."""
+    shopping_list, (item,) = await _list_with_completed_items(db_session, {"name": "Oat Milk", "unit": "piece"})
+    item.history_logged = True
+    db_session.add(item)
+    await db_session.commit()
+
+    renamed = await client.patch(
+        f"/api/v1/shopping-lists/{shopping_list.id}/items/{item.id}", json={"name": "Oat Drink"}
+    )
+    assert renamed.status_code == 200
+    await db_session.refresh(item)
+    assert item.history_logged is True
+
+    unchecked = await client.patch(
+        f"/api/v1/shopping-lists/{shopping_list.id}/items/{item.id}", json={"is_completed": False}
+    )
+    assert unchecked.status_code == 200
+    await db_session.refresh(item)
+    assert item.history_logged is False

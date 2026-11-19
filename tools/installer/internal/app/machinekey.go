@@ -9,9 +9,9 @@ import (
 )
 
 // zitadelUID and zitadelGID are the "zitadel" user baked into the
-// ghcr.io/zitadel/zitadel:v2.66.1 image. Verified by extracting /etc/passwd
-// from the image (`docker create` + `docker cp`, since the image ships no
-// shell to run `id` in): "zitadel:x:1000:1000::/:".
+// ghcr.io/zitadel/zitadel image. Verified for v2.66.1 and again for v4.20.3
+// by extracting /etc/passwd from the image (`docker create` + `docker cp`,
+// since the image ships no shell to run `id` in): "zitadel:x:1000:1000::/:".
 const (
 	zitadelUID = 1000
 	zitadelGID = 1000

@@ -1277,3 +1277,69 @@ func TestService_AttachmentURLSigningFailureFailsTheRead(t *testing.T) {
 		t.Fatal("ListMessages() must fail instead of returning an unsigned URL")
 	}
 }
+
+// hangingToolCaller never answers tools/list until its context ends, like an
+// MCP server whose app is stopped behind a black-holed connection.
+type hangingToolCaller struct{}
+
+func (hangingToolCaller) ListTools(ctx context.Context) ([]mcp.Tool, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+func (hangingToolCaller) CallTool(ctx context.Context, toolName string, arguments map[string]any) (string, bool, error) {
+	<-ctx.Done()
+	return "", false, ctx.Err()
+}
+func (hangingToolCaller) Ping(ctx context.Context) mcp.DiagnosticResult {
+	return mcp.DiagnosticResult{Reachable: false}
+}
+
+// One MCP server down must only make its tools unavailable: the turn still
+// answers, with the tools of the servers that are up (#864).
+func TestService_AnswersWithOneMCPServerDown(t *testing.T) {
+	defer conversations.SetToolDiscoveryTimeout(50 * time.Millisecond)()
+	ctx := context.Background()
+
+	pantry := mcp.ServerRef{ID: "srv-pantry", Slug: "pantry", EndpointURL: "http://pantry-backend:8000/mcp"}
+	chores := mcp.ServerRef{ID: "srv-chores", Slug: "chores", EndpointURL: "http://chores-backend:8000/mcp"}
+	pantryTools := &fakeToolCaller{
+		tools:       []mcp.Tool{{Name: "get_stock", InputSchema: map[string]any{"type": "object"}}},
+		callResults: map[string]string{"get_stock": "2 eggs"},
+	}
+	lister := &fakeServerLister{servers: []mcp.ServerRef{chores, pantry}}
+	pool := &fakeClientPool{byURL: map[string]mcp.ToolCaller{
+		chores.EndpointURL: hangingToolCaller{},
+		pantry.EndpointURL: pantryTools,
+	}}
+	provider := &fakeProvider{rounds: [][]llm.StreamChunk{
+		{{ToolCall: &llm.ToolCallRequest{ID: "call_0", ToolName: "get_stock"}}, {Done: true}},
+		{{DeltaText: "You have 2 eggs."}, {Done: true}},
+	}}
+	svc := newTestServiceWithTools(newFakeRepository(), &fakeResolver{provider: provider}, lister, pool)
+
+	modelBlockID := "mb-1"
+	created, err := svc.CreateConversation(ctx, "user-1", testHouseholdID, conversations.CreateConversationRequest{ModelBlockID: &modelBlockID})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := svc.PostMessage(ctx, "user-1", testHouseholdID, created.ID, conversations.CreateMessageRequest{Content: "eggs?"}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	chunks, err := svc.StreamAssistantReply(ctx, "user-1", testHouseholdID, created.ID)
+	if err != nil {
+		t.Fatalf("a down MCP server must not fail the turn: %v", err)
+	}
+	var text string
+	for _, c := range drainChunks(t, chunks, 2*time.Second) {
+		if c.Err != nil {
+			t.Errorf("unexpected error chunk: %v", c.Err)
+		}
+		text += c.DeltaText
+	}
+	if text != "You have 2 eggs." {
+		t.Errorf("final text = %q", text)
+	}
+	if len(pantryTools.calls) != 1 {
+		t.Errorf("the reachable server's tool must still be called, got %v", pantryTools.calls)
+	}
+}

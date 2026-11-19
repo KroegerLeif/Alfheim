@@ -142,6 +142,26 @@ class MembershipLookup(Protocol):
         """Return the user's role in the household, or ``None`` if not a member."""
 
 
+@dataclass(frozen=True)
+class HouseholdMember:
+    """One member of a household as listed by the household app's internal API.
+
+    ``user_id`` is the UUID apps store for the member (:func:`derive_user_id` of the subject),
+    so an app can match the ids in its own tables against the member list (#583).
+    """
+
+    user_sub: str
+    user_id: uuid.UUID
+    role: HouseholdRole
+
+
+class MemberDirectory(Protocol):
+    """Lists a household's members; ``HouseholdMembershipClient`` implements it."""
+
+    async def list_members(self, household_id: uuid.UUID) -> list[HouseholdMember]:
+        """Return every member of the household; an unknown household has none."""
+
+
 def _is_test_context() -> bool:
     return is_mock_auth_allowed(None)
 
@@ -173,6 +193,7 @@ class HouseholdMembershipClient:
         self._transport = transport
         self._clock = clock
         self._cache: dict[tuple[uuid.UUID, str], tuple[float, HouseholdRole | None]] = {}
+        self._members_cache: dict[uuid.UUID, tuple[float, list[HouseholdMember]]] = {}
         self._client: httpx.AsyncClient | None = None
         self._client_loop: asyncio.AbstractEventLoop | None = None
 
@@ -212,8 +233,9 @@ class HouseholdMembershipClient:
             raise HouseholdConfigError(f"{HOUSEHOLD_INTERNAL_URL_ENV} is not a valid http(s) URL: {self.base_url!r}")
 
     def clear_cache(self) -> None:
-        """Drop all cached membership answers."""
+        """Drop all cached membership answers and member lists."""
         self._cache.clear()
+        self._members_cache.clear()
 
     def _http_client(self) -> httpx.AsyncClient:
         loop = asyncio.get_running_loop()
@@ -264,7 +286,8 @@ class HouseholdMembershipClient:
         self._cache_put(key, role)
         return role
 
-    async def _fetch(self, household_id: uuid.UUID, user_sub: str) -> HouseholdRole | None:
+    async def _get(self, path: str) -> httpx.Response:
+        """GET ``path`` on the internal API with the internal token; config and network errors raise."""
         try:
             token = self.internal_token()
             client = self._http_client()
@@ -272,14 +295,25 @@ class HouseholdMembershipClient:
             logger.error("Household membership client misconfigured: %s", e)
             raise MembershipServiceError(str(e)) from e
 
-        url = f"{self.base_url}/internal/v1/memberships/{household_id}/{quote(user_sub, safe='')}"
         headers = {"Authorization": f"Bearer {token}"} if token else {}
         try:
-            response = await client.get(url, headers=headers)
+            return await client.get(f"{self.base_url}{path}", headers=headers)
         except httpx.HTTPError as e:
             logger.error("Household membership API unreachable (%s): %s", type(e).__name__, e)
             raise MembershipServiceError(f"membership API unreachable: {type(e).__name__}") from e
 
+    @staticmethod
+    def _unexpected_status(response: httpx.Response) -> MembershipServiceError:
+        if response.status_code == status.HTTP_401_UNAUTHORIZED:
+            logger.error(
+                "Household membership API rejected %s (check that both sides share the token)", INTERNAL_TOKEN_ENV
+            )
+        else:
+            logger.error("Household membership API answered HTTP %s", response.status_code)
+        return MembershipServiceError(f"membership API answered HTTP {response.status_code}")
+
+    async def _fetch(self, household_id: uuid.UUID, user_sub: str) -> HouseholdRole | None:
+        response = await self._get(f"/internal/v1/memberships/{household_id}/{quote(user_sub, safe='')}")
         if response.status_code == status.HTTP_404_NOT_FOUND:
             return None
         if response.status_code == status.HTTP_200_OK:
@@ -292,13 +326,45 @@ class HouseholdMembershipClient:
                 logger.error("Household membership API returned an unknown role: %r", role)
                 raise MembershipServiceError(f"membership API returned an unknown role: {role!r}")
             return role
-        if response.status_code == status.HTTP_401_UNAUTHORIZED:
-            logger.error(
-                "Household membership API rejected %s (check that both sides share the token)", INTERNAL_TOKEN_ENV
-            )
-        else:
-            logger.error("Household membership API answered HTTP %s", response.status_code)
-        raise MembershipServiceError(f"membership API answered HTTP {response.status_code}")
+        raise self._unexpected_status(response)
+
+    async def list_members(self, household_id: uuid.UUID) -> list[HouseholdMember]:
+        """Return the household's members from ``GET /internal/v1/households/{id}/members`` (#583).
+
+        Each member carries the subject, the derived user id apps store and the role. The list is
+        cached like a positive membership answer; an unknown household yields an empty list (not
+        cached). Errors raise :class:`MembershipServiceError` and are never cached.
+        """
+        entry = self._members_cache.get(household_id)
+        if entry is not None and entry[0] > self._clock():
+            return list(entry[1])
+
+        response = await self._get(f"/internal/v1/households/{household_id}/members")
+        if response.status_code == status.HTTP_404_NOT_FOUND:
+            return []
+        if response.status_code != status.HTTP_200_OK:
+            raise self._unexpected_status(response)
+        try:
+            members = [
+                HouseholdMember(
+                    user_sub=str(raw["user_id"]),
+                    user_id=uuid.UUID(str(raw["app_user_id"])),
+                    role=raw["role"],
+                )
+                for raw in response.json()["members"]
+            ]
+        except (ValueError, KeyError, TypeError, AttributeError) as e:
+            logger.error("Household member listing returned an unreadable body: %s", e)
+            raise MembershipServiceError("member listing returned an unreadable body") from e
+        unknown = {m.role for m in members} - HOUSEHOLD_ROLES
+        if unknown:
+            logger.error("Household member listing returned unknown roles: %r", sorted(unknown))
+            raise MembershipServiceError(f"member listing returned unknown roles: {sorted(unknown)!r}")
+
+        if len(self._members_cache) >= _MAX_CACHE_ENTRIES:
+            self._members_cache.clear()
+        self._members_cache[household_id] = (self._clock() + self._positive_ttl, members)
+        return list(members)
 
 
 # --------------------------------------------------------------------------- process-wide state
@@ -344,6 +410,22 @@ def get_auth_settings() -> Any:
 def get_membership_lookup() -> MembershipLookup:
     """FastAPI dependency returning the membership lookup. Override it in tests (see ``.testing``)."""
     return get_membership_client()
+
+
+def get_member_directory() -> MemberDirectory:
+    """FastAPI dependency returning the household member listing. Override it in tests (see ``.testing``)."""
+    return get_membership_client()
+
+
+async def find_member(
+    directory: MemberDirectory, household_id: uuid.UUID, user_id: uuid.UUID
+) -> HouseholdMember | None:
+    """Return the member of ``household_id`` whose app user id is ``user_id``, or ``None``.
+
+    This is how an app checks "is this *other* user a member": it only knows the derived id
+    it stores, which the per-subject lookup cannot answer for non-UUID subjects (#583).
+    """
+    return next((m for m in await directory.list_members(household_id) if m.user_id == user_id), None)
 
 
 # --------------------------------------------------------------------------- resolution
@@ -501,16 +583,20 @@ __all__ = [
     "HouseholdAuthError",
     "HouseholdConfigError",
     "HouseholdContext",
+    "HouseholdMember",
     "HouseholdMembershipClient",
     "HouseholdRole",
+    "MemberDirectory",
     "MembershipLookup",
     "MembershipServiceError",
     "authenticate",
     "close_membership_client",
     "configure_household_auth",
     "derive_user_id",
+    "find_member",
     "get_auth_settings",
     "get_membership_client",
+    "get_member_directory",
     "get_membership_lookup",
     "normalize_memberships",
     "parse_household_header",

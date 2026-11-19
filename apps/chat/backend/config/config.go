@@ -10,6 +10,9 @@ import (
 	"time"
 
 	"alfheim/chat/internal/shared/crypto"
+
+	"alfheim/go-shared/db"
+	"alfheim/go-shared/httpmw"
 )
 
 // Config encapsulates all chat-backend service configurations.
@@ -25,6 +28,11 @@ type Config struct {
 	Attachments    AttachmentsConfig
 	Household      HouseholdConfig
 	MCPServersSpec string
+	// MCPServersSpecSet reports whether CHAT_MCP_SERVERS is present at all.
+	// The installer renders it from the enabled apps, so an empty value means
+	// "no tool apps installed", while a missing variable keeps the registry
+	// as it is.
+	MCPServersSpecSet bool
 }
 
 // HouseholdConfig locates core/household's internal membership API.
@@ -36,14 +44,9 @@ type HouseholdConfig struct {
 	InternalToken string
 }
 
-// DatabaseConfig holds PostgreSQL connection configuration settings.
-type DatabaseConfig struct {
-	URL             string
-	MaxConns        int32
-	MinConns        int32
-	MaxConnLifetime time.Duration
-	MigrationsDir   string
-}
+// DatabaseConfig holds PostgreSQL connection configuration settings. It is the
+// shared go-shared/db configuration, so it can be handed to db.NewClient as is.
+type DatabaseConfig = db.Config
 
 // OIDCConfig holds OpenID Connect verification settings used for bearer token validation.
 type OIDCConfig struct {
@@ -122,14 +125,13 @@ func Load() (*Config, error) {
 	s3UseSSL := getEnvAsBool("S3_USE_SSL", false)
 	s3Region := getEnv("S3_REGION", "us-east-1")
 
-	// Parse CORS allowed origins from environment variable
-	corsOriginsStr := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8000,http://alfheim.loegien.localhost,http://api.alfheim.loegien.localhost")
-	corsOrigins := []string{}
-	if corsOriginsStr != "" {
-		corsOrigins = strings.Split(corsOriginsStr, ",")
-		for i := range corsOrigins {
-			corsOrigins[i] = strings.TrimSpace(corsOrigins[i])
-		}
+	// CORS allowlist (#921): production allows no cross-origin access unless
+	// CORS_ALLOWED_ORIGINS names the public origins; a malformed entry fails
+	// startup instead of widening the list.
+	corsRaw, corsSet := os.LookupEnv("CORS_ALLOWED_ORIGINS")
+	corsOrigins, err := httpmw.ResolveAllowedOrigins(corsRaw, corsSet, env)
+	if err != nil {
+		return nil, fmt.Errorf("CORS_ALLOWED_ORIGINS: %w", err)
 	}
 
 	cfg := &Config{
@@ -172,6 +174,7 @@ func Load() (*Config, error) {
 		},
 		MCPServersSpec: getEnv("CHAT_MCP_SERVERS", ""),
 	}
+	_, cfg.MCPServersSpecSet = os.LookupEnv("CHAT_MCP_SERVERS")
 
 	if strings.TrimSpace(cfg.Household.InternalToken) == "" {
 		return nil, fmt.Errorf("ALFHEIM_INTERNAL_TOKEN is required to verify household membership")

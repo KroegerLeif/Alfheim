@@ -1,0 +1,5 @@
+# `alfheim-setup provision` stores the provisioning machine user's rotated
+# Zitadel machine key here (machine-key.json, mode 0600). It is an IAM-owner
+# credential and must never be committed.
+*
+!.gitignore

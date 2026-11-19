@@ -1,5 +1,6 @@
 """Environment-driven settings for the Budget service."""
 
+from backend_shared.cors import DEV_CORS_ORIGINS, CorsOrigins
 from backend_shared.oidc_discovery import resolve_jwks_url
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -19,14 +20,9 @@ class Settings(BaseSettings):
     # Log every SQL statement (separate from DEBUG: statements may contain personal data)
     SQL_ECHO: bool = False
 
-    # CORS configuration
-    CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:8000",
-        "http://alfheim.loegien.localhost",
-        "http://api.alfheim.loegien.localhost",
-    ]
+    # CORS allowlist (#921): comma-separated or JSON, validated; unset means the dev hosts in
+    # development and no cross-origin access in production (see backend_shared.cors).
+    CORS_ORIGINS: CorsOrigins = list(DEV_CORS_ORIGINS)
 
     # Largest accepted receipt upload in bytes (default 10 MiB)
     MAX_RECEIPT_UPLOAD_BYTES: int = 10 * 1024 * 1024

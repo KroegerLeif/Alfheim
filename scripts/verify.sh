@@ -9,10 +9,14 @@
 #   ./scripts/verify.sh          # Runs all verification gates (--all)
 #   ./scripts/verify.sh --all    # Runs Python, Go, Frontend, Security, and Smoke tests
 #   ./scripts/verify.sh --python # Runs Ruff, Ty, and Pytest (apps and packages/backend-shared)
-#   ./scripts/verify.sh --go     # Runs Go tests and race detectors (incl. tools/installer)
+#   ./scripts/verify.sh --go     # Runs Go tests, race detector and coverage gates (incl. tools/installer)
 #   ./scripts/verify.sh --frontend # Runs TSC typecheck and Vitest test suites
 #   ./scripts/verify.sh --security # Runs secret leakage scans and non-mutating pre-commit checks
 #   ./scripts/verify.sh --smoke  # Runs production compose startup smoke test (--prod-startup)
+#
+# Options:
+#   --allow-missing-gitleaks     # Warn instead of failing --security when gitleaks
+#                                # is not installed (constrained environments only)
 # ==============================================================================
 
 set -euo pipefail
@@ -60,6 +64,8 @@ RUN_GO=false
 RUN_FRONTEND=false
 RUN_SECURITY=false
 RUN_SMOKE=false
+ALLOW_MISSING_GITLEAKS=false
+USAGE="Usage: ./scripts/verify.sh [--all | --python | --go | --frontend | --security | --smoke | --prod-startup] [--allow-missing-gitleaks]"
 
 # Argument Parsing
 if [[ $# -eq 0 ]]; then
@@ -99,13 +105,17 @@ while [[ $# -gt 0 ]]; do
             RUN_SMOKE=true
             shift
             ;;
+        --allow-missing-gitleaks)
+            ALLOW_MISSING_GITLEAKS=true
+            shift
+            ;;
         -h|--help)
-            echo "Usage: ./scripts/verify.sh [--all | --python | --go | --frontend | --security | --smoke | --prod-startup]"
+            echo "$USAGE"
             exit 0
             ;;
         *)
             log_fail "Unknown argument: $1"
-            echo "Usage: ./scripts/verify.sh [--all | --python | --go | --frontend | --security | --smoke | --prod-startup]"
+            echo "$USAGE"
             exit 1
             ;;
     esac
@@ -195,14 +205,16 @@ if [[ "$RUN_GO" == true ]]; then
             if [[ -f "$service_dir/go.mod" ]]; then
                 GO_SERVICES+=("$service_dir")
             fi
-        done < <({ find apps core -maxdepth 3 -mindepth 2 -type d -name "backend" | sort; echo tools/installer; })
+        done < <({ find apps core -maxdepth 3 -mindepth 2 -type d -name "backend" | sort; echo packages/go-shared; echo tools/installer; })
 
         for service in "${GO_SERVICES[@]}"; do
-            log_section "Go Backend Unit & Integration Tests ($service)"
-            if (cd "$ROOT_DIR/$service" && go test -race -cover ./...); then
-                log_success "Go test suite passed with race detector enabled ($service)"
+            # Tests with the race detector plus the module's coverage gate (#813),
+            # the same script go-ci.yml runs.
+            log_section "Go Tests & Coverage Gate ($service)"
+            if "$ROOT_DIR/scripts/check-go-coverage.sh" "$service"; then
+                log_success "Go test suite passed with race detector and coverage gate ($service)"
             else
-                log_fail "Go tests failed ($service)"
+                log_fail "Go tests or coverage gate failed ($service)"
                 ERRORS=$((ERRORS + 1))
             fi
 
@@ -300,7 +312,7 @@ if [[ "$RUN_SECURITY" == true ]]; then
         ERRORS=$((ERRORS + 1))
     fi
 
-    log_section "Markdown Links and Retired Paths (.ai/)"
+    log_section "Markdown Links and Retired Paths (.ai/ beyond README and workflow)"
     if python3 scripts/check-markdown-links.py; then
         log_success "Markdown links resolve and no retired paths are tracked"
     else
@@ -316,6 +328,22 @@ if [[ "$RUN_SECURITY" == true ]]; then
         ERRORS=$((ERRORS + 1))
     else
         log_success "No live .env files are tracked in Git"
+    fi
+
+    log_section "init-env.sh Replaces Every Example Secret"
+    if ./scripts/tests/test-init-env.sh; then
+        log_success "No secret-like key keeps its .env.example value and a second run changes nothing"
+    else
+        log_fail "init-env.sh left an example secret in place or is not idempotent"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    log_section "verify-stack.sh Picks the Running Compose File"
+    if ./scripts/tests/test-verify-stack-detect.sh; then
+        log_success "verify-stack.sh checks the compose project that is running"
+    else
+        log_fail "verify-stack.sh picked the wrong compose file"
+        ERRORS=$((ERRORS + 1))
     fi
 
     # Only the check-type hooks run here. The full pre-commit set also contains
@@ -335,6 +363,14 @@ if [[ "$RUN_SECURITY" == true ]]; then
         ERRORS=$((ERRORS + 1))
     else
         log_success "Pre-commit check hooks passed"
+    fi
+
+    log_section "Stack Version Pins Match versions.json"
+    if ./scripts/sync-versions.sh --check; then
+        log_success "Every version pin and VERSIONS.md match versions.json"
+    else
+        log_fail "Version drift: edit versions.json and run ./scripts/sync-versions.sh --write"
+        ERRORS=$((ERRORS + 1))
     fi
 
     log_section "Compose Guard (bounded logs, memory limits)"
@@ -359,8 +395,11 @@ if [[ "$RUN_SECURITY" == true ]]; then
             log_fail "gitleaks reported potential secrets"
             ERRORS=$((ERRORS + 1))
         fi
+    elif [[ "$ALLOW_MISSING_GITLEAKS" == true ]]; then
+        log_warn "gitleaks is not installed; skipping because --allow-missing-gitleaks was passed (CI still runs it in security-scan.yml)."
     else
-        log_warn "gitleaks is not installed; skipping (CI runs it in security-scan.yml)."
+        log_fail "gitleaks is not installed. Install it (macOS: brew install gitleaks; other: https://github.com/gitleaks/gitleaks#installing) or pass --allow-missing-gitleaks."
+        ERRORS=$((ERRORS + 1))
     fi
 fi
 

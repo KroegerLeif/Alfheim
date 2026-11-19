@@ -24,7 +24,7 @@ DEFAULT_TEST_HOUSEHOLD_ID = uuid.UUID("4eeb7681-8419-4c52-b800-6fef6c7ee51b")
 
 
 @pytest_asyncio.fixture
-async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
+async def test_engine() -> AsyncGenerator[AsyncEngine]:
     """Create in-memory SQLite engine with StaticPool for tests."""
     engine = create_async_engine(
         "sqlite+aiosqlite:///:memory:",
@@ -51,17 +51,17 @@ async def test_session_factory(test_engine: AsyncEngine) -> async_sessionmaker:
 
 
 @pytest_asyncio.fixture
-async def db_session(test_session_factory: async_sessionmaker) -> AsyncGenerator[AsyncSession, None]:
+async def db_session(test_session_factory: async_sessionmaker) -> AsyncGenerator[AsyncSession]:
     """Provide database session."""
     async with test_session_factory() as session:
         yield session
 
 
 @pytest_asyncio.fixture
-async def test_app(db_session: AsyncSession) -> AsyncGenerator[FastAPI, None]:
+async def test_app(db_session: AsyncSession) -> AsyncGenerator[FastAPI]:
     """Use the main application with dependency overrides."""
 
-    async def _get_test_db() -> AsyncGenerator[AsyncSession, None]:
+    async def _get_test_db() -> AsyncGenerator[AsyncSession]:
         yield db_session
 
     app.dependency_overrides[get_db_session] = _get_test_db
@@ -71,7 +71,7 @@ async def test_app(db_session: AsyncSession) -> AsyncGenerator[FastAPI, None]:
 
 
 @pytest_asyncio.fixture
-async def client(test_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
+async def client(test_app: FastAPI) -> AsyncGenerator[AsyncClient]:
     """Create AsyncClient bound to test app."""
     async with AsyncClient(
         transport=ASGITransport(app=test_app),

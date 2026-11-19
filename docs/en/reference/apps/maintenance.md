@@ -22,7 +22,7 @@ Source: [`apps/maintenance/`](https://github.com/KroegerLeif/Alfheim/tree/main/a
 
 ## 🏗️ Architecture & Tech Stack
 
-- **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy) and FastMCP AI tools.
+- **Backend:** Python 3.14 / FastAPI microservice with SQLModel (async SQLAlchemy) and FastMCP AI tools.
 - **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
 - **Database:** Hosted on `postgres-core` (`alfheim_maintenance` database, owned by `maintenance_user`).
 
@@ -33,7 +33,7 @@ Source: [`apps/maintenance/`](https://github.com/KroegerLeif/Alfheim/tree/main/a
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 18 Core Database Server |
 | `maintenance-backend` | 8000 | `/maintenance/api/v1` | FastAPI REST API & FastMCP Tools |
 | `maintenance-frontend` | 3000 | `alfheim.loegien.localhost/maintenance` | Next.js Microfrontend |
 
@@ -69,7 +69,9 @@ All routes and MCP tools use `require_household` from `backend_shared`; househol
 ## 🖥️ Frontend Behaviour
 
 - **Due dates are calendar days.** Step due dates are date-only values. The frontend compares them with today's date in the browser's timezone (never as UTC midnight), so a step due tomorrow is "due soon" at any time of day. A step is *overdue* when it is before today, *due soon* from today up to 14 days ahead (the same thresholds as `GET /api/v1/maintenance/summary`), otherwise *good*. The "Upcoming (30d)" filter shows overdue steps and steps due within 30 days.
-- **Steps without a due date are "not scheduled".** A step has no due date until it is completed once. It counts as *good* in the dashboard numbers (like the backend summary), is not shown under "Upcoming (30d)" and raises no notification.
+- **First due dates.** A step created with a device or added later is due one interval after its creation; completing it moves the due date one interval past the completion, and changing its interval recomputes the due date from the last completion (or today). Steps created before this without a due date show as "not scheduled": they count as *good* in the dashboard numbers, are not shown under "Upcoming (30d)" and raise no notification.
+- **Editing devices and steps.** Writers edit or delete a device from its detail panel and add, edit or delete steps in the Steps tab (`PATCH`/`DELETE /api/v1/devices/{id}`, `POST /api/v1/devices/{id}/steps`, `PATCH`/`DELETE /api/v1/devices/{id}/steps/{step_id}`). Deleting a device removes its steps and service history; every delete asks for confirmation first. An explicit `null` for a required field answers `422`.
+- **Inspection comments.** A scheduled task's comment is stored in its own `comment` field, next to the procedure in `description`, which it never changes. Sending `comment: null` or an empty comment clears it; leaving the field out keeps it.
 - **Notification bell.** The header lists overdue and due-soon steps of the active household, most overdue first. Choosing one opens the scheduled tasks.
 - **Parts cart.** The maintenance wizard collects the parts of its steps in a cart that is kept in `localStorage`. The wizard sends the cart with the service log (the backend forwards it to shopping). The *Maintenance Shopping* view can also send the cart on its own: it posts each part to the shopping app's public API on the frontend origin (`POST /shopping/api/v1/shopping/items`, with the caller's bearer token and `X-Household-ID`) and keeps the parts the shopping app rejected in the cart. Its CSV export is quoted, escapes spreadsheet formulas and uses translated column headers.
 - **Languages.** All UI text comes from `maintenance.json` (`en`, `de`, `pl`) in `@alfheim/shared`, including dates, device status and category labels, plural forms and the page title. Tests render with the real dictionaries, so a missing key fails a test.
@@ -112,7 +114,8 @@ they read `get_mcp_household_context()`.
 | --- | --- | --- |
 | `id` | Integer, PK | |
 | `title` | VARCHAR, NOT NULL | |
-| `description` | VARCHAR, nullable | |
+| `description` | VARCHAR, nullable | The procedure |
+| `comment` | VARCHAR, nullable | Latest inspection note (migration 0003) |
 | `recurrence` | INTEGER, NOT NULL | Interval in months |
 | `supply_item`, `supply_needed_date`, `last_completed` | VARCHAR, nullable | |
 | `device_id` | Integer, FK → `device.id` | |
@@ -136,10 +139,7 @@ they read `get_mcp_household_context()`.
   converted at startup; the old rows are kept in the `legacy_maintenance` schema but not served — see
   [Troubleshooting](../../how-to/troubleshooting.md#symptom-5-old-maintenance-data-is-missing-after-the-update)
   and [Known Issues](../../explanation/known-issues.md).
-- **Devices and steps cannot be edited or deleted** (#505): the API only has `GET`/`POST` for devices and no step endpoints.
 - **Reference photos and manuals are not supported** (#503, #509): the UI is hidden, there is no storage.
-- **A saved step comment replaces the step's procedure description and cannot be cleared** (#620).
-- **Steps of a new device have no first due date** until they are completed once (#621).
 - **Two code paths for completing a session** (`POST /api/v1/submit` used by the UI, `/maintenance/wizard` and `/maintenance/summary` unused by the UI, #523), and `BudgetClient.reserve_maintenance_funds` is never called (#519).
 - No other known open issues beyond the general household-authorization items in
   [Known Issues](../../explanation/known-issues.md).

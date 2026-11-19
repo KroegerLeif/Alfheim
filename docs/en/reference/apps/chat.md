@@ -34,7 +34,7 @@ Source: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 18 Core Database Server |
 | `chat-backend` | 8080 | `/api/v1/chat` | Go REST API, SSE & MCP Bridge |
 | `chat-frontend` | 3000 | `alfheim.loegien.localhost/chat` | Next.js Microfrontend |
 
@@ -45,7 +45,7 @@ Source: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 | `CHAT_ENCRYPTION_KEY` | *(Generated 32-byte base64 key)* | AES-256-GCM key for encrypting LLM API keys |
 | `CHAT_ATTACHMENT_URL_SECRET` | *(generated secret, at least 32 bytes)* | HMAC key signing attachment download URLs. Required in production (compose refuses to start without it); the installer generates it and backfills it on update. Without it outside production, a random key is used per process |
 | `CHAT_ATTACHMENT_URL_TTL_MINUTES` | `15` | Lifetime of a signed attachment download URL |
-| `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,...` | Comma-separated FastMCP endpoints |
+| `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,...` | Comma-separated FastMCP endpoints of the enabled tool apps. Empty means no tool app is installed; unset keeps the stored registry |
 | `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Base URL of the household membership API (`core/household`) |
 | `ALFHEIM_INTERNAL_TOKEN` | *(generated secret)* | Shared secret sent as `Authorization: Bearer …` on membership checks. Required; the backend refuses to start without it |
 | `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/chat` | Browser API base URL. Compose derives it from `ALFHEIM_BASE_URL` (build argument and runtime env) |
@@ -67,7 +67,7 @@ Every chat API route runs `middleware.RequireHousehold` after JWT validation: `X
   - A conversation keeps the model block it was created with. The sidebar picker only sets the model of the next new conversation; the header of an open conversation shows that conversation's own model ("Model unavailable" when the block was deleted or is no longer visible).
   - `GET /conversations/{id}/stream` emits `delta`, `tool_call` (`{"ID", "ToolName", "Arguments"}`), `done` and `error` events. Closing the connection cancels the model request and any running tool call; nothing is stored for the cancelled reply, so the pending user message can be streamed again (the UI's Stop and Retry actions).
   - Every tool call outcome is stored as a `tool` message whose `tool_calls` holds `{"tool_call_id", "tool_name", "is_error"}`; transport failures are stored with a generic text, never the internal endpoint URL. History replay sends the id as `tool_call_id`. The UI shows tool calls as collapsed entries (name and status; arguments and result on expand, credential-like argument keys, bearer tokens and JWTs masked).
-- `modelblocks`: Provider configuration blocks (Ollama, OpenAI) with AES-256 key encryption. Only `ollama` and `openai_compatible` can run; the UI offers only these two (#632).
+- `modelblocks`: Provider configuration blocks (Ollama, OpenAI) with AES-256 key encryption. Only `ollama` and `openai_compatible` can run, and creating a block with any other `provider_type` answers `400`. OpenRouter is configured as `openai_compatible` with base URL `https://openrouter.ai/api`.
 - `attachments`: File attachment uploads backed by RustFS S3 object storage. Each upload records its uploader (`image_refs.owner_user_id`); reading an attachment by ID returns `404` to anyone else, and a message can only link unlinked attachments owned by the conversation owner (otherwise `400`). Attachments uploaded before this ownership column existed have no owner and can no longer be read by ID or linked.
   - Uploads (JPEG, PNG or WebP, up to 10 MB, checked by content) are normalised before they are stored: the EXIF orientation is applied, all metadata including GPS is dropped, and the longest edge is capped at 2048 px. Opaque images are stored as JPEG, images with transparency as PNG. Images above 40 megapixels are refused with `400`. The pipeline is pure Go, so the binary stays CGO-free.
   - The bucket stays private and the API never returns storage URLs. Every `url` (upload response, `GET /attachments/{id}`, message `attachments`) is `GET /api/v1/chat/attachments/{id}/content?token=…` on the gateway (`ALFHEIM_BASE_URL`), minted fresh on each read. The token is an HMAC-SHA256 over attachment, user and household with an expiry (15 minutes by default), so `<img>` can load it without a bearer header. The endpoint also accepts a normal bearer token with `X-Household-ID`.
@@ -86,6 +86,14 @@ the caller's bearer token and `X-Household-ID` so the target app authorizes it t
 authorizes a REST request. A 404 from an MCP endpoint is reported to the caller as a configuration
 error (mismatched `CHAT_MCP_SERVERS` path) rather than treated as reachable.
 
+The tool apps (pantry, chores, maintenance) are optional ([ADR 0007](../../explanation/decisions/0007-lean-core-app-set.md)).
+The installer renders `CHAT_MCP_SERVERS` from the enabled apps, and once the variable is present
+(even empty) only the apps it lists offer tools: the registry row of a disabled app stays stored
+but is skipped. Without the variable the stored registry is used as is. An MCP server that is down
+never fails the conversation: dialing it gives up after 2 s and tool discovery after 5 s per
+server, its tools are left out of that turn, and a failed tool call is fed back to the model as a
+tool error.
+
 MCP sessions are kept per endpoint, household and user: `ClientPool` resolves the client for
 every call from that call's caller credentials, so a session id and the cached tool list are
 never shared between users or households. Idle sessions are dropped after 15 minutes. The MCP
@@ -103,7 +111,7 @@ servers themselves do not yet bind a session id to the caller that opened it (#6
 | `owner_user_id` | Zitadel `sub` |
 | `household_id` | Nullable; `NULL` means private |
 | `visibility` | `private` or `shared`. Shared blocks are usable by household members but editable only by the owner |
-| `provider_type` | `ollama` or `openai_compatible` (`anthropic` is planned) |
+| `provider_type` | `ollama` or `openai_compatible` for new blocks; rows from older releases may hold other values, which never run |
 | `base_url`, `model_identifier` | |
 | `api_key_encrypted` | AES-256-GCM ciphertext, BYTEA, nullable |
 | `api_key_key_id` | Default `v1`; enables key rotation |
@@ -126,7 +134,7 @@ Seeded and re-synced on every startup from `CHAT_MCP_SERVERS` (`internal/feature
 2. Shared `model_blocks` are usable by household members; only `owner_user_id` may edit, delete or health-check them (`ModelBlock.CanModify` in `internal/features/modelblocks/entity.go`).
 3. Bootstrap blocks (`is_bootstrap = true`, `owner_user_id = "system"`) are the exception: any authenticated user may see and modify them. The one-time seed is tracked in the separate `bootstrap_state` table, so deleting or editing the seeded block never makes it reappear after a restart.
 4. `internal/shared/llm.Provider` is built from primitive parameters (provider type, base URL, model, API key), never from a `modelblocks.ModelBlock`, so `internal/shared/llm` does not depend on `internal/features/modelblocks`.
-5. JWT validation in `internal/shared/middleware/auth.go` checks both issuer and audience (`OIDC_AUDIENCE`); this deliberately differs from the issuer-only check in `core/dashboard/backend`.
+5. JWT validation comes from the shared `alfheim/go-shared/auth` package and checks both issuer and audience (`OIDC_AUDIENCE`), like every Go backend.
 6. Conversations are always personal (`owner_user_id` only). A household member with access to a shared model block gets their own separate conversation.
 7. `GET /api/v1/chat/conversations/{id}/stream` requires the last message to be an unanswered `user` message (`ErrNoPendingUserMessage` otherwise). The finished assistant reply is persisted by `AppendMessageAndTouchConversation` (one transaction: insert the message and bump `conversations.updated_at`) with a fresh 5 s `context.Background()` timeout, independent of the HTTP request, so a client disconnecting at the end of the stream cannot lose the reply. A stream that ends in an `Err` chunk persists nothing.
 8. `internal/features/conversations` depends on `internal/shared/llm` and defines its own narrow `ModelBlockResolver` interface (satisfied structurally by `modelblocks.Service`) instead of importing `internal/features/modelblocks`. Go interfaces are defined at the consumer.

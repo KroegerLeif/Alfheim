@@ -3,11 +3,19 @@
 import uuid
 from datetime import date
 
-from backend_shared.household import HouseholdContext, MembershipLookup, get_membership_lookup, require_household
+from backend_shared.household import (
+    CODE_HOUSEHOLD_SERVICE_UNAVAILABLE,
+    HouseholdContext,
+    MemberDirectory,
+    MembershipServiceError,
+    find_member,
+    get_member_directory,
+    require_household,
+)
+from backend_shared.household.permissions import require_admin, require_writer
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
-from src.core.permissions import require_admin, require_writer
 from src.features.chore_management.schemas import (
     ChoreAssignRequest,
     ChoreInstanceRead,
@@ -126,12 +134,17 @@ async def get_today_chores(
     due_date: date | None = None,
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_household),
+    members: MemberDirectory = Depends(get_member_directory),
 ):
-    """Retrieve all chore instances for today (or custom due date) in the household context."""
+    """Retrieve all chore instances for today (or custom due date) in the household context.
+
+    Open chores of someone who left the household or became a guest are released first (#581).
+    """
     return await ChoreService.get_today_chores(
         session=session,
         home_id=context.household_id,
         due_date=due_date,
+        member_directory=members,
     )
 
 
@@ -141,15 +154,16 @@ async def assign_chore_instance(
     payload: ChoreAssignRequest,
     session: AsyncSession = Depends(get_db_session),
     context: HouseholdContext = Depends(require_writer),
-    membership: MembershipLookup = Depends(get_membership_lookup),
+    members: MemberDirectory = Depends(get_member_directory),
 ):
     """Assign a chore instance to a household member.
 
     A caller may only claim a chore for themself or release it (``assigned_to``
     is their own id or ``null``) -- it is never taken from a client-supplied id
     blindly. Assigning it to someone else requires an OWNER/ADMIN household role,
-    and the target id must actually belong to a member of the caller's household
-    (verified against the same household membership API ``require_household`` uses).
+    and the target id must be the user id of a member of the caller's household who
+    may act on chores (not a read-only guest). The id is matched against the household
+    app's member list, so members whose subject is not a UUID can be assigned too (#583).
     """
     if not InstanceService.can_assign(payload.assigned_to, context.user_id, context.role):
         raise HTTPException(
@@ -157,11 +171,22 @@ async def assign_chore_instance(
             detail="Only household owners or admins may assign a chore to someone else.",
         )
     if payload.assigned_to is not None and payload.assigned_to != context.user_id:
-        role = await membership(context.household_id, str(payload.assigned_to))
-        if role is None:
+        try:
+            member = await find_member(members, context.household_id, payload.assigned_to)
+        except MembershipServiceError as e:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"code": CODE_HOUSEHOLD_SERVICE_UNAVAILABLE, "message": "Household members cannot be checked."},
+            ) from e
+        if member is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="The assignee is not a member of this household.",
+            )
+        if not InstanceService.can_hold_assignment(member.role):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="A guest has read-only access and cannot be assigned chores.",
             )
     return await ChoreService.assign_chore_instance(
         session=session,

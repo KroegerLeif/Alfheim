@@ -151,6 +151,9 @@ var allowedUngenerated = map[string]string{
 	"HETZNER_API_TOKEN":    "operator-supplied DNS API token",
 	"CLOUDFLARE_API_TOKEN": "operator-supplied DNS API token",
 	"DESEC_TOKEN":          "operator-supplied DNS API token",
+	// Social login credentials the operator creates at the provider.
+	"ALFHEIM_GOOGLE_CLIENT_SECRET": "operator-supplied OAuth client secret",
+	"ALFHEIM_SMTP_PASSWORD":        "operator-supplied SMTP password",
 }
 
 func TestManifestCoversEveryRepositorySecret(t *testing.T) {
@@ -190,6 +193,40 @@ func TestManifestCoversEveryRepositorySecret(t *testing.T) {
 		if !generated[key] {
 			t.Errorf("%s looks like a credential in .env.example but the "+
 				"security manifest does not generate it", key)
+		}
+	}
+}
+
+// requiredPasswordPattern matches a password that compose.prod.yaml requires
+// with the fail-fast ${VAR:?...} form.
+var requiredPasswordPattern = regexp.MustCompile(`\$\{([A-Z0-9_]*PASSWORD):\?`)
+
+func TestManifestGeneratesEveryRequiredComposePassword(t *testing.T) {
+	// compose.prod.yaml refuses to start without these passwords, and a plain
+	// update only backfills manifest keys into an existing .env. A required
+	// password missing from the manifest would therefore leave an upgraded
+	// installation unable to start.
+	path := filepath.Join("..", "..", "..", "..", "..", "compose.prod.yaml")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			t.Skipf("repository compose.prod.yaml not reachable from %s", path)
+		}
+		t.Fatal(err)
+	}
+
+	generated := map[string]bool{}
+	for _, key := range Keys() {
+		generated[key] = true
+	}
+
+	matches := requiredPasswordPattern.FindAllStringSubmatch(string(raw), -1)
+	if len(matches) == 0 {
+		t.Fatal("compose.prod.yaml requires no password; the pattern no longer matches")
+	}
+	for _, m := range matches {
+		if !generated[m[1]] {
+			t.Errorf("compose.prod.yaml requires %s but the security manifest does not generate it", m[1])
 		}
 	}
 }

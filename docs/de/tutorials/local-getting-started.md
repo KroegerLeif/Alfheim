@@ -26,7 +26,7 @@ sidebar:
 Bevor du beginnst, muss dein Rechner folgende Anforderungen erfüllen:
 * **Docker Engine** (>= 24.0) & **Docker Compose** v2 (>= 2.20)
 * **Node.js** (>= 22.0) & **pnpm** (>= 9.0)
-* **Python** (>= 3.12) & Paketmanager **uv**
+* **Python** (>= 3.14) & Paketmanager **uv**
 * **Go** (>= 1.25)
 * **cURL** & **Git**
 
@@ -69,7 +69,9 @@ Mit `--skip-obs` bleibt der Observability-Stack aus. Das Skript startet den Clus
 * **Stufen 3–8**: Fachliche Microservices (Shopping, Pantry, Maintenance, Chores, Budget, Chat)
 * **Stufe 9**: Observability (VictoriaMetrics, VictoriaLogs, OTel Collector, Vector, Grafana)
 
-Zitadel schreibt sein Bootstrap-Token (PAT) in das Docker-Volume `zitadel_machinekey`. Ein einmaliger Container `zitadel-machinekey-init` übergibt dieses Volume vor dem Start von Zitadel an dessen Container-Benutzer (uid 1000), daher braucht auf deinem Host nichts ein `chown`. `up.sh` kopiert das PAT mit `docker compose cp` heraus und speichert es als `ZITADEL_BOOTSTRAP_PAT` in `.env`.
+Zitadel schreibt sein Bootstrap-Token (PAT) in das Docker-Volume `zitadel_machinekey`. Ein einmaliger Container `zitadel-machinekey-init` übergibt dieses Volume vor dem Start von Zitadel an dessen Container-Benutzer (uid 1000), daher braucht auf deinem Host nichts ein `chown`. `up.sh` kopiert das PAT mit `docker compose cp` für den ersten Lauf von `alfheim-setup provision` heraus. Dieser speichert einen Maschinenschlüssel in `infrastructure/zitadel/provisioner/` und widerruft das PAT. Spätere Läufe melden sich mit diesem Schlüssel an, der bei jedem Lauf rotiert wird; die `.env` enthält kein Zitadel-Token.
+
+Zitadel verschickt keine E-Mails, solange kein SMTP-Server gesetzt ist, und die Login-Seite blendet dann **Forgot password** aus. Um die Passwort-Zurücksetzung lokal auszuprobieren, richte Zitadel vor `up.sh` auf das mitgelieferte Mailpit aus (siehe [E-Mail einrichten](../how-to/configure-smtp.md#lokal-mit-mailpit-testen)): `ALFHEIM_SMTP_HOST=mailpit`, `ALFHEIM_SMTP_PORT=1025`, `ALFHEIM_SMTP_TLS=false` und `ALFHEIM_SMTP_SENDER_ADDRESS=alfheim@alfheim.test` in der `.env` setzen. Die E-Mails erscheinen dann unter <http://127.0.0.1:8025>.
 
 ---
 
@@ -116,7 +118,7 @@ Auf einen sauberen Ausgangszustand zurücksetzen (entfernt Container, Docker-Vol
 docker run --rm -v "$PWD/infrastructure/postgres:/pg" alpine:3.20 rm -rf /pg/data
 ```
 
-Das Datenverzeichnis wird aus einem Wegwerf-Container gelöscht, weil es unter Linux dem Postgres-Container-Benutzer gehört; so braucht es auf keiner Plattform `sudo`. `down.sh --volumes` allein behält `infrastructure/postgres/data`. Zitadel bleibt dann initialisiert und schreibt kein neues PAT, daher greift `up.sh` auf `ZITADEL_BOOTSTRAP_PAT` in `.env` zurück.
+Das Datenverzeichnis wird aus einem Wegwerf-Container gelöscht, weil es unter Linux dem Postgres-Container-Benutzer gehört; so braucht es auf keiner Plattform `sudo`. `down.sh --volumes` allein behält `infrastructure/postgres/data`. Zitadel bleibt dann initialisiert und schreibt kein neues PAT, daher verwendet das Provisioning weiter den gespeicherten Maschinenschlüssel. Nach einem vollständigen Zurücksetzen schreibt Zitadel ein frisches PAT, und das Provisioning ersetzt den nun abgelehnten Schlüssel von selbst.
 
 ---
 

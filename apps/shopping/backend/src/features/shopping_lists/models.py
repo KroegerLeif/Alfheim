@@ -75,7 +75,7 @@ class ShoppingList(SQLModel, table=True):
     )
 
     # Relationships
-    items: list["ShoppingItem"] = Relationship(
+    items: list[ShoppingItem] = Relationship(
         back_populates="shopping_list",
         sa_relationship_kwargs={"cascade": "all, delete-orphan", "lazy": "selectin"},
     )
@@ -139,6 +139,11 @@ class ShoppingItem(SQLModel, table=True):
         nullable=False,
         index=True,
         description="True if successfully synced ('eingelagert') to pantry inventory.",
+    )
+    history_logged: bool = Field(
+        default=False,
+        sa_column=Column(Boolean, nullable=False, server_default="false"),
+        description="True once the purchase was counted in the shopping history (at most once per item).",
     )
     product_id: uuid.UUID | None = Field(
         default=None,

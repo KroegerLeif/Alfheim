@@ -16,7 +16,8 @@ export interface Manual {
 export interface MaintenanceStep {
   id: number;
   title: string;
-  description?: string | null;
+  description?: string | null; // the procedure
+  comment?: string | null; // latest inspection note, kept apart from the procedure
   recurrence: number; // interval in months
   supply_item?: string | null;
   supply_needed_date?: string | null;
@@ -84,6 +85,12 @@ export interface CreateDevicePayload {
   // No household_id: the backend creates the device in the X-Household-ID household.
   steps: CreateStepPayload[];
 }
+
+/** Partial update for PATCH /api/v1/devices/{device_id}; omitted fields stay unchanged. */
+export type UpdateDevicePayload = Partial<Omit<CreateDevicePayload, "steps">>;
+
+/** Partial update for PATCH /api/v1/devices/{device_id}/steps/{step_id}. */
+export type UpdateStepPayload = Partial<CreateStepPayload>;
 
 /** Input payload for POST /api/v1/tasks/{step_id}/state — lightweight step update. */
 export interface TaskStateUpdatePayload {

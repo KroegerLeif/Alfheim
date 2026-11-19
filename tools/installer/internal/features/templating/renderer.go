@@ -15,6 +15,8 @@ import (
 
 	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
+	"alfheim/installer/internal/features/smtp"
+	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/features/tls"
 	"alfheim/installer/internal/shared/paths"
 )
@@ -34,9 +36,33 @@ type Model struct {
 	// DataPaths are the optional host directories for persistent data. A
 	// class without one keeps its named volume.
 	DataPaths datapaths.Paths
+	// SocialLogin are the optional social login credentials. Empty values
+	// render empty variables, which keeps the provider switched off.
+	SocialLogin sociallogin.Settings
+	// SMTP is the optional mail server for Zitadel. An empty host renders
+	// empty variables, which keeps e-mail switched off.
+	SMTP smtp.Settings
+	// Telemetry renders OTEL_ENABLED. It follows the telemetry module of the
+	// enabled app set, which also decides the Caddyfile's /grafana route
+	// (DisabledApps). It is off for a fresh install (Lean Core).
+	Telemetry bool
 	// Generated is injected rather than read from the clock, so that golden
 	// file comparisons stay deterministic.
 	Generated time.Time
+	// DisabledApps are the optional apps (and "telemetry") that are switched
+	// off. Their routes answer 404 or redirect to the dashboard instead of
+	// proxying to a container that does not run. Empty routes every app.
+	DisabledApps []string
+}
+
+// AppEnabled reports whether the optional app name is routed.
+func (m Model) AppEnabled(name string) bool {
+	for _, d := range m.DisabledApps {
+		if d == name {
+			return false
+		}
+	}
+	return true
 }
 
 // DataPath returns the host directory chosen for a data class (the .env key),
@@ -51,12 +77,32 @@ func (m Model) GeneratedStamp() string {
 	return m.Generated.UTC().Format(time.RFC3339)
 }
 
+// BootstrapPATLifetime bounds the personal access token Zitadel creates for
+// the provisioning machine user on first init. alfheim-setup revokes that
+// token minutes later, when it switches to a machine key (issue #789); the
+// expiry only matters if that never happens, and leaves room for a first
+// boot that is retried within a week of rendering .env.
+const BootstrapPATLifetime = 7 * 24 * time.Hour
+
+// BootstrapPATExpiry renders ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE: the
+// generation time plus BootstrapPATLifetime, in UTC.
+func (m Model) BootstrapPATExpiry() string {
+	return m.Generated.Add(BootstrapPATLifetime).UTC().Format(time.RFC3339)
+}
+
 // ExternalPort is the port Zitadel advertises in its issuer metadata.
 func (m Model) ExternalPort() string {
 	if m.Onboarding.Secure {
 		return "443"
 	}
 	return "80"
+}
+
+// CORSOrigins renders ALFHEIM_CORS_ORIGINS, the cross-origin allowlist every
+// backend receives (#921): the public app origin only. The frontends call the
+// APIs same-origin through Caddy, and Zitadel's auth host never calls them.
+func (m Model) CORSOrigins() string {
+	return strings.TrimRight(m.Onboarding.BaseURL, "/")
 }
 
 // ExtraCAFile is the container path of the generated root CA's public copy
@@ -191,6 +237,9 @@ type APIRoute struct {
 	// proxied: /api/v1 for most apps, /api/v1/<slug> for apps whose routers
 	// are mounted under their slug.
 	BackendPrefix string
+	// HealthPath is the backend's readiness probe (/readyz, #788), probed by
+	// Caddy's active health check (the same path as its compose healthcheck).
+	HealthPath string
 }
 
 // apiRoutes mirrors the Tier-2 application services defined in
@@ -198,19 +247,38 @@ type APIRoute struct {
 // the API proxy rules and the frontend handlers are generated from this one
 // list so the two can never drift apart.
 var apiRoutes = []APIRoute{
-	{Slug: "pantry", Upstream: "pantry-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1"},
+	{Slug: "pantry", Upstream: "pantry-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/readyz"},
 	// The shopping backend serves /api/v1/shopping-lists, /api/v1/shopping/items
 	// and /api/v1/shopping-history itself, so /api/v1/shopping* is passed through
 	// while /shopping/api/v1/... maps onto /api/v1/.... Its frontend listens on
 	// 3010 (PORT in compose.prod.yaml).
-	{Slug: "shopping", Upstream: "shopping-backend:8000", FrontendPort: 3010, Direct: true, BackendPrefix: "/api/v1"},
-	{Slug: "maintenance", Upstream: "maintenance-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1"},
-	{Slug: "chores", Upstream: "chores-backend:8000", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chores"},
-	{Slug: "budget", Upstream: "budget-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1"},
-	{Slug: "workout", Upstream: "workout-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1"},
-	{Slug: "library", Upstream: "library-backend:8000", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/library"},
-	{Slug: "chat", Upstream: "chat-backend:8080", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chat"},
+	{Slug: "shopping", Upstream: "shopping-backend:8000", FrontendPort: 3010, Direct: true, BackendPrefix: "/api/v1", HealthPath: "/readyz"},
+	{Slug: "maintenance", Upstream: "maintenance-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/readyz"},
+	{Slug: "chores", Upstream: "chores-backend:8000", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chores", HealthPath: "/readyz"},
+	{Slug: "budget", Upstream: "budget-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/readyz"},
+	{Slug: "workout", Upstream: "workout-backend:8000", FrontendPort: 3000, BackendPrefix: "/api/v1", HealthPath: "/readyz"},
+	{Slug: "library", Upstream: "library-backend:8000", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/library", HealthPath: "/readyz"},
+	{Slug: "chat", Upstream: "chat-backend:8080", FrontendPort: 3000, Direct: true, BackendPrefix: "/api/v1/chat", HealthPath: "/readyz"},
 }
 
-// APIRoutes exposes the application route table to the templates.
+// APIRoutes exposes the whole application route table.
 func (m Model) APIRoutes() []APIRoute { return apiRoutes }
+
+// EnabledRoutes are the routes of the enabled apps, proxied to their
+// containers.
+func (m Model) EnabledRoutes() []APIRoute { return m.filterRoutes(true) }
+
+// DisabledRoutes are the routes of the disabled apps, which the Caddyfile
+// answers itself.
+func (m Model) DisabledRoutes() []APIRoute { return m.filterRoutes(false) }
+
+// filterRoutes returns the routes whose app is (or is not) enabled.
+func (m Model) filterRoutes(enabled bool) []APIRoute {
+	out := []APIRoute{}
+	for _, r := range apiRoutes {
+		if m.AppEnabled(r.Slug) == enabled {
+			out = append(out, r)
+		}
+	}
+	return out
+}

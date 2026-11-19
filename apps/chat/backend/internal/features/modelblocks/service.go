@@ -134,7 +134,7 @@ func (s *service) Get(ctx context.Context, userID, householdID, id string) (Resp
 }
 
 func (s *service) Create(ctx context.Context, userID, householdID string, req CreateRequest) (ResponseDTO, error) {
-	if req.ProviderType == "" {
+	if !llm.IsSupportedProviderType(req.ProviderType) {
 		return ResponseDTO{}, ErrInvalidProviderType
 	}
 

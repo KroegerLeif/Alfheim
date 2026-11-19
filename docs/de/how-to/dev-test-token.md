@@ -26,12 +26,12 @@ die `alfheim-setup provision` verwendet).
 
 ```bash
 # Bootstrap-PAT und Issuer aus der .env lesen
-BOOTSTRAP_PAT=$(grep '^ZITADEL_BOOTSTRAP_PAT=' .env | cut -d= -f2-)
+BOOTSTRAP_TOKEN=$(go run ./tools/installer/cmd/alfheim-setup zitadel-token --env-file .env)
 ZITADEL_ISSUER=${OIDC_ISSUER_URL:-http://auth.alfheim.loegien.localhost}
 OIDC_AUDIENCE=$(grep '^OIDC_AUDIENCE=' .env | cut -d= -f2-)
 
 USER_ID=$(curl -sf -X POST "${ZITADEL_ISSUER}/management/v1/users/machine" \
-  -H "Authorization: Bearer ${BOOTSTRAP_PAT}" \
+  -H "Authorization: Bearer ${BOOTSTRAP_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"userName": "dev-test-token", "name": "Dev Test Token", "description": "Local API testing"}' \
   | jq -r '.userId')
@@ -52,7 +52,7 @@ einmalig zurückgibt.
 
 ```bash
 KEY_RESPONSE=$(curl -sf -X POST "${ZITADEL_ISSUER}/management/v1/users/${USER_ID}/keys" \
-  -H "Authorization: Bearer ${BOOTSTRAP_PAT}" \
+  -H "Authorization: Bearer ${BOOTSTRAP_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"type": "KEY_TYPE_JSON", "expirationDate": "2099-01-01T00:00:00.000Z"}')
 
@@ -145,7 +145,7 @@ laufendem Dev-Stack aus.
 #!/bin/bash
 set -euo pipefail
 
-BOOTSTRAP_PAT=$(grep '^ZITADEL_BOOTSTRAP_PAT=' .env | cut -d= -f2-)
+BOOTSTRAP_TOKEN=$(go run ./tools/installer/cmd/alfheim-setup zitadel-token --env-file .env)
 ZITADEL_ISSUER=${OIDC_ISSUER_URL:-http://auth.alfheim.loegien.localhost}
 OIDC_AUDIENCE=$(grep '^OIDC_AUDIENCE=' .env | cut -d= -f2-)
 
@@ -156,12 +156,12 @@ trap 'rm -rf "${WORKDIR}"' EXIT
 
 # 1. Machine User
 USER_ID=$(curl -sf -X POST "${ZITADEL_ISSUER}/management/v1/users/machine" \
-  -H "Authorization: Bearer ${BOOTSTRAP_PAT}" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${BOOTSTRAP_TOKEN}" -H "Content-Type: application/json" \
   -d '{"userName": "dev-test-'"$(date +%s)"'", "name": "Dev Test Token"}' | jq -r '.userId')
 
 # 2. Machine Key
 curl -sf -X POST "${ZITADEL_ISSUER}/management/v1/users/${USER_ID}/keys" \
-  -H "Authorization: Bearer ${BOOTSTRAP_PAT}" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${BOOTSTRAP_TOKEN}" -H "Content-Type: application/json" \
   -d '{"type": "KEY_TYPE_JSON", "expirationDate": "2099-01-01T00:00:00.000Z"}' \
   | jq -r '.keyDetails' | base64 -d > "${WORKDIR}/machine_key.json"
 KEY_ID=$(jq -r '.keyId' "${WORKDIR}/machine_key.json")

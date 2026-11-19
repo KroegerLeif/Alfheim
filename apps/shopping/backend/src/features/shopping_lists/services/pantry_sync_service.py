@@ -89,7 +89,7 @@ class PantrySyncService:
             if product_id:
                 try:
                     product_uuid = uuid.UUID(str(product_id))
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     logger.warning("Invalid product id from pantry: %r", product_id)
 
             db_item = ShoppingItem(
@@ -126,8 +126,8 @@ class PantrySyncService:
         """Push checked-off items in bulk to the Pantry, updating sync state and histories.
 
         ``item_ids`` narrows the sync to a retry of specific items (for example after the catalog
-        entry for an unrecognized item was created). A retry links the items it syncs to their
-        Pantry product but does not count the purchase in the history a second time.
+        entry for an unrecognized item was created). Each item's purchase is counted in the history
+        once, on the first sync that sees it (``ShoppingItem.history_logged``).
         """
         # Fetch completed but unsynced items
         stmt = select(ShoppingItem).where(
@@ -182,9 +182,10 @@ class PantrySyncService:
                 item.product_id = success_map[item.id]
                 session.add(item)
 
-            # Log to selection history for both successful and unrecognized purchases. A retry of
-            # specific items already counted them during the original sync.
-            if item_ids is None:
+            # Count the purchase in the history once per item, whether Pantry recognized it or not.
+            # An unrecognized item stays completed and unsynced and comes back on every later sync
+            # or retry; the flag keeps those from counting it again (#628).
+            if not item.history_logged:
                 await ShoppingHistoryService.log_purchase(
                     session=session,
                     home_id=home_id,
@@ -193,6 +194,8 @@ class PantrySyncService:
                     barcode=item.barcode,
                     unit=item.unit,
                 )
+                item.history_logged = True
+                session.add(item)
 
         await session.commit()
 

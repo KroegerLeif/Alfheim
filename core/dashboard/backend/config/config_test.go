@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"testing"
 	"time"
 )
@@ -112,5 +113,73 @@ func TestLoad_InvalidIntConversion(t *testing.T) {
 	// Should fall back to default value of 25
 	if cfg.Database.MaxConns != 25 {
 		t.Errorf("expected fallback MaxConns 25 for invalid int input, got %d", cfg.Database.MaxConns)
+	}
+}
+
+func TestLoad_EnabledApps(t *testing.T) {
+	t.Run("unset means every app", func(t *testing.T) {
+		t.Setenv("ALFHEIM_ENABLED_APPS", "")
+		if err := os.Unsetenv("ALFHEIM_ENABLED_APPS"); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.EnabledApps != "all" {
+			t.Errorf("EnabledApps = %q, want all", cfg.EnabledApps)
+		}
+	})
+	t.Run("empty is kept as the Lean Core", func(t *testing.T) {
+		t.Setenv("ALFHEIM_ENABLED_APPS", "")
+		cfg, err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.EnabledApps != "" {
+			t.Errorf("EnabledApps = %q, want empty", cfg.EnabledApps)
+		}
+	})
+	t.Run("list is passed through", func(t *testing.T) {
+		t.Setenv("ALFHEIM_ENABLED_APPS", "pantry,chat")
+		cfg, err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.EnabledApps != "pantry,chat" {
+			t.Errorf("EnabledApps = %q", cfg.EnabledApps)
+		}
+	})
+}
+
+// TestLoad_CORSOrigins covers #921: production never falls back to the dev
+// hosts, operator origins are used as configured and a malformed list fails
+// startup.
+func TestLoad_CORSOrigins(t *testing.T) {
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("CORS_ALLOWED_ORIGINS", "") // registers the restore
+	if err := os.Unsetenv("CORS_ALLOWED_ORIGINS"); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if len(cfg.CORS.AllowedOrigins) != 0 {
+		t.Errorf("production without CORS_ALLOWED_ORIGINS allows %v, want none", cfg.CORS.AllowedOrigins)
+	}
+
+	t.Setenv("CORS_ALLOWED_ORIGINS", "https://alfheim.example.com")
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if len(cfg.CORS.AllowedOrigins) != 1 || cfg.CORS.AllowedOrigins[0] != "https://alfheim.example.com" {
+		t.Errorf("AllowedOrigins = %v", cfg.CORS.AllowedOrigins)
+	}
+
+	t.Setenv("CORS_ALLOWED_ORIGINS", "*")
+	if _, err := Load(); err == nil {
+		t.Error("a wildcard origin must fail Load()")
 	}
 }

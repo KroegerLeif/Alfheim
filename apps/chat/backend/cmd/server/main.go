@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -23,12 +22,15 @@ import (
 	"alfheim/chat/internal/features/mcpservers"
 	"alfheim/chat/internal/features/modelblocks"
 	"alfheim/chat/internal/shared/attachmenturl"
-	"alfheim/chat/internal/shared/db"
 	"alfheim/chat/internal/shared/householdclient"
-	"alfheim/chat/internal/shared/logger"
 	"alfheim/chat/internal/shared/mcp"
 	"alfheim/chat/internal/shared/middleware"
 	"alfheim/chat/internal/shared/storage"
+	"alfheim/go-shared/auth"
+	"alfheim/go-shared/db"
+	"alfheim/go-shared/health"
+	"alfheim/go-shared/httpmw"
+	"alfheim/go-shared/logger"
 )
 
 var (
@@ -84,15 +86,17 @@ func run(parentCtx context.Context) error {
 	}
 
 	// Generic OIDC Bearer token authenticator (JWKS discovered from the issuer)
-	auth, err := setupAuth(cfg, log)
+	authenticator, err := setupAuth(ctx, cfg, log)
 	if err != nil {
 		log.Error("failed to initialize oidc jwks authenticator", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to initialize authenticator: %w", err)
 	}
+	defer authenticator.Close()
+
 	// Every chat API route is household-scoped: JWT validation first, then the
 	// X-Household-ID membership check against core/household (fail closed).
 	membership := householdclient.New(cfg.Household.InternalURL, cfg.Household.InternalToken)
-	authMw := middleware.Chain(auth.AuthenticateMiddleware, middleware.RequireHousehold(membership, log))
+	authMw := httpmw.Chain(authenticator.AuthenticateMiddleware, middleware.RequireHousehold(membership, log))
 
 	// Model Blocks Feature (LLM provider configs, encryption, health checks)
 	modelBlocksRepo := modelblocks.NewRepository(dbClient.Pool)
@@ -116,9 +120,13 @@ func run(parentCtx context.Context) error {
 	mcpClientPool := mcp.NewClientPool()
 	mcpServersHandler := mcpservers.NewHandler(mcpServersService, mcpClientPool)
 
-	if err := seedMCPServers(ctx, mcpServersService, cfg.MCPServersSpec); err != nil {
-		log.Error("failed to seed mcp server registry from CHAT_MCP_SERVERS", slog.String("error", err.Error()))
-		return fmt.Errorf("failed to seed mcp server registry: %w", err)
+	// Without CHAT_MCP_SERVERS the registry is used as stored. With it (even
+	// empty) only the listed apps offer tools, so a disabled app drops out.
+	if cfg.MCPServersSpecSet {
+		if err := seedMCPServers(ctx, mcpServersService, cfg.MCPServersSpec); err != nil {
+			log.Error("failed to seed mcp server registry from CHAT_MCP_SERVERS", slog.String("error", err.Error()))
+			return fmt.Errorf("failed to seed mcp server registry: %w", err)
+		}
 	}
 
 	// Non-blocking background health diagnostic for all registered MCP servers
@@ -173,7 +181,8 @@ func run(parentCtx context.Context) error {
 	conversationsService := conversations.NewService(conversationsRepo, modelBlocksService, mcpServersService, mcpClientPool, urlSigner, log)
 	conversationsHandler := conversations.NewHandler(conversationsService)
 
-	r := buildRouter(log, dbClient, authMw, modelBlocksHandler, conversationsHandler, mcpServersHandler, attachmentsHandler, cfg.CORS.AllowedOrigins)
+	ready := readinessCheck(dbClient, cfg.Database.MigrationsDir, log)
+	r := buildRouter(log, dbClient, ready, authMw, modelBlocksHandler, conversationsHandler, mcpServersHandler, attachmentsHandler, cfg.CORS.AllowedOrigins)
 
 	// HTTP Server & Graceful Shutdown.
 	srv := &http.Server{
@@ -231,6 +240,7 @@ func run(parentCtx context.Context) error {
 func buildRouter(
 	log *slog.Logger,
 	dbClient *db.Client,
+	ready health.Check,
 	authMw func(http.Handler) http.Handler,
 	modelBlocksHandler *modelblocks.Handler,
 	conversationsHandler *conversations.Handler,
@@ -245,13 +255,18 @@ func buildRouter(
 
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Recoverer)
-	r.Use(middleware.CORSWithOrigins(allowedOrigins))
-	r.Use(middleware.RequestLogger(log))
-	r.Use(middleware.MaxBodySize(middleware.DefaultMaxBodyBytes, map[string]int64{
+	r.Use(httpmw.CORSWithOrigins(httpmw.CORSConfig{
+		AllowedOrigins: allowedOrigins,
+		AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-Household-ID"},
+	}))
+	r.Use(httpmw.RequestLogger(log))
+	r.Use(httpmw.MaxBodySize(httpmw.DefaultMaxBodyBytes, map[string]int64{
 		"/api/v1/chat/attachments": attachments.MaxUploadBodyBytes,
 	}))
 
-	r.Get("/api/v1/chat/health", healthHandler(dbClient))
+	// Liveness (/healthz) and database-aware readiness (/readyz) probes.
+	health.Register(r, "chat-backend", ready, log)
 
 	if modelBlocksHandler != nil {
 		modelBlocksHandler.RegisterRoutes(r, authMw)
@@ -269,30 +284,23 @@ func buildRouter(
 }
 
 // setupAuthenticator initializes the OIDC JWT authenticator from application configuration.
-func setupAuthenticator(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-	return middleware.NewAuthenticator(cfg.OIDC.IssuerURL, cfg.OIDC.Audience, log)
+func setupAuthenticator(ctx context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
+	return auth.NewAuthenticator(ctx, auth.Config{
+		IssuerURL: cfg.OIDC.IssuerURL,
+		Audience:  cfg.OIDC.Audience,
+		Logger:    log,
+	})
 }
 
-// healthHandler reports service and database connectivity status for compose healthchecks.
-func healthHandler(dbClient *db.Client) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		if dbClient == nil || dbClient.Pool == nil || dbClient.Pool.Ping(r.Context()) != nil {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_ = json.NewEncoder(w).Encode(map[string]string{
-				"status":   "degraded",
-				"service":  "chat-backend",
-				"database": "disconnected",
-			})
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]string{
-			"status":   "ok",
-			"service":  "chat-backend",
-			"database": "connected",
-		})
+// readinessCheck builds the /readyz check: the database must answer and its
+// schema must be at the newest migration shipped in migrationsDir. An
+// unreadable migrations directory keeps the backend unready instead of
+// crash-looping it, and is logged once here.
+func readinessCheck(dbClient *db.Client, migrationsDir string, log *slog.Logger) health.Check {
+	check, err := dbClient.ReadinessCheck(migrationsDir)
+	if err != nil {
+		log.Error("readiness check disabled: cannot read the migrations", slog.String("error", err.Error()))
+		return func(context.Context) error { return err }
 	}
+	return check
 }

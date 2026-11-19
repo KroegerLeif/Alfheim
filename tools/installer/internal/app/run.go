@@ -10,10 +10,14 @@ import (
 	"strings"
 	"time"
 
+	"alfheim/installer/internal/features/apps"
 	"alfheim/installer/internal/features/bootstrap"
 	"alfheim/installer/internal/features/datapaths"
 	"alfheim/installer/internal/features/onboarding"
+	"alfheim/installer/internal/features/provisioning"
 	"alfheim/installer/internal/features/security"
+	"alfheim/installer/internal/features/smtp"
+	"alfheim/installer/internal/features/sociallogin"
 	"alfheim/installer/internal/features/templating"
 	"alfheim/installer/internal/features/tls"
 	"alfheim/installer/internal/shared/envfile"
@@ -91,6 +95,10 @@ type App struct {
 	// tests, which have no Caddy on 127.0.0.1:443. When nil, tls.CertWaiter
 	// is used.
 	CertWaiter CertWaiter
+	// ReadKey reads the Apple sign-in key file. Injectable for tests; when
+	// nil, security.ReadPrivateKeyFile is used, which refuses a key file
+	// with loose permissions.
+	ReadKey KeyReader
 }
 
 // CertWaiter waits until every host has a valid certificate.
@@ -151,11 +159,23 @@ func (a *App) execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	set, err := a.configureApps(layout, current)
+	if err != nil {
+		return err
+	}
+	social, err := a.configureSocialLogin(layout)
+	if err != nil {
+		return err
+	}
+	mail, err := a.configureSMTP(layout)
+	if err != nil {
+		return err
+	}
 	// Also covers a re-run over an install that stopped half way, which is
 	// still ModeInstall but already has an .env with the earlier hosts.
 	a.reportDomainChange(layout, on)
 
-	model, target, err := a.renderConfiguration(layout, on, tlsCfg, dataPaths)
+	model, target, err := a.renderConfiguration(layout, on, tlsCfg, dataPaths, set, social, mail)
 	if err != nil {
 		return err
 	}
@@ -325,7 +345,8 @@ func (a *App) configure(layout paths.Layout) (onboarding.Config, tls.Config, err
 // It returns the layout actually written to, which for a dry run is a
 // temporary directory rather than the installation root.
 func (a *App) renderConfiguration(
-	layout paths.Layout, on onboarding.Config, tlsCfg tls.Config, dataPaths datapaths.Paths,
+	layout paths.Layout, on onboarding.Config, tlsCfg tls.Config, dataPaths datapaths.Paths, set apps.Set,
+	social sociallogin.Settings, mail smtp.Settings,
 ) (templating.Model, paths.Layout, error) {
 	// Carry forward any secret an earlier run generated.
 	existing := map[string]string{}
@@ -364,6 +385,12 @@ func (a *App) renderConfiguration(
 		// A value from an earlier run wins: it may have been set by hand.
 		DockerSocketGID: a.dockerSocketGID(existing),
 		DataPaths:       dataPaths,
+		SocialLogin:     social,
+		SMTP:            mail,
+		DisabledApps:    set.Disabled(),
+		// OTEL_ENABLED follows the telemetry module of the enabled set, so
+		// the rendered .env and the /grafana route never disagree.
+		Telemetry: set.Has(apps.Telemetry),
 	}
 
 	if err := renderer.WriteAll(target, model); err != nil {
@@ -386,20 +413,37 @@ func (a *App) renderConfiguration(
 		fmt.Fprintf(a.Stdout, "%s local root CA %s (SHA-256 %s)\n", verb, ca.CertFile, ca.Fingerprint)
 	}
 
+	// env.tmpl renders COMPOSE_PROFILES for every app; record the actual set
+	// (ALFHEIM_ENABLED_APPS, its profiles and OTEL_ENABLED for the telemetry
+	// choice) before any compose call.
+	if err := envfile.Update(target.EnvFile(), apps.EnvValues(set, true)); err != nil {
+		return model, target, fmt.Errorf("alfheim-setup: record the enabled apps: %w", err)
+	}
+
 	// env.tmpl always renders the Zitadel-provisioned keys as an empty value
 	// or the __PROVISIONED__ placeholder, since provisioning runs after
 	// rendering. Carry forward whatever an earlier run actually provisioned
 	// (the same way security.GenerateAll carries forward secrets above), or
-	// --reconfigure would silently discard a working Grafana secret and the
-	// bootstrap PAT and force a full re-provision on the next boot.
+	// --reconfigure would silently discard a working Grafana secret (and a
+	// recovery PAT not yet used) and force a full re-provision on the next
+	// boot.
 	if provisioned := carryForwardProvisioned(existing); len(provisioned) > 0 {
 		if err := envfile.Update(target.EnvFile(), provisioned); err != nil {
 			return model, target, fmt.Errorf(
 				"alfheim-setup: carry forward provisioned Zitadel credentials: %w", err)
 		}
 	}
+	// Optional keys an operator added by hand (gateway rate limits) are not
+	// in env.tmpl at all, so a re-render would drop them just as silently.
+	if tuned := carryForwardOperatorTuned(existing); len(tuned) > 0 {
+		if err := envfile.Update(target.EnvFile(), tuned); err != nil {
+			return model, target, fmt.Errorf(
+				"alfheim-setup: carry forward operator-tuned settings: %w", err)
+		}
+	}
 
-	fmt.Fprintf(a.Stdout, "Wrote %s\nWrote %s\n", target.EnvFile(), target.Caddyfile())
+	fmt.Fprintf(a.Stdout, "Wrote %s\nWrote %s\nEnabled apps: %s\n",
+		target.EnvFile(), target.Caddyfile(), strings.Join(set.Names(), ", "))
 	return model, target, nil
 }
 
@@ -420,7 +464,8 @@ func (a *App) dockerSocketGID(existing map[string]string) string {
 }
 
 // provisionedEnvKeys are the values internal/features/provisioning writes
-// into .env (plus the bootstrap PAT, which readPAT persists there too).
+// into .env (plus a bootstrap PAT an operator set for recovery, which the
+// next provisioning run uses once and clears).
 // env.tmpl renders each as empty or as the __PROVISIONED__ placeholder,
 // since provisioning always runs after rendering.
 var provisionedEnvKeys = []string{
@@ -430,6 +475,9 @@ var provisionedEnvKeys = []string{
 	"ALFHEIM_WEB_CLIENT_ID",
 	"GRAFANA_OIDC_CLIENT_ID",
 	"GRAFANA_OIDC_CLIENT_SECRET",
+	provisioning.FingerprintEnvKey(provisioning.IDPGoogle),
+	provisioning.FingerprintEnvKey(provisioning.IDPApple),
+	provisioning.SMTPFingerprintEnvKey,
 }
 
 // carryForwardProvisioned picks out the previously provisioned values worth
@@ -449,6 +497,30 @@ func carryForwardProvisioned(existing map[string]string) map[string]string {
 	return out
 }
 
+// operatorTunedEnvKeys are optional .env keys an operator sets by hand to
+// tune the stack. env.tmpl renders them empty or not at all, because
+// compose.prod.yaml supplies their defaults, so a re-render must restore them.
+var operatorTunedEnvKeys = []string{
+	"ALFHEIM_RATE_LIMIT_LOGIN",
+	"ALFHEIM_RATE_LIMIT_AUTH",
+	"ALFHEIM_RATE_LIMIT_API",
+	"ALFHEIM_RATE_LIMIT_LOOKUP",
+	"ALFHEIM_SIGNUP_ALLOWLIST",
+}
+
+// carryForwardOperatorTuned picks out the operator-tuned values present in
+// the previous .env, so a re-render keeps them. An empty value means the
+// default and is not carried.
+func carryForwardOperatorTuned(existing map[string]string) map[string]string {
+	out := map[string]string{}
+	for _, key := range operatorTunedEnvKeys {
+		if v := existing[key]; v != "" {
+			out[key] = v
+		}
+	}
+	return out
+}
+
 // runBootstrap performs the staged container boot for a fresh install,
 // provisioning Zitadel's project and OIDC applications between the Edge &
 // Identity phase and the Core & Application Stack phase so every consumer
@@ -461,7 +533,11 @@ func (a *App) runBootstrap(
 		return err
 	}
 
-	orch := bootstrap.New(a.Runner, layout, bootstrap.WithLogger(a.Stdout))
+	set, err := loadEnabledApps(layout)
+	if err != nil {
+		return err
+	}
+	orch := newOrchestrator(a.Runner, layout, a.Stdout, set)
 
 	if err := orch.RunPhase(ctx, bootstrap.PhaseEdgeAuth); err != nil {
 		return err
@@ -537,16 +613,12 @@ func provisionZitadel(
 		return nil, fmt.Errorf("alfheim-setup: provision Zitadel: %w", err)
 	}
 
-	if err := envfile.Update(layout.EnvFile(), map[string]string{
-		"ZITADEL_PROJECT_ID":         result.ProjectID,
-		"OIDC_AUDIENCE":              result.ProjectID,
-		"ALFHEIM_WEB_CLIENT_ID":      result.WebClientID,
-		"GRAFANA_OIDC_CLIENT_ID":     result.GrafanaClientID,
-		"GRAFANA_OIDC_CLIENT_SECRET": result.GrafanaSecret,
-	}); err != nil {
+	if err := envfile.Update(layout.EnvFile(), result.EnvUpdates()); err != nil {
 		return nil, fmt.Errorf("alfheim-setup: write provisioned credentials to .env: %w", err)
 	}
 	fmt.Fprintln(stdout, "Zitadel OIDC clients are provisioned.")
+	printSocialLogin(stdout, result.IDPs)
+	printSMTP(stdout, result.SMTP)
 	printWarnings(stdout, result.Warnings)
 	return result.Warnings, nil
 }
@@ -657,11 +729,19 @@ func (a *App) runUpdate(ctx context.Context, layout paths.Layout) error {
 	if err := a.backfillSecrets(layout, existing); err != nil {
 		return err
 	}
+	if err := refreshBootstrapPATExpiry(a.Stdout, layout, existing, a.now()); err != nil {
+		return err
+	}
 	if _, err := a.provision(ctx, layout, on); err != nil {
 		return err
 	}
 
-	orch := bootstrap.New(a.Runner, layout, bootstrap.WithLogger(a.Stdout))
+	// Respect the stored app set, so a re-run never resurrects a disabled app.
+	set, err := recordEnabledApps(a.Stdout, layout, existing)
+	if err != nil {
+		return err
+	}
+	orch := newOrchestrator(a.Runner, layout, a.Stdout, set)
 	if err := orch.EnsureDatabases(ctx); err != nil {
 		return err
 	}
@@ -742,8 +822,7 @@ Alfheim is up.
 
   Dashboard       %s
   Identity        %s
-  Observability   %s/grafana/
-
+%s
   Credentials are stored in .env (mode 0600).
 
   Administrator login
@@ -751,13 +830,24 @@ Alfheim is up.
     Password:              %s (also in .env, ZITADEL_ADMIN_PASSWORD)
     A password change is required on first login.
     No self-registration is needed: sign in at %s with the credentials above.
-`,
-		m.Onboarding.BaseURL, m.Onboarding.IssuerURL, m.Onboarding.BaseURL,
-		m.Onboarding.AdminEmail, m.Secret("ZITADEL_ADMIN_PASSWORD"), m.Onboarding.IssuerURL)
+
+%s`,
+		m.Onboarding.BaseURL, m.Onboarding.IssuerURL, observabilityLine(m),
+		m.Onboarding.AdminEmail, m.Secret("ZITADEL_ADMIN_PASSWORD"), m.Onboarding.IssuerURL,
+		smtp.Summary(m.SMTP))
 
 	if ca := m.TLS.LocalCA; ca != nil {
 		a.printLocalCA(m.Onboarding, *ca)
 	}
+}
+
+// observabilityLine is the summary's Grafana entry, or a blank line when the
+// optional telemetry stack is off and there is no Grafana to reach.
+func observabilityLine(m templating.Model) string {
+	if !m.Telemetry {
+		return ""
+	}
+	return fmt.Sprintf("  Observability   %s/grafana/\n", m.Onboarding.BaseURL)
 }
 
 // printLocalCA tells the operator how to trust the internal strategy's

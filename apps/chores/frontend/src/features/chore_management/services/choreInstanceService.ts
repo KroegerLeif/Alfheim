@@ -11,7 +11,7 @@ export function useAssignChoreInstance() {
   return useMutation<ChoreInstanceRead, Error, { id: string; assignedTo: string | null; dueDate?: string }, { prevInstances?: ChoreInstanceRead[]; key: readonly unknown[] }>({
     mutationFn: ({ id, assignedTo }) =>
       choresClient
-        .post(`instances/${id}/assign`, { json: { assigned_to: assignedTo } })
+        .post(`instances/${id}/assign`, { assigned_to: assignedTo })
         .json<ChoreInstanceRead>(),
     onMutate: async ({ id, assignedTo, dueDate }) => {
       await queryClient.cancelQueries({ queryKey: ["chores"] });

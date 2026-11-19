@@ -115,13 +115,46 @@ Jeder Site-Block (App-Host, `auth.*`-Host und im Dev-Stack der `api.*`-Host) imp
 | :--- | :--- | :--- |
 | `X-Content-Type-Options` | `nosniff` | Schaltet MIME-Sniffing ab |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | Kein Pfad und keine Query an fremde Origins |
-| `X-Frame-Options`, `Content-Security-Policy` | `SAMEORIGIN`, `frame-ancestors 'self'` | Clickjacking-Schutz; der PDF-Viewer der Bibliothek bettet eine gleich-originäre `/storage`-URL ein |
+| `X-Frame-Options` | `SAMEORIGIN` | Clickjacking-Schutz; der PDF-Viewer der Bibliothek bettet eine gleich-originäre `/storage`-URL ein |
 | `Permissions-Policy` | Kamera, Mikrofon, Standort, Zahlung, USB deaktiviert | Keine Alfheim-App braucht sie |
-| `Content-Security-Policy-Report-Only` | Same-Origin-Basis plus `auth.*`-Host in `connect-src` | Nur Report-Only: Next.js erzeugt Inline-Bootstrap-Skripte, ein erzwungenes `script-src` braucht zuerst Nonces. Verstöße erscheinen in der Browser-Konsole. |
+| `Content-Security-Policy` | erzwungen; siehe [die Richtlinie unten](#content-security-policy) | Beschränkt Skripte, Verbindungen, Bilder und Frames auf die eigene Origin und wenige benannte Drittanbieter |
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Nur bei installer-generierten HTTPS-Deployments; der Dev-Stack läuft über reines HTTP |
 | `Server` | entfernt | Verbirgt das Proxy-Banner |
 
 Der Dev-Host `api.*` setzt keine CORS-Header. Jedes Frontend ruft die API über seine eigene Origin auf (`NEXT_PUBLIC_API_URL` wird aus `ALFHEIM_BASE_URL` abgeleitet), Browser stellen dort also keine Cross-Origin-Anfragen. `./scripts/verify-stack.sh` prüft diese Header auf einem laufenden Stack.
+
+### Content-Security-Policy
+
+Das Gateway erzwingt diese Richtlinie auf jeder Alfheim-Seite. Zitadel (Login und Konsole) und Grafana (`GF_SECURITY_CONTENT_SECURITY_POLICY=true`) senden eigene, nonce-basierte Richtlinien, die das `?`-Präfix beibehält.
+
+| Direktive | Quellen | Zweck |
+| :--- | :--- | :--- |
+| `default-src` | `'self'` | Alles, was unten nicht steht, bleibt auf der Alfheim-Origin |
+| `script-src` | `'self' 'unsafe-inline'` | Next.js erzeugt Inline-Bootstrap-Skripte ohne Nonces; externe Skripte und `eval` sind blockiert |
+| `style-src` | `'self' 'unsafe-inline'` | Inline-Styles aus React und Leaflet |
+| `img-src` | `'self' data: blob: https://*.basemaps.cartocdn.com https://cdnjs.cloudflare.com` | CARTO-Kartenkacheln und die Leaflet-Markersymbole von `OSMMapViewer` |
+| `font-src` | `'self' data:` | `next/font` liefert Schriften aus der App selbst |
+| `connect-src` | `'self'`, der `auth.*`-Host, `https://nominatim.openstreetmap.org` | APIs liegen auf derselben Origin; der Browser spricht direkt mit Zitadels OIDC-Endpunkten und mit Nominatim (`AddressAutocomplete`) |
+| `worker-src` | `'self' blob:` | Worker von derselben Origin und aus Blobs |
+| `frame-src`, `frame-ancestors` | `'self'` | Der PDF-Viewer der Bibliothek bettet `/storage` ein; keine andere Seite darf Alfheim einbetten |
+| `object-src` | `'none'` | Keine Plugins |
+| `base-uri`, `form-action` | `'self'` | Kein Kapern über Base-Tag oder Formulare |
+
+Eine neue Drittanbieter-Quelle in einem Frontend (ein CDN, ein Kachelserver, eine vom Browser aufgerufene externe API) muss in beide Caddyfiles und in diese Tabelle; sonst blockiert der Browser sie und meldet einen CSP-Verstoß in der Konsole.
+
+## Rate-Limits
+
+Das Gateway begrenzt Anfragen pro Client-IP mit dem Modul [`caddy-ratelimit`](https://github.com/mholt/caddy-ratelimit), das ins Caddy-Image kompiliert ist. Jede Zone zählt Anfragen in einem gleitenden Ein-Minuten-Fenster. Eine Anfrage über dem Limit erhält `429 Too Many Requests` mit `Retry-After`; API-Clients bekommen `{"error":"rate_limited",...}`, Browser eine Textseite. Eine Anfrage kann auf mehrere Zonen passen und zählt dann in jeder.
+
+| Zone | Host | Trifft | Standard pro Minute | Variable |
+| :--- | :--- | :--- | :--- | :--- |
+| `auth_login` | `auth.*` | `POST /ui/login/*`, `POST /ui/v2/login/*` | 30 | `ALFHEIM_RATE_LIMIT_LOGIN` |
+| `auth` | `auth.*` | jede Anfrage | 600 | `ALFHEIM_RATE_LIMIT_AUTH` |
+| `lookup` | App-Host | `/api/v1/library/lookup*`, `/api/v1/pantry/products/barcode/*` und ihre `/<app>/api/v1`-Formen | 60 | `ALFHEIM_RATE_LIMIT_LOOKUP` |
+| `api` | App-Host | `/api/v1/*`, `*/api/v1/*` | 1200 | `ALFHEIM_RATE_LIMIT_API` |
+| `api_host_lookup`, `api_host` | Dev-Host `api.*` | dieselben Lookups; alles außer `/storage*` und `/grafana*` | 60, 1200 | wie oben |
+
+Seiten, statische Assets, `/storage` und `/livez` sind nicht begrenzt. [Rate-Limits anpassen](../how-to/tune-rate-limits.md) erklärt, wann und wie du sie änderst. `./scripts/test-gateway-hardening.sh` prüft jede Zone gegen einen laufenden Gateway-Container.
 
 ## Routentabelle des Installers
 

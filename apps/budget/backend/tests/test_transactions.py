@@ -169,7 +169,7 @@ class FakeStorage:
 @pytest.fixture
 def storage(client: AsyncClient) -> Iterator[FakeStorage]:
     fake = FakeStorage()
-    app = client._transport.app  # ty: ignore[unresolved-attribute]
+    app = client._transport.app  # ty: ignore[missing-attribute]
     app.dependency_overrides[get_transaction_service] = lambda: TransactionService(
         MagicMock(spec=TransactionRepository),
         storage_service=cast(S3StorageService, fake),

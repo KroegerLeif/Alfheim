@@ -91,6 +91,32 @@ describe('ScheduledTaskItem details', () => {
     expect(received).toEqual({ stepId: String(step.id), body: { comment: 'Replaced the anode' } })
   })
 
+  it('edits the stored comment and keeps the procedure visible next to it (#620)', () => {
+    renderItem({ supply_needed_date: '2030-01-01', description: 'Drain and refill', comment: 'Anode worn' })
+
+    fireEvent.click(screen.getByRole('button', { name: /Show Details/ }))
+
+    expect(screen.getByLabelText('Inspection Comment')).toHaveValue('Anode worn')
+    expect(screen.getByText('Drain and refill')).toBeInTheDocument()
+  })
+
+  it('clears the comment by sending null for an empty field (#620)', async () => {
+    let body: unknown
+    server.use(
+      http.post('*/tasks/:stepId/state', async ({ request }) => {
+        body = await request.json()
+        return HttpResponse.json({ id: 1 })
+      })
+    )
+    renderItem({ supply_needed_date: '2030-01-01', comment: 'Anode worn' })
+
+    fireEvent.click(screen.getByRole('button', { name: /Show Details/ }))
+    fireEvent.change(screen.getByLabelText('Inspection Comment'), { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save Comment' }))
+
+    await waitFor(() => expect(body).toEqual({ comment: null }))
+  })
+
   it('shows a localized error when saving fails and lets the user retry', async () => {
     server.use(http.post('*/tasks/:stepId/state', () => HttpResponse.json({ detail: 'nope' }, { status: 500 })))
     renderItem({ supply_needed_date: '2030-01-01' })

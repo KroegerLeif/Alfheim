@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"alfheim/chat/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 // Handler manages model block HTTP endpoints.
@@ -36,7 +37,7 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 
 // List returns the model blocks visible to the caller.
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
 		return
@@ -53,7 +54,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 
 // Get returns one model block the caller may see.
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
 		return
@@ -72,7 +73,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 
 // Create stores a new model block owned by the caller.
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
 		return
@@ -95,7 +96,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 // Update changes a model block; only its owner may do so.
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
 		return
@@ -120,7 +121,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 // Delete removes a model block; only its owner may do so.
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
 		return
@@ -138,7 +139,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 // TriggerHealthCheck probes the provider of a model block and records the result.
 func (h *Handler) TriggerHealthCheck(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
 		return
@@ -157,7 +158,7 @@ func (h *Handler) TriggerHealthCheck(w http.ResponseWriter, r *http.Request) {
 
 // Discover lists the models a provider endpoint offers.
 func (h *Handler) Discover(w http.ResponseWriter, r *http.Request) {
-	claims, err := middleware.GetUserClaims(r.Context())
+	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
 		return

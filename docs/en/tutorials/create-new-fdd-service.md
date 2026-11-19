@@ -80,6 +80,33 @@ Follow Feature-Driven Design (FDD) in `apps/recipes/backend/src/features/catalog
    depend on `household-backend` being healthy. Without a valid, matching
    `ALFHEIM_INTERNAL_TOKEN` every household-scoped request fails closed with
    `503 household_service_unavailable`.
+7. Set up schema migrations with the shared scaffold from `backend_shared`. Copy `alembic.ini`
+   (the `[alembic]` section only) and `alembic/script.py.mako` from an existing backend, then
+   add the three small files that are specific to the service:
+   ```python
+   # src/core/migrations.py
+   MIGRATION_LOCK_KEY = 7_265_008  # next free pg_advisory_xact_lock key; never change it later
+
+
+   def load_models() -> None:
+       """Import every model module so all tables are registered on ``SQLModel.metadata``."""
+       from src.features.catalog.models import Recipe  # noqa: F401
+   ```
+   ```python
+   # alembic/env.py
+   from backend_shared.migrations import run_env
+   from sqlmodel import SQLModel
+   from src.core.config import settings
+   from src.core.migrations import load_models
+
+   load_models()
+   run_env(SQLModel.metadata, database_url=settings.DATABASE_URL)
+   ```
+   `src/core/database.py` creates `engine, async_session_factory =
+   create_engine_and_session(settings)` and wraps `backend_shared.db.run_migrations` (see the
+   [Python and FastAPI conventions](../reference/conventions/python-fastapi.md#persistence)).
+   `main.py` awaits it on startup. Generate the first revision with
+   `uv run alembic revision --autogenerate -m "initial schema"` and set its revision ID to `0001`.
 
 ---
 
@@ -96,8 +123,17 @@ Follow Feature-Driven Design (FDD) in `apps/recipes/backend/src/features/catalog
 4. Enforce the strict 200 lines of code (LOC) limit per `.tsx` source file.
 5. Set up the Next.js project like the existing apps: `basePath: '/recipes'`, `output: 'standalone'`
    and `transpilePackages: ['@alfheim/shared']` in `next.config.ts`, `@alfheim/shared` as a
-   `workspace:*` dependency, `src/proxy.ts` for locale routing (not the deprecated
-   `middleware.ts`), and an `i18n.ts` that merges `getSharedMessages(locale)`.
+   `workspace:*` dependency, and `predev`/`prebuild` scripts that copy the shared favicons.
+   The locale and shell files are one factory call each; copy them from an existing app such as
+   `apps/chores/frontend`:
+
+   | File | Content |
+   | --- | --- |
+   | `src/navigation.ts` | `createNavigation()` from `@alfheim/shared/i18n/navigation` |
+   | `src/proxy.ts` | `createProxy()` from `@alfheim/shared/i18n/proxy`, plus a literal `config.matcher` (not the deprecated `middleware.ts`) |
+   | `src/i18n.ts` | `createRequestConfig()` from `@alfheim/shared/i18n/request` |
+   | `src/app/[locale]/providers.tsx` | `AppProviders` from `@alfheim/shared/app-shell`, with app providers as children |
+   | `src/app/[locale]/loading.tsx` | `AppLoading` from `@alfheim/shared/app-shell` |
 6. Add the app's strings to `packages/shared/src/features/i18n/locales/{en,de,pl}/recipes.json`
    and register the file in the shared locale builder. All three locales must be complete.
    The conventions are in [Next.js and Tailwind conventions](../reference/conventions/nextjs-tailwind.md).
@@ -164,7 +200,7 @@ Follow Feature-Driven Design (FDD) in `apps/recipes/backend/src/features/catalog
 [project]
 name = "recipes-backend"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "fastapi", "uvicorn[standard]", "sqlmodel", "pydantic-settings", "asyncpg",
     "httpx", "opentelemetry-sdk", "opentelemetry-instrumentation-fastapi",
@@ -307,30 +343,45 @@ async def test_missing_household_header(client: AsyncClient):
 
 ### Backend `Dockerfile` and `.dockerignore`
 
-Build each backend standalone so the workspace lockfile does not leak into the image:
+Build each backend with the repository root as the build context (`context: ../..` and
+`dockerfile: apps/recipes/backend/Dockerfile` in `apps/recipes/compose.yml`), so `uv` installs
+exactly the versions in the root `uv.lock`. The Python version comes from `versions.json`
+(see [`VERSIONS.md`](../../../VERSIONS.md)); `./scripts/sync-versions.sh --check` fails if the
+image tags differ from it.
 
 ```dockerfile
-FROM ghcr.io/astral-sh/uv:python3.12-alpine AS builder
+FROM ghcr.io/astral-sh/uv:python3.14-alpine AS builder
+ENV UV_COMPILE_BYTECODE=1
 WORKDIR /app
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
-COPY pyproject.toml ./
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --no-dev --no-install-project
-COPY . .
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --no-dev
+COPY pyproject.toml uv.lock ./
+COPY packages/backend-shared ./packages/backend-shared
+COPY apps/recipes/backend/pyproject.toml ./apps/recipes/backend/
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --package recipes-backend --no-install-project --no-editable
+COPY apps/recipes/backend ./apps/recipes/backend
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --package recipes-backend --no-editable
 
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 WORKDIR /app
-COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/src /app/src
-COPY --from=builder /app/main.py /app/main.py
+# Patched Alpine packages for the release Trivy gate; the app does not need the image's pip.
+RUN apk upgrade --no-cache \
+    && python -m pip uninstall --yes --no-cache-dir pip
+RUN addgroup -S -g 10001 appgroup && adduser -S -u 10001 -G appgroup appuser
+COPY --from=builder --chown=appuser:appgroup /app/.venv /app/.venv
+COPY --from=builder --chown=appuser:appgroup /app/apps/recipes/backend /app/apps/recipes/backend
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
+WORKDIR /app/apps/recipes/backend
+USER appuser
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8000/api/v1/health || exit 1
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8000/readyz || exit 1
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-`.dockerignore` excludes `.venv`, `uv.lock`, `__pycache__`, `.pytest_cache`, `.ruff_cache`,
+The service mounts the shared probes with `app.include_router(health_router(engine, service="<name>-backend", backend_dir=BACKEND_DIR))` from `backend_shared.health`: `/healthz` for liveness and `/readyz`, which answers `200` only when the database runs `SELECT 1` and its Alembic revision is at head. Point every healthcheck at `/readyz`.
+
+`.dockerignore` excludes `.venv`, `__pycache__`, `.pytest_cache`, `.ruff_cache`,
 `.coverage`, `.env*`, `*.sqlite3` and `.git`.
 
 ---

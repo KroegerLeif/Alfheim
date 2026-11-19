@@ -112,6 +112,7 @@
     "errors": {
       "unauthorized": "Your session has expired. Please sign in again.",
       "forbidden": "You don't have permission to do this in this household.",
+      "signup_not_allowed": "Creating a household is restricted on this instance. Ask a member of a household to invite you.",
       "household_not_found": "This household doesn't exist or you are no longer a member.",
       "invite_not_found": "This invite code is invalid, expired or has been revoked.",
       "conflict": "This conflicts with the current state. {detail}",

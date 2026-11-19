@@ -10,8 +10,13 @@ updates:
       day: monday
       time: '03:00'
     open-pull-requests-limit: 5
-    # One PR per ecosystem for minor/patch bumps; majors stay separate.
+    # One PR per ecosystem for minor/patch bumps and one for minor/patch
+    # security fixes. Majors stay separate (one PR each) so frameworks such as
+    # Next.js, React and FastAPI get an individual review.
     groups:
+      security:
+        applies-to: security-updates
+        update-types: ['minor', 'patch']
       minor-and-patch:
         update-types: ['minor', 'patch']
     pull-request-branch-name:
@@ -33,6 +38,9 @@ updates:
       time: '03:00'
     open-pull-requests-limit: 5
     groups:
+      security:
+        applies-to: security-updates
+        update-types: ['minor', 'patch']
       minor-and-patch:
         update-types: ['minor', 'patch']
     pull-request-branch-name:
@@ -50,6 +58,9 @@ updates:
       time: '03:00'
     open-pull-requests-limit: 5
     groups:
+      security:
+        applies-to: security-updates
+        update-types: ['minor', 'patch']
       minor-and-patch:
         update-types: ['minor', 'patch']
     pull-request-branch-name:
@@ -67,6 +78,29 @@ updates:
       time: '03:00'
     open-pull-requests-limit: 5
     groups:
+      security:
+        applies-to: security-updates
+        update-types: ['minor', 'patch']
+      minor-and-patch:
+        update-types: ['minor', 'patch']
+    pull-request-branch-name:
+      separator: '/'
+    labels:
+      - 'area:dependencies'
+      - 'area:security'
+
+  - package-ecosystem: gomod
+    directory: '/packages/go-shared'
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+    open-pull-requests-limit: 5
+    groups:
+      security:
+        applies-to: security-updates
+        update-types: ['minor', 'patch']
       minor-and-patch:
         update-types: ['minor', 'patch']
     pull-request-branch-name:
@@ -84,6 +118,9 @@ updates:
       time: '03:00'
     open-pull-requests-limit: 5
     groups:
+      security:
+        applies-to: security-updates
+        update-types: ['minor', 'patch']
       minor-and-patch:
         update-types: ['minor', 'patch']
     pull-request-branch-name:
@@ -102,6 +139,9 @@ updates:
       time: '03:00'
     open-pull-requests-limit: 5
     groups:
+      security:
+        applies-to: security-updates
+        update-types: ['minor', 'patch']
       minor-and-patch:
         update-types: ['minor', 'patch']
     pull-request-branch-name:
@@ -127,6 +167,9 @@ updates:
       time: '03:00'
     open-pull-requests-limit: 5
     groups:
+      security:
+        applies-to: security-updates
+        update-types: ['minor', 'patch']
       minor-and-patch:
         update-types: ['minor', 'patch']
     pull-request-branch-name:
@@ -149,8 +192,17 @@ updates:
       time: '03:00'
     open-pull-requests-limit: 5
     groups:
+      security:
+        applies-to: security-updates
+        update-types: ['minor', 'patch']
       minor-and-patch:
         update-types: ['minor', 'patch']
+      # A major bump of one image (e.g. postgres) is one PR across every
+      # directory instead of one per compose file or Dockerfile.
+      major-per-image:
+        update-types: ['major']
+        group-by: dependency-name
+        patterns: ['*']
     pull-request-branch-name:
       separator: '/'
     labels:
@@ -177,14 +229,24 @@ updates:
       time: '03:00'
     open-pull-requests-limit: 5
     groups:
+      security:
+        applies-to: security-updates
+        update-types: ['minor', 'patch']
       minor-and-patch:
         update-types: ['minor', 'patch']
+      # A major bump of one image (e.g. postgres) is one PR across every
+      # directory instead of one per compose file or Dockerfile.
+      major-per-image:
+        update-types: ['major']
+        group-by: dependency-name
+        patterns: ['*']
     pull-request-branch-name:
       separator: '/'
     labels:
       - 'area:dependencies'
       - 'area:security'
     ignore:
-      # Zitadel v2 -> v4 is a planned migration (database and login UI changes), not a tag bump.
+      # A Zitadel major (v4 -> v5) is a planned migration (database steps, removed v1 APIs,
+      # login UI changes), not a tag bump; see issue #765 for how v2 -> v4 was done.
       - dependency-name: 'zitadel/zitadel'
         update-types: ['version-update:semver-major']

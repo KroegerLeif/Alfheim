@@ -22,7 +22,10 @@ Allow about 30 minutes, most of which is spent waiting for container images.
 
 You need:
 
-* A Debian 12 (or comparable) host with at least 4 GB RAM and 10 GB free disk.
+* A Debian 12 (or comparable) host with Docker Engine 25 or newer and enough
+  RAM and disk for the apps you plan to run; the
+  [hardware tiers](../how-to/homelab-deployment.md#hardware-specifications)
+  list what each set needs.
 * Root or `sudo` access.
 * A domain you control, with DNS pointing at the host. This tutorial uses
   `example.com`; substitute your own throughout.
@@ -72,7 +75,7 @@ The script detects your CPU architecture, downloads the matching
 
 ## Step 4: Answer the wizard
 
-The wizard asks four things:
+The wizard asks these things:
 
 1. **Deployment target.** Choose *Custom domain* and enter `example.com`. The
    dashboard host defaults to your base domain; the identity provider is always
@@ -90,6 +93,13 @@ The wizard asks four things:
 4. **DNS API token**, if you chose a DNS-01 strategy. See
    [Hetzner DNS-01 TLS](../how-to/hetzner-dns-tls.md) or
    [deSEC DNS-01 TLS](../how-to/desec-dns-tls.md) for how to create one.
+5. **Optional apps.** The dashboard and household management always run. Tick
+   the apps you want, for example *Pantry* and *Shopping lists*; each line
+   shows what the app does and how much memory it adds. Leave everything
+   unticked for the smallest install. You can change this later with
+   `alfheim-setup apps enable|disable`.
+6. **Telemetry.** Metrics, logs and Grafana. The default is *No*, which keeps
+   the install small.
 
 The installer then generates every credential from `crypto/rand` and writes:
 
@@ -117,7 +127,8 @@ Alfheim is up.
     A password change is required on first login.
 ```
 
-You do not need to register an account or open the Zitadel console. The
+The Observability line points to Grafana, which only answers when you enabled
+telemetry. You do not need to register an account or open the Zitadel console. The
 administrator e-mail is already verified, so no mail is sent.
 
 ## Step 6: Verify
@@ -126,14 +137,15 @@ administrator e-mail is already verified, so no mail is sent.
 docker compose -f compose.prod.yaml ps
 ```
 
-Every service should report `running`, and those with a healthcheck should
-report `healthy`. Open the dashboard URL and sign in with your Zitadel account.
+Every service of the Lean Core and of the apps you ticked should report
+`running`, and those with a healthcheck should report `healthy`. Check the
+selection with `alfheim-setup apps list`. Open the dashboard URL and sign in with your Zitadel account.
 
 ---
 
 ## What you built
 
-* A full Alfheim instance with unique, randomly generated credentials.
+* An Alfheim instance with the Lean Core and the apps you ticked, with unique, randomly generated credentials.
 * A TLS-terminating ingress gateway with certificates for your domain.
 * A Zitadel identity provider with an administrator account.
 
@@ -143,6 +155,7 @@ report `healthy`. Open the dashboard URL and sign in with your Zitadel account.
 * [deSEC DNS-01 TLS](../how-to/desec-dns-tls.md) — wildcard certificates on deSEC
 * [Custom certificates](../how-to/custom-certificates.md) — bring your own
 * [Trust the local root CA](../how-to/trust-local-root-ca.md) — for the local CA strategy
+* [Manage apps](../how-to/manage-apps.md) — switch optional apps on and off
 * [Installer CLI reference](../reference/installer-cli.md) — every flag
 * [Backup and restore](../how-to/backup-restore.md) — protect your data
 * [Update an installation](../how-to/update-installation.md) — every later release, one command

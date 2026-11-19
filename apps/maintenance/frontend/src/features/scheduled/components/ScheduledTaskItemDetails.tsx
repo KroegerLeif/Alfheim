@@ -2,11 +2,10 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { PermissionHint, useHouseholdPermission } from "@alfheim/shared";
+import { PermissionHint, useHouseholdPermission, cn } from "@alfheim/shared";
 import { MaintenanceStep } from "@/shared/types";
 import { useFormatDate } from "@/core/useFormatDate";
 import { FileText, Save, Loader2 } from "lucide-react";
-import { cn } from "@/core/utils";
 
 interface ScheduledTaskItemDetailsProps {
   step: MaintenanceStep;
@@ -45,7 +44,7 @@ export function ScheduledTaskItemDetails({
       </div>
 
       {/* Step procedure description */}
-      {step.description && !comment && (
+      {step.description && (
         <p className="text-xs text-[var(--text-muted)] leading-relaxed break-words whitespace-pre-line">
           <strong>{t("scheduledTasks.procedureLabel")}</strong> {step.description}
         </p>

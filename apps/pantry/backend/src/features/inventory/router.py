@@ -5,10 +5,10 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from backend_shared.household import HouseholdContext, require_household
+from backend_shared.household.permissions import require_writer
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
-from src.core.permissions import require_writer
 from src.features.inventory.alert_service import AlertService
 from src.features.inventory.ledger_service import LedgerService
 from src.features.inventory.models import InventoryTransactionType

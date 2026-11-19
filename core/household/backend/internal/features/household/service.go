@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"alfheim/household/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 )
 
 // Service defines business logic for household management, authorization, and invitations.
@@ -12,7 +12,7 @@ import (
 // Authorization is always derived from household_members for the household id
 // passed in; it never trusts client-supplied household or role headers.
 type Service interface {
-	CreateHousehold(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error)
+	CreateHousehold(ctx context.Context, claims *auth.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error)
 	GetUserHouseholds(ctx context.Context, userID string) ([]HouseholdResponse, error)
 	GetHouseholdDetails(ctx context.Context, requesterID string, householdID string) (*HouseholdResponse, error)
 	RenameHousehold(ctx context.Context, requesterID string, householdID string, req RenameHouseholdRequest) (*HouseholdResponse, error)
@@ -23,23 +23,43 @@ type Service interface {
 	CreateInvite(ctx context.Context, requesterID string, req CreateInviteRequest) (*InviteResponse, error)
 	ListInvites(ctx context.Context, requesterID string, householdID string) ([]InviteResponse, error)
 	RevokeInvite(ctx context.Context, requesterID string, householdID string, token string) error
-	JoinHousehold(ctx context.Context, claims *middleware.UserClaims, token string) (*HouseholdResponse, error)
+	JoinHousehold(ctx context.Context, claims *auth.UserClaims, token string) (*HouseholdResponse, error)
 	RemoveMember(ctx context.Context, requesterID string, householdID string, targetUserID string) error
 	UpdateMemberRole(ctx context.Context, requesterID string, householdID string, targetUserID string, newRole HouseholdRole) error
 	UpdateHouseholdAddress(ctx context.Context, requesterID string, householdID string, req UpdateHouseholdAddressRequest) error
 }
 
 type service struct {
-	repo Repository
-	log  *slog.Logger
+	repo   Repository
+	log    *slog.Logger
+	signup SignupPolicy
+}
+
+// SignupPolicy decides whether a caller who belongs to no household yet may
+// create one (ALFHEIM_SIGNUP_ALLOWLIST, #923). Members of a household, and
+// invited users joining one, are never asked.
+type SignupPolicy interface {
+	AllowHouseholdCreation(ctx context.Context, claims *auth.UserClaims) error
+}
+
+// Option configures the household service.
+type Option func(*service)
+
+// WithSignupPolicy restricts first-household creation to what p allows.
+func WithSignupPolicy(p SignupPolicy) Option {
+	return func(s *service) { s.signup = p }
 }
 
 // NewService constructs a household service implementation.
-func NewService(repo Repository, log *slog.Logger) Service {
-	return &service{
+func NewService(repo Repository, log *slog.Logger, opts ...Option) Service {
+	s := &service{
 		repo: repo,
 		log:  log,
 	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 // requireRole returns the requester's role in the household, or

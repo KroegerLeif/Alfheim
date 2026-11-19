@@ -34,7 +34,7 @@ export async function lookupTmdb(
 
 export async function createItem(formData: ItemFormData): Promise<MediaItem> {
   const data = await libraryClient
-    .post("items", { json: formData })
+    .post("items", formData)
     .json<MediaItem>();
   return data;
 }
@@ -44,7 +44,7 @@ export async function updateItem(
   formData: Partial<ItemFormData>
 ): Promise<MediaItem> {
   const data = await libraryClient
-    .put(`items/${id}`, { json: formData })
+    .put(`items/${id}`, formData)
     .json<MediaItem>();
   return data;
 }

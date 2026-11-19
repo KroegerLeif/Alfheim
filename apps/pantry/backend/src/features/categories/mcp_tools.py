@@ -3,8 +3,8 @@
 import uuid
 
 from backend_shared.mcp_middleware import get_mcp_household_context
+from backend_shared.mcp_permissions import mcp_requires_role
 from src.core.database import async_session_factory
-from src.core.permissions import mcp_requires_role
 from src.features.categories.models import CategoryCreate, CategoryUpdate
 from src.features.categories.service import CategoryService
 from src.mcp.server import mcp

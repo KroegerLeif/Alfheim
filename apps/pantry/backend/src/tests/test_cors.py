@@ -6,7 +6,7 @@ from httpx import AsyncClient
 async def test_cors_allowed_origin(client: AsyncClient):
     """Test that requests from an allowed origin receive CORS headers."""
     response = await client.get(
-        "/api/v1/health",
+        "/healthz",
         headers={"Origin": "http://localhost:3000"},
     )
     assert response.status_code == 200
@@ -18,7 +18,7 @@ async def test_cors_allowed_origin(client: AsyncClient):
 async def test_cors_disallowed_origin(client: AsyncClient):
     """Test that requests from a disallowed origin do not receive CORS allow-origin header matching the origin."""
     response = await client.get(
-        "/api/v1/health",
+        "/healthz",
         headers={"Origin": "http://malicious-website.com"},
     )
     assert response.status_code == 200

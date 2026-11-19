@@ -3,7 +3,7 @@
 The SQLite tests always run. The PostgreSQL tests run when ALFHEIM_MIGRATION_TEST_DATABASE_URL points at a
 disposable database (its public schema is dropped and recreated), e.g.:
 
-    docker run -d --rm -p 55432:5432 -e POSTGRES_PASSWORD=x postgres:16-alpine
+    docker run -d --rm -p 55432:5432 -e POSTGRES_PASSWORD=x postgres:18-alpine
     ALFHEIM_MIGRATION_TEST_DATABASE_URL=postgresql+asyncpg://postgres:x@localhost:55432/postgres pytest
 """
 
@@ -18,11 +18,13 @@ from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
+from backend_shared.migrations import alembic_config
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlmodel import SQLModel
-from src.core.migrations import alembic_config, load_models, run_migrations
+from src.core.database import BACKEND_DIR, run_migrations
+from src.core.migrations import load_models
 
 POSTGRES_URL = os.getenv("ALFHEIM_MIGRATION_TEST_DATABASE_URL")
 requires_postgres = pytest.mark.skipif(
@@ -53,7 +55,7 @@ def _schema_diff(connection: Connection) -> list:
 
 
 def _head_revision() -> str:
-    head = ScriptDirectory.from_config(alembic_config()).get_current_head()
+    head = ScriptDirectory.from_config(alembic_config(BACKEND_DIR)).get_current_head()
     assert head is not None
     return head
 
@@ -64,14 +66,14 @@ async def _current_revision(engine: AsyncEngine) -> str | None:
 
 
 @pytest_asyncio.fixture
-async def sqlite_engine() -> AsyncGenerator[AsyncEngine, None]:
+async def sqlite_engine() -> AsyncGenerator[AsyncEngine]:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     yield engine
     await engine.dispose()
 
 
 @pytest_asyncio.fixture
-async def postgres_engine() -> AsyncGenerator[AsyncEngine, None]:
+async def postgres_engine() -> AsyncGenerator[AsyncEngine]:
     assert POSTGRES_URL
     engine = create_async_engine(POSTGRES_URL)
     async with engine.begin() as connection:
@@ -148,7 +150,7 @@ async def test_postgres_upgrade_matches_the_models_and_downgrades_cleanly(postgr
         assert await connection.run_sync(_schema_diff) == []
 
     def downgrade_and_upgrade(connection: Connection) -> None:
-        config = alembic_config(connection)
+        config = alembic_config(BACKEND_DIR, connection)
         command.downgrade(config, "base")
         assert set(inspect(connection).get_table_names()) == {"alembic_version"}
         command.upgrade(config, "head")

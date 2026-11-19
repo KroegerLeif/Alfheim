@@ -43,16 +43,25 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func TestHTTPClient_EnsureProject_CreatesWhenMissing(t *testing.T) {
 	var gotHost string
+	var created map[string]any
+	routes := merge(identityRoutes(), map[string]rpcReply{
+		projectService + "ListProjects": func(body map[string]any) (int, any) {
+			filters, _ := json.Marshal(body["filters"])
+			if !strings.Contains(string(filters), `"organizationId":"org-1"`) ||
+				!strings.Contains(string(filters), `"projectName":"Alfheim"`) {
+				t.Errorf("ListProjects filters = %s", filters)
+			}
+			return 200, map[string]any{"projects": []any{}}
+		},
+		projectService + "CreateProject": func(body map[string]any) (int, any) {
+			created = body
+			return 200, map[string]any{"projectId": "proj-1"}
+		},
+	})
+	fake := v2Fake(t, routes, nil)
 	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		gotHost = r.Host
-		switch {
-		case strings.HasSuffix(r.URL.Path, "/projects/_search"):
-			writeJSON(w, 200, map[string]any{"result": []any{}})
-		case r.URL.Path == "/management/v1/projects" && r.Method == http.MethodPost:
-			writeJSON(w, 200, map[string]any{"id": "proj-1"})
-		default:
-			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
-		}
+		fake(w, r)
 	})
 
 	id, err := c.EnsureProject(context.Background(), "Alfheim")
@@ -62,19 +71,22 @@ func TestHTTPClient_EnsureProject_CreatesWhenMissing(t *testing.T) {
 	if id != "proj-1" {
 		t.Errorf("id = %q", id)
 	}
+	if created["organizationId"] != "org-1" || created["name"] != "Alfheim" {
+		t.Errorf("CreateProject body = %v, want the caller's organisation", created)
+	}
 	if gotHost != "auth.example.com" {
 		t.Errorf("Host header = %q, want the external auth domain", gotHost)
 	}
 }
 
 func TestHTTPClient_EnsureProject_ReturnsExisting(t *testing.T) {
-	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/projects/_search") {
-			writeJSON(w, 200, map[string]any{"result": []map[string]any{{"id": "existing-id"}}})
-			return
-		}
-		t.Fatalf("a project search hit must not create a new project; got %s", r.URL.Path)
+	routes := merge(identityRoutes(), map[string]rpcReply{
+		projectService + "ListProjects": ok(map[string]any{"projects": []map[string]any{
+			{"projectId": "other", "name": "Alfheim Copy"},
+			{"projectId": "existing-id", "name": "Alfheim"},
+		}}),
 	})
+	c, _ := newTestClient(t, v2Fake(t, routes, nil))
 
 	id, err := c.EnsureProject(context.Background(), "Alfheim")
 	if err != nil {
@@ -85,22 +97,45 @@ func TestHTTPClient_EnsureProject_ReturnsExisting(t *testing.T) {
 	}
 }
 
-func TestHTTPClient_EnsureOIDCApp_CreatesPublicClient(t *testing.T) {
-	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case strings.HasSuffix(r.URL.Path, "/apps/_search"):
-			writeJSON(w, 200, map[string]any{"result": []any{}})
-		case strings.HasSuffix(r.URL.Path, "/apps/oidc"):
-			var body map[string]any
-			_ = json.NewDecoder(r.Body).Decode(&body)
-			if body["authMethodType"] != "OIDC_AUTH_METHOD_TYPE_NONE" {
-				t.Errorf("authMethodType = %v, want NONE for a public client", body["authMethodType"])
-			}
-			writeJSON(w, 200, map[string]any{"appId": "app-1", "clientId": "web-client"})
-		default:
-			t.Fatalf("unexpected request: %s", r.URL.Path)
+func TestHTTPClient_EnsureProject_IdentityFailures(t *testing.T) {
+	for name, routes := range map[string]map[string]rpcReply{
+		"userinfo rejected": {userinfoPath: func(map[string]any) (int, any) { return 401, map[string]any{} }},
+		"no organisation": merge(identityRoutes(), map[string]rpcReply{
+			userService + "GetUserByID": ok(map[string]any{"user": map[string]any{}}),
+		}),
+		"user lookup fails": merge(identityRoutes(), map[string]rpcReply{
+			userService + "GetUserByID": func(map[string]any) (int, any) { return 403, map[string]any{} },
+		}),
+	} {
+		c, _ := newTestClient(t, v2Fake(t, routes, nil))
+		if _, err := c.EnsureProject(context.Background(), "Alfheim"); err == nil {
+			t.Errorf("%s: EnsureProject() error = nil", name)
 		}
-	})
+	}
+}
+
+// appList answers ListApplications with one existing app.
+func appList(name, clientID string) rpcReply {
+	return ok(map[string]any{"applications": []map[string]any{
+		{"applicationId": "app-1", "name": name, "oidcConfiguration": map[string]any{"clientId": clientID}},
+	}})
+}
+
+func TestHTTPClient_EnsureOIDCApp_CreatesPublicClient(t *testing.T) {
+	routes := map[string]rpcReply{
+		applicationService + "ListApplications": ok(map[string]any{}),
+		applicationService + "CreateApplication": func(body map[string]any) (int, any) {
+			cfg, _ := body["oidcConfiguration"].(map[string]any)
+			if cfg["authMethodType"] != "OIDC_AUTH_METHOD_TYPE_NONE" || cfg["applicationType"] != "OIDC_APP_TYPE_USER_AGENT" {
+				t.Errorf("oidcConfiguration = %v, want a public user-agent client", cfg)
+			}
+			if body["projectId"] != "proj-1" || body["name"] != "Alfheim Web" {
+				t.Errorf("CreateApplication body = %v", body)
+			}
+			return 200, map[string]any{"applicationId": "app-1", "oidcConfiguration": map[string]any{"clientId": "web-client"}}
+		},
+	}
+	c, _ := newTestClient(t, v2Fake(t, routes, nil))
 
 	creds, err := c.EnsureOIDCApp(context.Background(), "proj-1", AppSpec{
 		Name: "Alfheim Web", Type: AppTypePublicPKCE, RedirectURIs: []string{"https://x/"},
@@ -114,18 +149,15 @@ func TestHTTPClient_EnsureOIDCApp_CreatesPublicClient(t *testing.T) {
 }
 
 func TestHTTPClient_EnsureOIDCApp_CreatesConfidentialClientWithSecret(t *testing.T) {
-	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case strings.HasSuffix(r.URL.Path, "/apps/_search"):
-			writeJSON(w, 200, map[string]any{"result": []any{}})
-		case strings.HasSuffix(r.URL.Path, "/apps/oidc"):
-			writeJSON(w, 200, map[string]any{
-				"appId": "app-1", "clientId": "grafana-client", "clientSecret": "grafana-secret",
-			})
-		default:
-			t.Fatalf("unexpected request: %s", r.URL.Path)
-		}
-	})
+	routes := map[string]rpcReply{
+		// A listing that ignores the name filter must not be mistaken for a hit.
+		applicationService + "ListApplications": appList("Alfheim Web", "web-client"),
+		applicationService + "CreateApplication": ok(map[string]any{
+			"applicationId":     "app-2",
+			"oidcConfiguration": map[string]any{"clientId": "grafana-client", "clientSecret": "grafana-secret"},
+		}),
+	}
+	c, _ := newTestClient(t, v2Fake(t, routes, nil))
 
 	creds, err := c.EnsureOIDCApp(context.Background(), "proj-1", AppSpec{
 		Name: "Grafana", Type: AppTypeConfidentialWeb, RedirectURIs: []string{"https://x/grafana"},
@@ -139,22 +171,17 @@ func TestHTTPClient_EnsureOIDCApp_CreatesConfidentialClientWithSecret(t *testing
 }
 
 func TestHTTPClient_EnsureOIDCApp_ReusesSecretWhenUnchanged(t *testing.T) {
-	var regenerateCalled bool
-	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case strings.HasSuffix(r.URL.Path, "/apps/_search"):
-			writeJSON(w, 200, map[string]any{"result": []map[string]any{
-				{"id": "app-1", "name": "Grafana", "oidcConfig": map[string]any{"clientId": "grafana-client"}},
-			}})
-		case strings.HasSuffix(r.URL.Path, "/oidc_config") && r.Method == http.MethodPut:
-			writeJSON(w, 200, map[string]any{})
-		case strings.HasSuffix(r.URL.Path, "_generate_client_secret"):
-			regenerateCalled = true
-			writeJSON(w, 200, map[string]any{"clientSecret": "new-secret"})
-		default:
-			t.Fatalf("unexpected request: %s", r.URL.Path)
-		}
-	})
+	var seen []string
+	routes := map[string]rpcReply{
+		applicationService + "ListApplications": appList("Grafana", "grafana-client"),
+		applicationService + "UpdateApplication": func(body map[string]any) (int, any) {
+			if body["applicationId"] != "app-1" || body["projectId"] != "proj-1" || body["oidcConfiguration"] == nil {
+				t.Errorf("UpdateApplication body = %v", body)
+			}
+			return 200, map[string]any{}
+		},
+	}
+	c, _ := newTestClient(t, v2Fake(t, routes, &seen))
 
 	creds, err := c.EnsureOIDCApp(context.Background(), "proj-1", AppSpec{
 		Name: "Grafana", Type: AppTypeConfidentialWeb, RedirectURIs: []string{"https://x/grafana"},
@@ -163,29 +190,26 @@ func TestHTTPClient_EnsureOIDCApp_ReusesSecretWhenUnchanged(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if regenerateCalled {
-		t.Fatal("the secret must not be regenerated when the client id matches and a secret is on file")
-	}
 	if creds.ClientSecret != "kept-secret" {
 		t.Errorf("ClientSecret = %q, want the preserved secret", creds.ClientSecret)
+	}
+	if len(seen) != 2 {
+		t.Errorf("requests = %v, want only the listing and the update (no secret regeneration)", seen)
 	}
 }
 
 func TestHTTPClient_EnsureOIDCApp_RegeneratesWhenSecretMissing(t *testing.T) {
-	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case strings.HasSuffix(r.URL.Path, "/apps/_search"):
-			writeJSON(w, 200, map[string]any{"result": []map[string]any{
-				{"id": "app-1", "name": "Grafana", "oidcConfig": map[string]any{"clientId": "grafana-client"}},
-			}})
-		case strings.HasSuffix(r.URL.Path, "/oidc_config") && r.Method == http.MethodPut:
-			writeJSON(w, 200, map[string]any{})
-		case strings.HasSuffix(r.URL.Path, "_generate_client_secret"):
-			writeJSON(w, 200, map[string]any{"clientSecret": "fresh-secret"})
-		default:
-			t.Fatalf("unexpected request: %s", r.URL.Path)
-		}
-	})
+	routes := map[string]rpcReply{
+		applicationService + "ListApplications":  appList("Grafana", "grafana-client"),
+		applicationService + "UpdateApplication": ok(map[string]any{}),
+		applicationService + "GenerateClientSecret": func(body map[string]any) (int, any) {
+			if body["applicationId"] != "app-1" || body["projectId"] != "proj-1" {
+				t.Errorf("GenerateClientSecret body = %v", body)
+			}
+			return 200, map[string]any{"clientSecret": "fresh-secret"}
+		},
+	}
+	c, _ := newTestClient(t, v2Fake(t, routes, nil))
 
 	creds, err := c.EnsureOIDCApp(context.Background(), "proj-1", AppSpec{
 		Name: "Grafana", Type: AppTypeConfidentialWeb, RedirectURIs: []string{"https://x/grafana"},
@@ -199,19 +223,49 @@ func TestHTTPClient_EnsureOIDCApp_RegeneratesWhenSecretMissing(t *testing.T) {
 	}
 }
 
-func TestHTTPClient_EnsureOIDCApp_ToleratesNoChangesResponse(t *testing.T) {
-	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case strings.HasSuffix(r.URL.Path, "/apps/_search"):
-			writeJSON(w, 200, map[string]any{"result": []map[string]any{
-				{"id": "app-1", "name": "Alfheim Web", "oidcConfig": map[string]any{"clientId": "web-client"}},
-			}})
-		case strings.HasSuffix(r.URL.Path, "/oidc_config") && r.Method == http.MethodPut:
-			http.Error(w, `{"message":"No changes","id":"COMMAND-1m88i"}`, http.StatusBadRequest)
-		default:
-			t.Fatalf("unexpected request: %s", r.URL.Path)
+func TestHTTPClient_EnsureOIDCApp_Failures(t *testing.T) {
+	spec := AppSpec{Name: "Grafana", Type: AppTypeConfidentialWeb, ExistingClientID: "other"}
+	fail := func(map[string]any) (int, any) { return 403, map[string]any{} }
+	for name, routes := range map[string]map[string]rpcReply{
+		"listing fails": {applicationService + "ListApplications": fail},
+		"create fails": {
+			applicationService + "ListApplications":  ok(map[string]any{}),
+			applicationService + "CreateApplication": fail,
+		},
+		"create returns no client id": {
+			applicationService + "ListApplications":  ok(map[string]any{}),
+			applicationService + "CreateApplication": ok(map[string]any{}),
+		},
+		"update fails": {
+			applicationService + "ListApplications":  appList("Grafana", "c"),
+			applicationService + "UpdateApplication": fail,
+		},
+		"regeneration fails": {
+			applicationService + "ListApplications":     appList("Grafana", "c"),
+			applicationService + "UpdateApplication":    ok(map[string]any{}),
+			applicationService + "GenerateClientSecret": fail,
+		},
+		"regeneration returns no secret": {
+			applicationService + "ListApplications":     appList("Grafana", "c"),
+			applicationService + "UpdateApplication":    ok(map[string]any{}),
+			applicationService + "GenerateClientSecret": ok(map[string]any{}),
+		},
+	} {
+		c, _ := newTestClient(t, v2Fake(t, routes, nil))
+		if _, err := c.EnsureOIDCApp(context.Background(), "proj-1", spec); err == nil {
+			t.Errorf("%s: EnsureOIDCApp() error = nil", name)
 		}
-	})
+	}
+}
+
+func TestHTTPClient_EnsureOIDCApp_ToleratesNoChangesResponse(t *testing.T) {
+	routes := map[string]rpcReply{
+		applicationService + "ListApplications": appList("Alfheim Web", "web-client"),
+		applicationService + "UpdateApplication": func(map[string]any) (int, any) {
+			return 400, map[string]any{"code": "failed_precondition", "message": "No changes (COMMAND-1m88i)"}
+		},
+	}
+	c, _ := newTestClient(t, v2Fake(t, routes, nil))
 
 	creds, err := c.EnsureOIDCApp(context.Background(), "proj-1", AppSpec{
 		Name: "Alfheim Web", Type: AppTypePublicPKCE, RedirectURIs: []string{"https://x/"},
@@ -232,14 +286,14 @@ func TestHTTPClient_RetriesTransientServerErrors(t *testing.T) {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
-		writeJSON(w, 200, map[string]any{"result": []map[string]any{{"id": "proj-1"}}})
+		writeJSON(w, 200, map[string]any{"sub": "u-machine"})
 	})
 
-	id, err := c.EnsureProject(context.Background(), "Alfheim")
+	id, err := c.CurrentUserID(context.Background())
 	if err != nil {
-		t.Fatalf("EnsureProject() error = %v, want the retry to eventually succeed", err)
+		t.Fatalf("CurrentUserID() error = %v, want the retry to eventually succeed", err)
 	}
-	if id != "proj-1" {
+	if id != "u-machine" {
 		t.Errorf("id = %q", id)
 	}
 	if atomic.LoadInt32(&attempts) != 3 {
@@ -357,14 +411,10 @@ func TestHTTPClient_MalformedResponseIsReported(t *testing.T) {
 }
 
 func TestHTTPClient_NoClientIDReturnedIsAnError(t *testing.T) {
-	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case strings.HasSuffix(r.URL.Path, "/projects/_search"):
-			writeJSON(w, 200, map[string]any{"result": []any{}})
-		case r.URL.Path == "/management/v1/projects":
-			writeJSON(w, 200, map[string]any{"id": ""})
-		}
-	})
+	c, _ := newTestClient(t, v2Fake(t, merge(identityRoutes(), map[string]rpcReply{
+		projectService + "ListProjects":  ok(map[string]any{}),
+		projectService + "CreateProject": ok(map[string]any{"projectId": ""}),
+	}), nil))
 	if _, err := c.EnsureProject(context.Background(), "Alfheim"); err == nil {
 		t.Fatal("EnsureProject() error = nil, want an error for an empty id")
 	}
@@ -373,11 +423,9 @@ func TestHTTPClient_NoClientIDReturnedIsAnError(t *testing.T) {
 func TestHTTPClient_RealClockDoesNotBlockForever(t *testing.T) {
 	// Exercises the production Clock default, without waiting for a whole
 	// retry cycle: a single successful call never sleeps at all.
-	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]any{"result": []map[string]any{{"id": "proj-1"}}})
-	})
+	c, _ := newTestClient(t, v2Fake(t, identityRoutes(), nil))
 	c.Clock = nil // exercise the default realClock path
-	if _, err := c.EnsureProject(context.Background(), "Alfheim"); err != nil {
+	if _, err := c.CurrentUserID(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 }

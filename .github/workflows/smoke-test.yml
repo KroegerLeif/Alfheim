@@ -70,6 +70,9 @@ jobs:
           docker compose -f infrastructure/caddy/compose.yml down -v
           docker network rm gateway-net || true
 
+      - name: Gateway Rate Limit and CSP Test
+        run: ./scripts/test-gateway-hardening.sh
+
       - name: Production Core Stack Smoke Test
         run: ./scripts/test-prod-startup.sh
 

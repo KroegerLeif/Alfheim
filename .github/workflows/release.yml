@@ -78,10 +78,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Python 3.12 and uv
-        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+      - name: Setup Python 3.14 and uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
-          python-version: '3.12'
+          python-version: '3.14'
           enable-cache: true
 
       - name: Sync Root Workspace
@@ -118,10 +118,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Python 3.12 and uv
-        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+      - name: Setup Python 3.14 and uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
-          python-version: '3.12'
+          python-version: '3.14'
           enable-cache: true
 
       - name: Sync Backend Dependencies
@@ -151,7 +151,7 @@ jobs:
       - name: Set up Go 1.27
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.27.3'
+          go-version: '1.27.4'
           cache-dependency-path: '${{ matrix.service }}/go.sum'
 
       - name: Check Code Formatting (gofmt)
@@ -172,7 +172,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - name: Setup Node.js 24
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -206,11 +206,11 @@ jobs:
           images=$(cat <<'JSON'
           [
                       {"name": "caddy", "context": "infrastructure/caddy", "dockerfile": "infrastructure/caddy/Dockerfile"},
-            {"name": "dashboard-backend", "context": "core/dashboard/backend", "dockerfile": "core/dashboard/backend/Dockerfile"},
+            {"name": "dashboard-backend", "context": ".", "dockerfile": "core/dashboard/backend/Dockerfile"},
             {"name": "dashboard-frontend", "context": ".", "dockerfile": "core/dashboard/frontend/Dockerfile"},
-            {"name": "household-backend", "context": "core/household/backend", "dockerfile": "core/household/backend/Dockerfile"},
+            {"name": "household-backend", "context": ".", "dockerfile": "core/household/backend/Dockerfile"},
             {"name": "household-frontend", "context": ".", "dockerfile": "core/household/frontend/Dockerfile"},
-            {"name": "chat-backend", "context": "apps/chat/backend", "dockerfile": "apps/chat/backend/Dockerfile"},
+            {"name": "chat-backend", "context": ".", "dockerfile": "apps/chat/backend/Dockerfile"},
             {"name": "chat-frontend", "context": ".", "dockerfile": "apps/chat/frontend/Dockerfile"},
             {"name": "pantry-backend", "context": ".", "dockerfile": "apps/pantry/backend/Dockerfile"},
             {"name": "pantry-frontend", "context": ".", "dockerfile": "apps/pantry/frontend/Dockerfile"},
@@ -256,7 +256,10 @@ jobs:
     permissions:
       # upload-sarif >= 4.39 reads the workflow run to attribute the analysis.
       actions: read
+      # attest-sbom stores the SBOM attestation and signs it keyless (OIDC).
+      attestations: write
       contents: read
+      id-token: write
       packages: write
       security-events: write
     strategy:
@@ -277,7 +280,7 @@ jobs:
 
       - name: Log in to GitHub Container Registry (GHCR)
         if: env.DRY_RUN != 'true'
-        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -316,7 +319,7 @@ jobs:
         # Code scanning needs a public repository (or GitHub Advanced Security);
         # the Trivy gate below blocks the push either way.
         if: always() && matrix.arch == 'amd64' && env.DRY_RUN != 'true' && github.event.repository.visibility == 'public'
-        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           sarif_file: '${{ matrix.name }}-trivy-results.sarif'
           category: 'trivy-image-${{ matrix.name }}'
@@ -345,6 +348,36 @@ jobs:
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.name }}-${{ matrix.arch }}
+          # No unsigned buildx attestations: they would wrap the platform
+          # image in an index, so the digest below (the subject of the signed
+          # SBOM attestation) would not be the platform manifest listed in
+          # the final multi-arch index. Signed provenance and SBOM come from
+          # the attest steps instead.
+          provenance: false
+          sbom: false
+
+      # SPDX SBOM of the image that passed the gate. It also runs in a dry
+      # run, so a broken SBOM step shows up before a release does.
+      - name: Generate SBOM
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: scan/${{ matrix.name }}:${{ github.sha }}-${{ matrix.arch }}
+          format: spdx-json
+          output-file: ${{ runner.temp }}/sbom-${{ matrix.name }}-${{ matrix.arch }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      # Signed (Sigstore keyless) SBOM attestation on the pushed platform
+      # digest, stored next to the image in GHCR and in the repository's
+      # attestation store (gh attestation verify).
+      - name: Attest SBOM
+        if: env.DRY_RUN != 'true'
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-name: ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          sbom-path: ${{ runner.temp }}/sbom-${{ matrix.name }}-${{ matrix.arch }}.spdx.json
+          push-to-registry: true
 
       - name: Export Digest
         if: env.DRY_RUN != 'true'
@@ -375,7 +408,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
+      # Provenance attestation and keyless (GitHub OIDC) cosign signature.
+      attestations: write
       contents: read
+      id-token: write
       packages: write
     strategy:
       fail-fast: false
@@ -397,7 +433,7 @@ jobs:
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Log in to GitHub Container Registry (GHCR)
-        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -426,10 +462,38 @@ jobs:
           docker buildx imagetools create "${tags[@]}" "${sources[@]}"
 
       - name: Inspect Manifest
+        id: manifest
         env:
           REF_NAME: ${{ github.ref_name }}
           IMAGE: ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }}
-        run: docker buildx imagetools inspect "${IMAGE}:${REF_NAME}"
+        run: |
+          docker buildx imagetools inspect "${IMAGE}:${REF_NAME}"
+          digest=$(docker buildx imagetools inspect "${IMAGE}:${REF_NAME}" --format '{{json .Manifest}}' | jq -r .digest)
+          if [[ "${digest}" != sha256:* ]]; then
+            echo "Error: could not resolve the manifest digest of ${IMAGE}:${REF_NAME}."
+            exit 1
+          fi
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+      # Keyless signature bound to this workflow's GitHub OIDC identity. Signs
+      # by digest, never by tag, and --recursive signs every platform manifest
+      # of the index too, so `cosign verify` works on either.
+      - name: Sign Manifest (Cosign Keyless)
+        env:
+          IMAGE: ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }}
+          DIGEST: ${{ steps.manifest.outputs.digest }}
+        run: cosign sign --yes --recursive "${IMAGE}@${DIGEST}"
+
+      # SLSA build provenance for the multi-arch index, pushed to GHCR.
+      - name: Attest Build Provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.name }}
+          subject-digest: ${{ steps.manifest.outputs.digest }}
+          push-to-registry: true
 
   build-installer:
     name: Build Installer Binaries (${{ matrix.goarch }})
@@ -449,7 +513,7 @@ jobs:
       - name: Set up Go 1.27
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.27.3'
+          go-version: '1.27.4'
           cache-dependency-path: 'tools/installer/go.sum'
 
       - name: Build Static Binary
@@ -481,7 +545,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
+      # Provenance attestations and the keyless SHA256SUMS signature.
+      attestations: write
       contents: write
+      id-token: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -519,8 +586,24 @@ jobs:
           sha256sum alfheim-setup_linux_* compose.prod.yaml otelcol-config.yaml init-multiple-dbs.sh vector.toml victoriametrics-scrape.yml verify-stack.sh > SHA256SUMS
           cat SHA256SUMS
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+      # install.sh trusts SHA256SUMS for every asset it downloads; the
+      # Sigstore bundle proves the file came from this workflow on a tag.
+      - name: Sign Checksums (Cosign Keyless)
+        working-directory: dist
+        run: cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
+
+      # SLSA build provenance for every asset listed in SHA256SUMS (installer
+      # binaries and the standalone stack files).
+      - name: Attest Build Provenance for Release Assets
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist/SHA256SUMS
+
       - name: Create GitHub Release & Attach Production Artifacts
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
@@ -531,6 +614,7 @@ jobs:
             dist/alfheim-setup_linux_amd64
             dist/alfheim-setup_linux_arm64
             dist/SHA256SUMS
+            dist/SHA256SUMS.sigstore.json
             dist/compose.prod.yaml
             dist/otelcol-config.yaml
             dist/init-multiple-dbs.sh

@@ -5,6 +5,9 @@ This is the central orchestration repository for `alfheim`, managing common infr
 [![Release](https://img.shields.io/github/v/release/KroegerLeif/Alfheim?include_prereleases)](https://github.com/KroegerLeif/Alfheim/releases)
 [![Installation](https://img.shields.io/badge/docs-homelab--deployment.md-success.svg)](docs/en/how-to/homelab-deployment.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Stack versions](https://img.shields.io/badge/stack-versions-blue.svg)](VERSIONS.md)
+
+**Stack versions** (Go, Python, Node.js, Next.js, PostgreSQL, Zitadel, Caddy, RustFS): see [VERSIONS.md](VERSIONS.md), generated from [`versions.json`](versions.json).
 
 ---
 
@@ -33,9 +36,9 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh | ALFHEIM_CHANNEL=prerelease bash
 ```
 
-👉 **New install?** Follow the [first-run tutorial (docs/tutorials/first-run.md)](docs/en/tutorials/first-run.md), or see the [installer CLI reference (docs/reference/installer-cli.md)](docs/en/reference/installer-cli.md) for every flag.
+👉 **New install?** Follow the [first-run tutorial (docs/en/tutorials/first-run.md)](docs/en/tutorials/first-run.md), or see the [installer CLI reference (docs/en/reference/installer-cli.md)](docs/en/reference/installer-cli.md) for every flag.
 
-👉 **For manual deployment steps and backup strategies, consult the [Self-Hosting & Installation Guide (docs/how-to/homelab-deployment.md)](docs/en/how-to/homelab-deployment.md).**
+👉 **For manual deployment steps and backup strategies, consult the [Self-Hosting & Installation Guide (docs/en/how-to/homelab-deployment.md)](docs/en/how-to/homelab-deployment.md).**
 
 ---
 

@@ -18,6 +18,7 @@ Komplette Parameter-Referenz für den Alfheim-Installer.
 
 ```
 alfheim-setup [flags]
+alfheim-setup update|backup|restore|apps|zitadel-token ...
 ```
 
 ```bash
@@ -55,10 +56,24 @@ Jedes Flag hat ein Umgebungsvariablen-Äquivalent. Das Flag gewinnt, wenn beide 
 | `--api-token TOKEN` | `ALFHEIM_DNS_API_TOKEN`, `HETZNER_API_TOKEN`, `CLOUDFLARE_API_TOKEN`, `DESEC_TOKEN` | DNS-Provider-Token. Erforderlich für `hetzner`, `cloudflare` und `desec`. |
 | `--cert-path DIR` | `ALFHEIM_CERT_PATH` | Absolutes Verzeichnis mit `fullchain.pem` und `privkey.pem`. Nur für `--tls custom`; weglassen zum Standard `./data/caddy/certs/` nutzen. |
 | `--image-tag TAG` | `ALFHEIM_IMAGE_TAG` | Container-Image-Tag. Standard `latest`. |
+| `--apps LISTE` | `ALFHEIM_APPS` | Zu aktivierende optionale Apps: `all`, `none` oder eine kommagetrennte Liste wie `pantry,shopping,telemetry`. Standard bei einer Neuinstallation: `none` (der [Lean Core](../../en/explanation/decisions/0007-lean-core-app-set.md), englisch); ein erneuter Lauf behält das gespeicherte `ALFHEIM_ENABLED_APPS`. Unbekannte Namen und verletzte Abhängigkeiten sind Nutzungsfehler. Ohne das Flag fragt der interaktive Assistent, Telemetrie als eigene Frage mit Standard „aus". `--apps=all` installiert wie bisher alles. |
 | `--db-data-path DIR` | `ALFHEIM_DB_DATA_PATH` | Absolutes Host-Verzeichnis für die PostgreSQL-Daten. Standard: das benannte Volume `postgres_core_data`. |
 | `--object-data-path DIR` | `ALFHEIM_OBJECT_DATA_PATH` | Absolutes Host-Verzeichnis für den RustFS-Objektspeicher. Standard: das benannte Volume `rustfs_data`. |
 | `--metrics-data-path DIR` | `ALFHEIM_METRICS_DATA_PATH` | Absolutes Host-Verzeichnis für VictoriaMetrics. Standard: das benannte Volume `victoriametrics_data`. |
 | `--logs-data-path DIR` | `ALFHEIM_LOGS_DATA_PATH` | Absolutes Host-Verzeichnis für VictoriaLogs. Standard: das benannte Volume `victorialogs_data`. |
+| `--google-client-id ID` | `ALFHEIM_GOOGLE_CLIENT_ID` | „Sign in with Google" mit dieser OAuth-Client-ID einschalten. Braucht `ALFHEIM_GOOGLE_CLIENT_SECRET`. Ein erneuter Lauf behält die Werte aus der `.env`; ohne das Flag bietet der Assistent einen Schritt „external sign-in" an, der standardmäßig übersprungen wird. Siehe [Set up social login](../../en/how-to/social-login.md) (englisch). |
+| — | `ALFHEIM_GOOGLE_CLIENT_SECRET` | Google-OAuth-Client-Secret. Nur über die Umgebung: Ein Flag würde es in der Prozessliste zeigen. |
+| `--apple-client-id ID` | `ALFHEIM_APPLE_CLIENT_ID` | „Sign in with Apple" mit dieser Services ID einschalten. Braucht alle vier Apple-Werte. |
+| `--apple-team-id ID` | `ALFHEIM_APPLE_TEAM_ID` | Team ID des Apple-Entwicklerkontos (10 Zeichen). |
+| `--apple-key-id ID` | `ALFHEIM_APPLE_KEY_ID` | Key ID des Sign-in-with-Apple-Schlüssels (10 Zeichen). |
+| `--apple-private-key-file PFAD` | `ALFHEIM_APPLE_PRIVATE_KEY_FILE` | Absoluter Pfad des `.p8`-Schlüssels. Die Datei muss Modus `0600` oder strenger haben, sonst bricht der Installer ab, bevor ein Container startet. In der `.env` wird nur der Pfad gespeichert. |
+| `--smtp-host HOST` | `ALFHEIM_SMTP_HOST` | SMTP-Server für die E-Mails von Zitadel (Passwort-Zurücksetzung, Einladungen, Verifizierung). Ohne das Flag bietet der Assistent einen Schritt „e-mail (SMTP)" an; ein erneuter Lauf behält die Werte aus der `.env`. Leer lässt E-Mail aus. Siehe [E-Mail einrichten (SMTP)](../how-to/configure-smtp.md). |
+| `--smtp-port PORT` | `ALFHEIM_SMTP_PORT` | SMTP-Port. Standard `587`. |
+| `--smtp-user USER` | `ALFHEIM_SMTP_USER` | SMTP-Benutzer; leer für ein Relay ohne Authentifizierung. Braucht `ALFHEIM_SMTP_PASSWORD`. |
+| — | `ALFHEIM_SMTP_PASSWORD` | SMTP-Passwort. Nur über Umgebung oder `.env`: Ein Flag würde es in der Prozessliste zeigen. |
+| `--smtp-sender-address ADR` | `ALFHEIM_SMTP_SENDER_ADDRESS` | Absenderadresse jeder E-Mail. Mit einem Host erforderlich. |
+| `--smtp-sender-name NAME` | `ALFHEIM_SMTP_SENDER_NAME` | Absendername. Standard `Alfheim`. |
+| `--smtp-tls BOOL` | `ALFHEIM_SMTP_TLS` | `true` (Standard) nutzt implizites TLS oder STARTTLS; `false` nur für ein Relay auf demselben Host. |
 | — | `ALFHEIM_INSTALL_DIR` | Äquivalent zu `--install-dir`. |
 
 ### Release-Auswahl
@@ -115,7 +130,7 @@ Der Modus wird aus dem Installations-Verzeichnis erkannt, nicht durch ein Flag g
 | `.alfheim.installed` vorhanden | **update** | Pull-Images und Neustart. Kein Assistent. Bestehende Secrets werden nie geändert; ein Secret, das ein neueres Release braucht und in der `.env` fehlt, wird erzeugt und angehängt. Fehlende Dienst-Datenbanken legt ein erneuter Lauf von `init-multiple-dbs.sh` an. |
 | `.alfheim.installed` vorhanden, plus `--reconfigure` | **reconfigure** | Assistent läuft erneut; bestehende Secrets werden beibehalten. So wird auch die Domain gewechselt: [Domain wechseln](../how-to/change-domain.md). |
 
-> **Warum Secrets niemals rotiert werden.** Die Neugenerierung von `ZITADEL_MASTERKEY` auf einer konfigurierten Instanz macht ihre Datenbank permanent unlesbar. Jeder bereits in `.env` vorhandene Wert wird weitergeleitet; nur genuinely fehlende werden generiert.
+> **Warum Secrets niemals rotiert werden.** Die Neugenerierung von `ZITADEL_MASTERKEY` auf einer konfigurierten Instanz macht ihre Datenbank permanent unlesbar. Jeder bereits in `.env` vorhandene Wert wird weitergeleitet; nur tatsächlich fehlende werden generiert.
 
 ---
 
@@ -131,13 +146,51 @@ herunter, sichert die vorherigen, setzt `IMAGE_TAG` in der `.env` und führt
 anschließend dieselben Schritte aus wie ein einfacher erneuter Lauf (Secrets
 auffüllen, Zitadel abgleichen, neu starten). Er benötigt eine bestehende
 Installation (eine vorhandene `.env`) und startet nie den Assistenten,
-rotiert nie ein Secret und rührt weder die Root-CA noch den Zitadel-Machinekey/PAT
-noch ein Docker-Volume an. Vollständige Anleitung, Einzeiler und Rollback:
+rotiert nie ein Secret und rührt weder die Root-CA noch ein Docker-Volume an.
+Wie jeder Provisioning-Lauf rotiert er den Zitadel-Maschinenschlüssel und
+widerruft und leert bei einer Installation, die noch ein Bootstrap-PAT hat,
+dieses PAT (siehe [Zitadel-Zugangsdaten](#zitadel-zugangsdaten)). Vollständige
+Anleitung, Einzeiler und Rollback:
 [Eine Installation aktualisieren](../how-to/update-installation.md).
 
 `update` erstellt zuerst ein Backup von Datenbanken und Secrets (siehe unten)
 und bricht ab, wenn das fehlschlägt. Mit `--skip-backup` wird ohne Backup
 aktualisiert.
+
+---
+
+## Das `apps`-Subkommando
+
+```
+alfheim-setup apps list              [--install-dir DIR]
+alfheim-setup apps enable  <name>    [--install-dir DIR]
+alfheim-setup apps disable <name>    [--install-dir DIR]
+```
+
+Listet die Apps des [Lean-Core-App-Sets](../../en/explanation/decisions/0007-lean-core-app-set.md)
+(englisch) auf und schaltet optionale Apps (und `telemetry`) auf einer
+bestehenden Installation ein und aus. Die Auswahl steht als
+`ALFHEIM_ENABLED_APPS` in der `.env`; eine `.env` ohne diesen Wert gilt als
+„jede App aktiviert".
+
+| Aktion | Verhalten |
+| :--- | :--- |
+| `list` | Gibt jede App mit ihrer Stufe (`core` oder `optional`), ihrem Zustand und ihren Abhängigkeiten aus. |
+| `enable <name>` | Trägt die App in `ALFHEIM_ENABLED_APPS` und `COMPOSE_PROFILES` ein (und schreibt `CHAT_MCP_SERVERS` und `PANTRY_BACKEND_URL` passend zur neuen Auswahl um), legt eine fehlende Datenbank an (erneuter Lauf des idempotenten Postgres-Init-Skripts), lädt und startet ihre Container und wartet, bis sie gesund sind. Danach routet sie die App im Caddyfile und startet Caddy neu. Eine bereits aktive App zu aktivieren, bewirkt nichts. |
+| `disable <name>` | Speichert die Änderung, stoppt und entfernt dann die Container der App (`docker compose rm -s -f`). **Volumes und Datenbanken werden nie entfernt**, ein erneutes Aktivieren bringt die Daten also zurück. Ihre Routen antworten danach mit 404 oder leiten zum Dashboard um ([Ingress-Matrix](../../en/reference/ingress-matrix.md#routes-of-disabled-apps), englisch). Eine bereits deaktivierte App zu deaktivieren, bewirkt nichts. |
+
+Das Ein- oder Ausschalten von `telemetry` setzt zusätzlich `OTEL_ENABLED` in
+der `.env`. Jeder andere Compose-Aufruf des Installers (Installation, einfacher
+erneuter Lauf, `update`, `restore`) übergibt dieselben `COMPOSE_PROFILES`, daher
+startet keiner davon eine deaktivierte App. Unbekannte Namen, Kern-Apps
+(`disable dashboard`) und verletzte Abhängigkeiten (`enable shopping` ohne
+`pantry`, `disable pantry` bei aktivem `shopping`) werden mit Exit-Code `1` und
+einer Fehlermeldung abgelehnt, die den Konflikt nennt. `apps` erstellt die
+Dashboard- und Chat-Backends nicht neu, die `ALFHEIM_ENABLED_APPS` und
+`CHAT_MCP_SERVERS` beim Anlegen ihrer Container lesen; das übernimmt das nächste
+`update`. Die Namen für `--apps` und den Speicherbedarf pro App listet der
+[Anwendungskatalog](./apps-catalog.md). Anleitung:
+[Manage apps](../../en/how-to/manage-apps.md) (englisch).
 
 ---
 
@@ -149,7 +202,7 @@ alfheim-setup backup [--output DIR] [--keep N] [--skip-media] [--install-dir DIR
 
 Schreibt ein Archiv `alfheim-backup-<UTC>.tar.gz` (Modus `0600`) mit einem
 `pg_dumpall` aller Datenbanken, dem RustFS-Objektspeicher, `.env`, dem
-Zitadel-Machinekey, Root-CA und Caddy-PKI, den Stack-Dateien und einem
+Zitadel-Machinekey-Verzeichnis und dem Provisioner-Schlüssel, Root-CA und Caddy-PKI, den Stack-Dateien und einem
 `manifest.json` mit Prüfsummen. Der Stack muss laufen. `--output` (oder
 `ALFHEIM_BACKUP_DIR`) ist standardmäßig `<install-dir>/backups`; `--keep`
 behält die N neuesten Archive (Standard 7); `--skip-media` lässt den
@@ -172,15 +225,67 @@ Wahl ist ein frischer Host. Siehe
 
 ---
 
+## Das `zitadel-token`-Subkommando
+
+```
+alfheim-setup zitadel-token --env-file PFAD [--zitadel-url URL] [--zitadel-tls-addr HOST:PORT] [--ca-file PFAD]
+```
+
+Gibt ein Access-Token des Provisioning-Maschinenbenutzers auf stdout aus, für manuelle Aufrufe der Zitadel-APIs. Es tauscht dafür den gespeicherten Maschinenschlüssel neben der `.env` ein und rotiert ihn nicht. Das Token trägt IAM-Owner-Rechte und läuft nach der Access-Token-Lebensdauer von Zitadel ab (standardmäßig 12 Stunden); bewahre es in einer Shell-Variablen auf, nie in einer Datei. Die Verbindungs-Flags funktionieren wie bei `provision`. Es schlägt fehl, solange noch kein Maschinenschlüssel existiert; dann zuerst `provision` oder `update` ausführen.
+
+```bash
+TOKEN=$(alfheim-setup zitadel-token --env-file /opt/alfheim/.env)
+```
+
+---
+
 ## Mehrstufiger Bootstrap
 
 | Phase | Services | Wartet auf |
 | :--- | :--- | :--- |
 | 1 — Edge & Identität | `postgres-core`, `caddy`, `zitadel` | `alfheim_postgres_core` (120 s), `alfheim_caddy` (90 s), `alfheim_zitadel` (300 s) |
-| 2 — Zitadel-Provisionierung | — | Gleicht das Projekt `Alfheim`, den Web-Client und den Grafana-Client über die Management-API ab und schreibt ihre IDs in die `.env` |
-| 3 — Kern & Anwendungs-Stack | alle verbleibenden | `dashboard-backend` (240 s), `dashboard-frontend` (180 s) |
+| 2 — Zitadel-Provisionierung | — | Gleicht das Projekt `Alfheim`, den Web-Client und, bei `OTEL_ENABLED=true`, den Grafana-Client über die Management API ab und schreibt ihre IDs in die `.env`; schaltet die Selbstregistrierung aus und gleicht die konfigurierten Social-Login-Provider und den SMTP-E-Mail-Provider ab |
+| 3 — Kern & Anwendungs-Stack | alle übrigen Dienste des Lean Core und der aktivierten Apps (`COMPOSE_PROFILES`) | `dashboard-backend` (240 s), `dashboard-frontend` (180 s) |
 
-Danach gibt der Installer den Anmeldenamen des Administrators (die eingegebene E-Mail) und das generierte Passwort aus; beim ersten Login ist ein Passwortwechsel Pflicht.
+Beim Provisioning legt der Installer das Zitadel-Projekt „Alfheim" und einen Client an, den sich das Dashboard und jedes App-Frontend teilen. Den Grafana-Client legt er nur bei eingeschalteter Telemetrie an (`OTEL_ENABLED=true` in der `.env`; eine Neuinstallation startet mit ausgeschalteter Telemetrie). Die Client-IDs schreibt er in die `.env`.
+
+### Zitadel-Zugangsdaten
+
+Das Provisioning meldet sich als Zitadel-Maschinenbenutzer `ZITADEL_BOOTSTRAP_USERNAME` mit einem Access-Token an, das innerhalb weniger Stunden abläuft (Access-Token-Lebensdauer von Zitadel, standardmäßig 12 Stunden). Das Token stammt aus einem Maschinenschlüssel in `infrastructure/zitadel/provisioner/machine-key.json` (Modus `0600`, Verzeichnis `0700`):
+
+| Lauf | Verwendete Zugangsdaten | Danach vorhanden |
+| :--- | :--- | :--- |
+| Neuinstallation | Das PAT, das Zitadel nach `infrastructure/zitadel/machinekey/pat.txt` geschrieben hat (Ablauf `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE`) | Ein 90 Tage gültiger Maschinenschlüssel. Jedes PAT des Maschinenbenutzers ist widerrufen, `pat.txt` ist gelöscht. |
+| Update oder erneuter Lauf einer älteren Installation | `ZITADEL_BOOTSTRAP_PAT` aus der `.env` | Wie oben, zusätzlich ist `ZITADEL_BOOTSTRAP_PAT` geleert. |
+| Jeder weitere Lauf | Der gespeicherte Maschinenschlüssel | Ein neuer, 90 Tage gültiger Maschinenschlüssel; der vorherige ist in Zitadel gelöscht. |
+| Gespeicherter Schlüssel abgelehnt (abgelaufen, andere Installation) | Ein PAT aus `pat.txt`, `ZITADEL_BOOTSTRAP_PAT` oder `--pat-file` | Wie bei einer Neuinstallation, plus eine Warnung. |
+
+Schlägt das Löschen eines alten Schlüssels oder PATs fehl, ist das eine Warnung, kein Fehler: Der neue Schlüssel ist bereits gespeichert, und der nächste Lauf versucht es erneut. Ein `update` oder erneuter Lauf setzt außerdem `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` eine Woche nach vorn, wenn das Datum fehlt oder schon vergangen ist, denn Zitadel lehnt ein abgelaufenes Datum ab, wenn es nach einer gelöschten Datenbank seine erste Instanz neu anlegt. Warum dieses Design und was der gespeicherte Schlüssel darf: [Wie sich der Installer bei Zitadel anmeldet](../explanation/authentication-security.md#wie-sich-der-installer-bei-zitadel-anmeldet).
+
+### Social Login
+
+Sind `ALFHEIM_GOOGLE_CLIENT_ID` und `ALFHEIM_GOOGLE_CLIENT_SECRET` gesetzt, legt das Provisioning den Instanz-Identity-Provider „Google" an oder aktualisiert ihn (mit den vier `ALFHEIM_APPLE_*`-Werten auch „Apple", wobei der aus `ALFHEIM_APPLE_PRIVATE_KEY_FILE` gelesene Schlüssel hochgeladen wird), mit den Optionen aus [ADR 0008](../../en/explanation/decisions/0008-social-login-policy.md) (englisch). Es trägt ihn in die Login-Policy ein, schaltet `allowExternalIdp` ein und lässt `allowRegister` aus. Es gibt die beim Provider zu registrierende Redirect-URI aus (die von Apple endet auf `/callback/form`, weil Apple mit einem Formular-POST antwortet) und schreibt `ZITADEL_<PROVIDER>_IDP_FINGERPRINT` in die `.env`. Ein Lauf ohne Änderungen schreibt nichts nach Zitadel. Werden beide Werte geleert, verschwindet der Provider von der Login-Seite, bleibt aber bestehen, damit vorhandene Benutzerverknüpfungen erhalten bleiben. Das versteckte Subkommando `provision` nimmt ebenfalls `--google-client-id ID` und die vier `--apple-*`-Flags an (das Google-Secret aus `ALFHEIM_GOOGLE_CLIENT_SECRET` in der Umgebung oder der `.env`) und schreibt die Werte in die `.env`. Eine zu offene Apple-Schlüsseldatei bricht auf jeder Installation mit einem Fehler ab, ob neu oder bestehend. Auf einer bestehenden Installation ist ein Social-Login-Fehler eine Warnung, sodass der Lauf trotzdem abschließt.
+
+### Zitadel APIs
+
+Das Provisioning nutzt die v2-Dienste von Zitadel überall dort, wo Zitadel 4 eine schreibende API anbietet (#915). Sie werden in der Connect-JSON-Form aufgerufen, `POST /<service>/<method>`, auf dem Auth-Host:
+
+| Ressource | Aufrufe |
+| :--- | :--- |
+| Projekte und Projektrollen | `zitadel.project.v2.ProjectService`: `ListProjects`, `CreateProject`, `GetProject`, `UpdateProject`, `ListProjectRoles`, `AddProjectRole` |
+| OIDC-Anwendungen | `zitadel.application.v2.ApplicationService`: `ListApplications`, `CreateApplication`, `UpdateApplication`, `GenerateClientSecret` |
+| Operator-Rolle | `zitadel.authorization.v2.AuthorizationService`: `ListAuthorizations`, `CreateAuthorization`, `UpdateAuthorization`; Nutzersuche mit `zitadel.user.v2.UserService/ListUsers` |
+| Rotation des Maschinenschlüssels | `zitadel.user.v2.UserService`: `GetUserByID`, `AddKey`, `ListKeys`, `RemoveKey`, `ListPersonalAccessTokens`, `RemovePersonalAccessToken`; der Nutzer des Tokens über den OIDC-Userinfo-Endpunkt |
+
+Drei Bereiche bleiben auf v1, weil Zitadel 4 (geprüft mit v4.20.3) dafür keine schreibende v2-API hat: die Login-Policy (`/admin/v1/policies/login`, `/management/v1/policies/login` und ihre `/idps`-Verknüpfungen), die Identity-Provider-Vorlagen (`/admin/v1/idps/...`) und die SMTP-Provider (`/admin/v1/email/...`). Sie wechseln, sobald Zitadel die Nachfolger liefert. Für Betreiber ändert sich nichts.
+
+### E-Mail (SMTP)
+
+Das Provisioning gleicht über die Admin API von Zitadel (`/admin/v1/email`) genau einen SMTP-E-Mail-Provider ab, der dem Installer gehört (Beschreibung „Alfheim installer (alfheim-setup)"). Ist `ALFHEIM_SMTP_HOST` gesetzt, legt es den Provider an oder aktualisiert ihn, aktiviert ihn und schreibt `ZITADEL_SMTP_FINGERPRINT` in die `.env`, einen Hash, der auch ein geändertes Passwort erkennt; ein Lauf ohne Änderungen schreibt nichts nach Zitadel. Schaltet es E-Mail ein, zeigt es außerdem **Forgot password** auf der Login-Seite (`hidePasswordReset=false`). Bei leerem Host löscht es seinen Provider und setzt `hidePasswordReset=true` in der Login-Policy der Instanz (und einer eigenen Policy der Organisation), damit kein Ablauf auf eine E-Mail wartet; die Selbstregistrierung bleibt in jedem Fall aus. Einen in der Zitadel-Konsole angelegten Provider ändert es nie, und solange einer aktiv ist, bleibt der Link zur Passwort-Zurücksetzung unangetastet. Die Ausgabe nennt, was passiert ist, und die Installationszusammenfassung weist darauf hin, dass Passwort-Zurücksetzung, Einladungen und E-Mail-Verifizierung nicht funktionieren, wenn SMTP übersprungen wurde. Das versteckte Subkommando `provision` nimmt dieselben `--smtp-*`-Flags an (Passwort aus `ALFHEIM_SMTP_PASSWORD` in der Umgebung oder der `.env`) und schreibt die Werte in die `.env`. Auf einer bestehenden Installation ist ein SMTP-Fehler eine Warnung, sodass der Lauf trotzdem abschließt.
+
+### Telemetrie-Schalter
+
+Das versteckte Subkommando `provision` nimmt `--telemetry` (oder `--telemetry=false`) an, um den optionalen Observability-Stack ein- oder auszuschalten. Wie `apps enable|disable telemetry` fügt es das Modul `telemetry` zu `ALFHEIM_ENABLED_APPS` hinzu oder entfernt es und schreibt `COMPOSE_PROFILES` und `OTEL_ENABLED` passend. Bei eingeschalteter Telemetrie legt es den Grafana-Client an; beim Ausschalten bleiben die vorhandenen Grafana-Zugangsdaten für ein späteres Wiedereinschalten erhalten. Ohne das Flag entscheidet `OTEL_ENABLED` aus der `.env`. Übernommen wird die Änderung mit `alfheim-setup update`, das das Caddyfile neu rendert (`/grafana` leitet bei eingeschalteter Telemetrie an Grafana weiter und sonst zum Dashboard um) und die Dienste neu erstellt. Siehe [Grafana-Zugriff](../how-to/grafana-access.md). Am Ende gibt der Installer den Anmeldenamen des Administrators und das generierte Passwort aus; beim ersten Login ist ein Passwortwechsel Pflicht.
 
 ---
 
@@ -201,7 +306,8 @@ Bei Unterbrechung wird das Terminal wiederhergestellt und der Resume-Befehl wird
 
 | Pfad | Modus | Inhalte |
 | :--- | :--- | :--- |
-| `.env` | `0600` | Alle Konfiguration und Berechtigungen. |
+| `.env` | `0600` | Alle Konfiguration und Zugangsdaten. Nach dem ersten Provisioning-Lauf kein Zitadel-Token. |
+| `infrastructure/zitadel/provisioner/machine-key.json` | `0600` (Verzeichnis `0700`) | Maschinenschlüssel des Zitadel-Provisioning-Benutzers, bei jedem Provisioning-Lauf rotiert. Siehe [Zitadel-Zugangsdaten](#zitadel-zugangsdaten). |
 | `infrastructure/caddy/Caddyfile` | `0644` | Gerenderete Ingress-Konfiguration. Enthält keine Berechtigung; DNS-Token sind als `{env.NAME}` referenziert. |
 | `.alfheim.installed` | `0644` | Completion-Marker: Version und Timestamp. |
 | `data/caddy/certs/` | `0700` | Erstellt für `--tls custom` im Standard-Speicherort. |
@@ -233,6 +339,14 @@ ALFHEIM_DNS_API_TOKEN="$CF_TOKEN" alfheim-setup \
   --install-dir /srv/alfheim
 ```
 
+Headless-Installation des Lean Core mit Pantry und Shopping, später die Budget-App ergänzen:
+
+```bash
+alfheim-setup --non-interactive --domain example.com --tls internal \
+  --admin-email ops@example.com --apps pantry,shopping
+alfheim-setup apps enable budget
+```
+
 Domain auf einer laufenden Instanz ändern:
 
 ```bash
@@ -257,6 +371,7 @@ ALFHEIM_CHANNEL=prerelease bash -c "$(curl -fsSL https://raw.githubusercontent.c
 
 * [Tutorial: Ihre erste Installation](../tutorials/first-run.md)
 * [Anleitung: Eine Installation aktualisieren](../how-to/update-installation.md)
+* [Anleitung: E-Mail einrichten (SMTP)](../how-to/configure-smtp.md)
 * [Umgebungsvariablen](./environment-variables.md)
 * [CLI-Skripte](./cli-scripts.md)
 * [ADR 0004](../explanation/decisions/0004-standalone-go-tui-installer.md)

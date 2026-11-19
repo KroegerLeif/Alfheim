@@ -138,3 +138,125 @@ func TestRepairEnvFile(t *testing.T) {
 		t.Error("an idempotent run must not create a backup")
 	}
 }
+
+// TestRepairEnvFileAddsBootstrapPATExpiry covers an install rendered before
+// issue #789: the updated compose.prod.yaml requires the expiry, so update
+// adds it once and leaves an existing value alone.
+func TestRepairEnvFileAddsBootstrapPATExpiry(t *testing.T) {
+	layout, err := paths.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(layout.EnvFile(), []byte("DOCKER_SOCKET_GID=133\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 11, 14, 10, 0, 0, 0, time.UTC)
+	detect := func() (string, error) { return "998", nil }
+	env, _ := envfile.ParseFile(layout.EnvFile())
+
+	var out bytes.Buffer
+	if _, err := repairEnvFile(&out, layout, env, now, detect); err != nil {
+		t.Fatal(err)
+	}
+	after, _ := envfile.ParseFile(layout.EnvFile())
+	if after[bootstrapPATExpiryKey] != "2026-11-21T10:00:00Z" {
+		t.Errorf("%s = %q, want one week after now", bootstrapPATExpiryKey, after[bootstrapPATExpiryKey])
+	}
+	if _, ok := bootstrapPATExpiryRepair(after, now.Add(time.Hour)); ok {
+		t.Error("an expiry still in the future must not be replaced")
+	}
+}
+
+// TestBootstrapPATExpiryRepair covers a database wiped while the old .env is
+// kept: Zitadel refuses to create an already expired first-instance PAT, so a
+// past, unparseable or missing expiry is refreshed with the one-week window of
+// a fresh render, and only a future one is kept.
+func TestBootstrapPATExpiryRepair(t *testing.T) {
+	now := time.Date(2026, 11, 15, 9, 30, 0, 0, time.UTC)
+	const refreshed = "2026-11-22T09:30:00Z"
+	tests := []struct {
+		name    string
+		current string
+		want    string // empty: left alone
+	}{
+		{"missing", "", refreshed},
+		{"blank", "   ", refreshed},
+		{"expired", "2026-03-08T12:00:00Z", refreshed},
+		{"expires right now", "2026-11-15T09:30:00Z", refreshed},
+		{"unparseable", "next week", refreshed},
+		{"future", "2026-11-16T00:00:00Z", ""},
+		{"future with offset", "2026-11-15T11:00:00+01:00", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env := map[string]string{}
+			if tt.current != "" {
+				env[bootstrapPATExpiryKey] = tt.current
+			}
+			r, ok := bootstrapPATExpiryRepair(env, now)
+			if tt.want == "" {
+				if ok {
+					t.Errorf("repair = %+v, want none", r)
+				}
+				return
+			}
+			if !ok || r.to != tt.want || r.from != tt.current {
+				t.Errorf("repair = %+v (ok %v), want %q -> %q", r, ok, tt.current, tt.want)
+			}
+		})
+	}
+}
+
+// TestRefreshBootstrapPATExpiry checks the narrow repair a plain installer
+// re-run applies before Zitadel starts.
+func TestRefreshBootstrapPATExpiry(t *testing.T) {
+	layout, err := paths.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(layout.EnvFile(),
+		[]byte("DOMAIN=example.com\nZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE=2026-03-08T12:00:00Z\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 11, 15, 9, 30, 0, 0, time.UTC)
+	env, _ := envfile.ParseFile(layout.EnvFile())
+
+	var out bytes.Buffer
+	if err := refreshBootstrapPATExpiry(&out, layout, env, now); err != nil {
+		t.Fatal(err)
+	}
+	after, _ := envfile.ParseFile(layout.EnvFile())
+	if after[bootstrapPATExpiryKey] != "2026-11-22T09:30:00Z" || env[bootstrapPATExpiryKey] != after[bootstrapPATExpiryKey] {
+		t.Errorf("%s = %q (in memory %q), want one week after now",
+			bootstrapPATExpiryKey, after[bootstrapPATExpiryKey], env[bootstrapPATExpiryKey])
+	}
+	if after["DOMAIN"] != "example.com" {
+		t.Errorf("unrelated keys changed: %v", after)
+	}
+	if !strings.Contains(out.String(), "Refreshed .env: "+bootstrapPATExpiryKey) {
+		t.Errorf("stdout = %q, want the refresh logged", out.String())
+	}
+
+	out.Reset()
+	if err := refreshBootstrapPATExpiry(&out, layout, after, now); err != nil {
+		t.Fatal(err)
+	}
+	if out.Len() != 0 {
+		t.Errorf("a valid expiry was refreshed again: %q", out.String())
+	}
+}
+
+func TestRefreshBootstrapPATExpiryReportsWriteFailure(t *testing.T) {
+	layout, err := paths.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A directory at the .env path makes the update fail.
+	if err := os.MkdirAll(layout.EnvFile(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := refreshBootstrapPATExpiry(&out, layout, map[string]string{}, time.Now()); err == nil {
+		t.Error("refreshBootstrapPATExpiry() error = nil, want the write failure")
+	}
+}

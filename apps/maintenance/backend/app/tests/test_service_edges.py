@@ -102,7 +102,7 @@ async def test_maintenance_service_submit_wizard_edge_cases(db_session: AsyncSes
 
     await db_session.refresh(step)
     assert step.supply_item == "HEPA 100"
-    assert step.description == "Cleaned thoroughly"
+    assert step.comment == "Cleaned thoroughly"
 
     # 3. A device of another household is reported as not found (tenant isolation)
     with pytest.raises(DeviceNotFoundError):

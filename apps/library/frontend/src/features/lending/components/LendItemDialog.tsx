@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import {
   Button,
   Dialog,
@@ -29,6 +29,7 @@ export function LendItemDialog({
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fieldId = useId();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,10 +72,11 @@ export function LendItemDialog({
           )}
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-main)] mb-1">
+            <label htmlFor={`${fieldId}-borrower`} className="block text-xs font-medium text-[var(--text-main)] mb-1">
               {t("library.lending.borrower")} *
             </label>
             <input
+              id={`${fieldId}-borrower`}
               type="text"
               value={contactName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -88,10 +90,11 @@ export function LendItemDialog({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-main)] mb-1">
+            <label htmlFor={`${fieldId}-due`} className="block text-xs font-medium text-[var(--text-main)] mb-1">
               {t("library.lending.dueDate")}
             </label>
             <input
+              id={`${fieldId}-due`}
               type="date"
               value={dueDate}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -102,10 +105,11 @@ export function LendItemDialog({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-main)] mb-1">
+            <label htmlFor={`${fieldId}-notes`} className="block text-xs font-medium text-[var(--text-main)] mb-1">
               {t("library.lending.notes")}
             </label>
             <textarea
+              id={`${fieldId}-notes`}
               value={notes}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                 setNotes(e.target.value)

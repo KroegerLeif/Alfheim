@@ -21,11 +21,11 @@ export const accountsApi = {
   },
 
   async createAccount(data: AccountCreate): Promise<Account> {
-    return budgetClient.post("accounts", { json: data }).json<Account>();
+    return budgetClient.post("accounts", data).json<Account>();
   },
 
   async updateAccount(id: string, data: AccountUpdate): Promise<Account> {
-    return budgetClient.patch(`accounts/${id}`, { json: data }).json<Account>();
+    return budgetClient.patch(`accounts/${id}`, data).json<Account>();
   },
 
   async deleteAccount(id: string): Promise<void> {

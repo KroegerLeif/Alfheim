@@ -3,10 +3,10 @@
 import uuid
 
 from backend_shared.household import HouseholdContext, require_household
+from backend_shared.household.permissions import require_admin, require_writer
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
-from src.core.permissions import require_admin, require_writer
 from src.features.categories import (
     CategoryCreate,
     CategoryRead,

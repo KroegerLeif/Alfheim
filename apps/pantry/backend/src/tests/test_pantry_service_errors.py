@@ -1,9 +1,11 @@
+import logging
 import uuid
 from unittest.mock import AsyncMock, patch
 
+import httpx
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.categories.models import Category, CategoryCreate, CategoryUpdate
 from src.features.categories.service import CategoryService
@@ -173,14 +175,56 @@ async def test_bulk_add_missing_backlog_and_exception_handling(db_session: Async
     db_session.add(backlog)
     await db_session.commit()
 
-    # 2. Barcode lookup throws exception -> fallback to name match (or unrecognized)
-    with patch(
-        "src.features.products.service.ProductService.get_or_create_by_barcode", side_effect=Exception("API Down")
+    # 2. A barcode lookup that fails for an unexpected reason is a bug: it propagates instead of
+    #    being reported as an unknown product (#630).
+    with (
+        patch(
+            "src.features.products.service.ProductService.get_or_create_by_barcode",
+            side_effect=RuntimeError("bug"),
+        ),
+        pytest.raises(RuntimeError, match="bug"),
     ):
-        res2 = await InventoryService.bulk_add_items(db_session, payload, fresh_home_id)
-        assert len(res2.successful_items) == 0
-        assert len(res2.unrecognized_items) == 1
-        assert res2.unrecognized_items[0].reason == "pantry.error.product_not_found"
+        await InventoryService.bulk_add_items(db_session, payload, fresh_home_id)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        OperationalError("SELECT", {}, Exception("connection reset")),
+        httpx.ConnectTimeout("Open Food Facts timed out"),
+        TimeoutError("lookup timed out"),
+    ],
+)
+async def test_bulk_add_reports_a_transient_lookup_failure_distinctly(
+    db_session: AsyncSession, caplog: pytest.LogCaptureFixture, error: Exception
+):
+    """A database or lookup outage is logged and reported as lookup_unavailable, not product_not_found (#630)."""
+    home_id = uuid.uuid4()
+    db_session.add(Location(name="Backlog", home_id=home_id, is_system=True))
+    db_session.add(Product(name="Apples", barcode="999999999999", base_unit=BaseUnit.PIECE, is_global=True))
+    await db_session.commit()
+    item_id = uuid.uuid4()
+    payload = BulkAddInventoryPayload(
+        items=[
+            BulkAddProductItem(
+                shopping_item_id=item_id, name="Apples", barcode="999999999999", quantity=2.0, unit="piece"
+            )
+        ]
+    )
+
+    with (
+        patch("src.features.products.service.ProductService.get_or_create_by_barcode", side_effect=error),
+        caplog.at_level(logging.WARNING, logger="src.features.inventory.service"),
+    ):
+        res = await InventoryService.bulk_add_items(db_session, payload, home_id)
+
+    assert res.successful_items == []
+    assert len(res.unrecognized_items) == 1
+    unrecognized = res.unrecognized_items[0]
+    assert unrecognized.shopping_item_id == item_id
+    # The name match is skipped too: the product exists, the lookup just could not run.
+    assert unrecognized.reason == "pantry.error.lookup_unavailable"
+    assert "Barcode lookup failed during bulk add" in caplog.text
 
 
 async def test_category_service_and_router_errors(client: AsyncClient, db_session: AsyncSession):

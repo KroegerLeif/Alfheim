@@ -25,8 +25,10 @@ from fastapi import FastAPI
 
 from backend_shared.household import (
     HouseholdContext,
+    HouseholdMember,
     HouseholdRole,
     derive_user_id,
+    get_member_directory,
     get_membership_lookup,
     normalize_memberships,
     require_household,
@@ -56,6 +58,14 @@ class StaticMembershipLookup:
         self.calls.append((household_id, user_sub))
         return self.memberships.get((household_id, user_sub))
 
+    async def list_members(self, household_id: uuid.UUID) -> list[HouseholdMember]:
+        """Return the configured members of ``household_id`` with their derived user ids."""
+        return [
+            HouseholdMember(user_sub=sub, user_id=derive_user_id(sub), role=role)
+            for (hh, sub), role in self.memberships.items()
+            if hh == household_id
+        ]
+
 
 def override_membership(
     app: FastAPI, memberships: Mapping[tuple[uuid.UUID | str, str], HouseholdRole] | None = None
@@ -67,6 +77,7 @@ def override_membership(
     """
     lookup = StaticMembershipLookup(memberships)
     app.dependency_overrides[get_membership_lookup] = lambda: lookup
+    app.dependency_overrides[get_member_directory] = lambda: lookup
     return lookup
 
 

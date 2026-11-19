@@ -1,5 +1,5 @@
 import React from 'react'
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { describe, it, expect, beforeAll } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { renderWithProviders } from '../../../../tests/test-utils'
@@ -63,5 +63,33 @@ describe('SystemShellLogs', () => {
     server.use(http.get('*api/v1/telemetry/logs', () => new HttpResponse(null, { status: 500 })))
     renderWithProviders(<SystemShellLogs />, undefined, language)
     expect(await screen.findByRole('alert')).toHaveTextContent(message)
+  })
+
+  it('answers status from the live app health instead of fixed text (#640)', async () => {
+    server.use(
+      http.get('*api/v1/telemetry/logs', () => HttpResponse.json({ available: true, logs: [], total: 0 })),
+      http.get('*api/v1/apps/health', () =>
+        HttpResponse.json({ apps: { pantry: 'online', chat: 'offline' }, checked_at: '2026-11-15T10:00:00Z' })
+      )
+    )
+    renderWithProviders(<SystemShellLogs />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'status' } })
+    fireEvent.submit(screen.getByRole('textbox').closest('form')!)
+
+    expect(await screen.findByText('$ status')).toBeInTheDocument()
+    expect(await screen.findByText('App backends: 1/2 online, 0 degraded, 1 offline.')).toBeInTheDocument()
+    expect(screen.queryByText(/6\/6 Containers/)).not.toBeInTheDocument()
+  })
+
+  it('clears the feed without asking the backend', async () => {
+    server.use(http.get('*api/v1/telemetry/logs', () => HttpResponse.json({ available: true, logs: [], total: 0 })))
+    renderWithProviders(<SystemShellLogs />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'help' } })
+    fireEvent.submit(screen.getByRole('textbox').closest('form')!)
+    expect(await screen.findByText(/Available commands/)).toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'clear' } })
+    fireEvent.submit(screen.getByRole('textbox').closest('form')!)
+    expect(screen.queryByText(/Available commands/)).not.toBeInTheDocument()
   })
 })

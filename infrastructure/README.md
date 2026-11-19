@@ -12,7 +12,7 @@ in `compose.prod.yaml` rather than in a subdirectory here.
 | Service | Location | Purpose |
 | :--- | :--- | :--- |
 | `caddy` | [`caddy/`](./caddy/README.md) | Central reverse proxy and ingress gateway. Terminates TLS and routes the frontend, IAM and API domains. |
-| `postgres-core` | [`postgres/`](./postgres/README.md) | Shared PostgreSQL 16 cluster. Hosts one isolated database per service, each owned by a dedicated least-privilege user. |
+| `postgres-core` | [`postgres/`](./postgres/README.md) | Shared PostgreSQL 18 cluster. Hosts one isolated database per service, each owned by a dedicated least-privilege user. |
 | `rustfs` | [`rustfs/`](./rustfs/README.md) | S3-compatible object storage for attachments and presigned uploads. |
 | VictoriaStack | [`telemetry/`](./telemetry/README.md) | Vector, OpenTelemetry Collector, VictoriaMetrics, VictoriaLogs and Grafana. |
 | `zitadel` | `compose.prod.yaml` | Central OIDC identity provider. Served on its own `auth.*` host; stores state in the `zitadel` database on `postgres-core`. |

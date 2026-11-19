@@ -21,7 +21,7 @@ export function useShoppingHistory() {
     queryKey: historyKeys.household(householdId),
     queryFn: () =>
       shoppingClient
-        .get("api/v1/shopping-history")
+        .get("shopping-history")
         .json()
         .then((data) => z.array(ShoppingHistorySchema).parse(data)),
     enabled: status === "ready",
@@ -37,7 +37,7 @@ export function useDeleteHistoryEntry() {
   return useMutation<void, Error, string>({
     mutationFn: (historyId) =>
       shoppingClient
-        .delete(`api/v1/shopping-history/${historyId}`)
+        .delete(`shopping-history/${historyId}`)
         .then(() => {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: historyKeys.all });

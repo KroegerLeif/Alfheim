@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
@@ -17,9 +18,9 @@ import (
 	"alfheim/chat/config"
 	"alfheim/chat/internal/features/mcpservers"
 	"alfheim/chat/internal/features/modelblocks"
-	"alfheim/chat/internal/shared/db"
-	"alfheim/chat/internal/shared/middleware"
 	"alfheim/chat/internal/shared/storage"
+	"alfheim/go-shared/auth"
+	"alfheim/go-shared/db"
 )
 
 // TestMain supplies the required ALFHEIM_INTERNAL_TOKEN so tests exercising the
@@ -41,40 +42,13 @@ func TestSetupAuthenticator_FailClosed(t *testing.T) {
 		},
 	}
 
-	auth, err := setupAuthenticator(cfg, log)
+	authenticator, err := setupAuthenticator(t.Context(), cfg, log)
 	if err == nil {
 		t.Errorf("expected error when setting up authenticator with unreachable issuer URL, got nil")
 	}
-	if auth != nil {
-		t.Errorf("expected nil authenticator when setup fails, got %v", auth)
+	if authenticator != nil {
+		t.Errorf("expected nil authenticator when setup fails, got %v", authenticator)
 	}
-}
-
-func TestHealthHandler(t *testing.T) {
-	t.Run("nil dbClient returns 503", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/health", nil)
-		rec := httptest.NewRecorder()
-		handler := healthHandler(nil)
-		handler.ServeHTTP(rec, req)
-
-		if rec.Code != http.StatusServiceUnavailable {
-			t.Errorf("expected status 503, got %d", rec.Code)
-		}
-		if !strings.Contains(rec.Body.String(), `"status":"degraded"`) {
-			t.Errorf("expected degraded status, got %s", rec.Body.String())
-		}
-	})
-
-	t.Run("nil pool returns 503", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/health", nil)
-		rec := httptest.NewRecorder()
-		handler := healthHandler(&db.Client{Pool: nil})
-		handler.ServeHTTP(rec, req)
-
-		if rec.Code != http.StatusServiceUnavailable {
-			t.Errorf("expected status 503, got %d", rec.Code)
-		}
-	})
 }
 
 func passthroughAuth(next http.Handler) http.Handler { return next }
@@ -86,21 +60,20 @@ func TestBuildRouter_PanicsWithoutAuth(t *testing.T) {
 			t.Fatal("expected buildRouter to panic when auth middleware is nil")
 		}
 	}()
-	buildRouter(log, &db.Client{Pool: nil}, nil, nil, nil, nil, nil, nil)
+	buildRouter(log, &db.Client{Pool: nil}, nil, nil, nil, nil, nil, nil, nil)
 }
 
 func TestBuildRouter(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dbClient := &db.Client{Pool: nil}
 
-	router := buildRouter(log, dbClient, passthroughAuth, nil, nil, nil, nil, nil)
+	router := buildRouter(log, dbClient, nil, passthroughAuth, nil, nil, nil, nil, nil)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/health", nil)
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusServiceUnavailable {
-		t.Errorf("expected status 503, got %d", rec.Code)
+	if got := probeStatus(t, router, "/readyz"); got != http.StatusServiceUnavailable {
+		t.Errorf("/readyz without a readiness check = %d, want 503", got)
+	}
+	if got := probeStatus(t, router, "/api/v1/chat/health"); got == http.StatusOK {
+		t.Errorf("the retired /api/v1/chat/health probe still answers %d", got)
 	}
 }
 
@@ -156,7 +129,7 @@ func TestRun_AuthenticatorError(t *testing.T) {
 	newDBClient = func(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*db.Client, error) {
 		return &db.Client{Pool: nil}, nil
 	}
-	setupAuth = func(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
+	setupAuth = func(_ context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
 		return nil, errors.New("auth setup failed")
 	}
 
@@ -179,8 +152,8 @@ func TestRun_EnsureBootstrapError(t *testing.T) {
 	newDBClient = func(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*db.Client, error) {
 		return &db.Client{Pool: nil}, nil
 	}
-	setupAuth = func(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-		return &middleware.Authenticator{}, nil
+	setupAuth = func(_ context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
+		return &auth.Authenticator{}, nil
 	}
 	ensureBootstrap = func(ctx context.Context, s modelblocks.Service, seed modelblocks.BootstrapSeed) error {
 		return errors.New("simulated bootstrap error")
@@ -193,6 +166,8 @@ func TestRun_EnsureBootstrapError(t *testing.T) {
 }
 
 func TestRun_SeedFromEnvError(t *testing.T) {
+	// The registry is only seeded when CHAT_MCP_SERVERS is present.
+	t.Setenv("CHAT_MCP_SERVERS", "pantry=http://pantry-backend:8000/mcp")
 	origNewDB := newDBClient
 	origSetupAuth := setupAuth
 	origSeedMCPServers := seedMCPServers
@@ -207,8 +182,8 @@ func TestRun_SeedFromEnvError(t *testing.T) {
 	newDBClient = func(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*db.Client, error) {
 		return &db.Client{Pool: nil}, nil
 	}
-	setupAuth = func(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-		return &middleware.Authenticator{}, nil
+	setupAuth = func(_ context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
+		return &auth.Authenticator{}, nil
 	}
 	ensureBootstrap = func(ctx context.Context, s modelblocks.Service, seed modelblocks.BootstrapSeed) error {
 		return nil
@@ -240,8 +215,8 @@ func TestRun_GracefulShutdown_ContextCancel(t *testing.T) {
 	newDBClient = func(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*db.Client, error) {
 		return &db.Client{Pool: nil}, nil
 	}
-	setupAuth = func(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-		return &middleware.Authenticator{}, nil
+	setupAuth = func(_ context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
+		return &auth.Authenticator{}, nil
 	}
 	newStorage = func(ctx context.Context, cfg config.StorageConfig) (storage.Client, error) {
 		return nil, errors.New("storage warning test")
@@ -302,8 +277,8 @@ func TestRun_GracefulShutdown_Signal(t *testing.T) {
 	newDBClient = func(ctx context.Context, cfg config.DatabaseConfig, log *slog.Logger) (*db.Client, error) {
 		return &db.Client{Pool: nil}, nil
 	}
-	setupAuth = func(cfg *config.Config, log *slog.Logger) (*middleware.Authenticator, error) {
-		return &middleware.Authenticator{}, nil
+	setupAuth = func(_ context.Context, cfg *config.Config, log *slog.Logger) (*auth.Authenticator, error) {
+		return &auth.Authenticator{}, nil
 	}
 	// Mocked so startup doesn't block on the real AWS SDK's default credential
 	// chain resolution (e.g. IMDS probing), which would otherwise race with —
@@ -370,5 +345,50 @@ func TestMain_Function(t *testing.T) {
 
 	if exitCode != 1 {
 		t.Errorf("expected exit code 1, got %d", exitCode)
+	}
+}
+
+// probeStatus returns the status router answers path with.
+func probeStatus(t *testing.T, router http.Handler, path string) int {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+	return rec.Code
+}
+
+func TestBuildRouter_Probes(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	up := func(context.Context) error { return nil }
+	down := func(context.Context) error { return errors.New("connection refused") }
+
+	healthy := buildRouter(log, &db.Client{}, up, passthroughAuth, nil, nil, nil, nil, nil)
+	if got := probeStatus(t, healthy, "/healthz"); got != http.StatusOK {
+		t.Errorf("/healthz = %d, want 200", got)
+	}
+	if got := probeStatus(t, healthy, "/readyz"); got != http.StatusOK {
+		t.Errorf("/readyz with a reachable database = %d, want 200", got)
+	}
+
+	degraded := buildRouter(log, &db.Client{}, down, passthroughAuth, nil, nil, nil, nil, nil)
+	if got := probeStatus(t, degraded, "/healthz"); got != http.StatusOK {
+		t.Errorf("/healthz with the database down = %d, want 200 (liveness ignores it)", got)
+	}
+	if got := probeStatus(t, degraded, "/readyz"); got != http.StatusServiceUnavailable {
+		t.Errorf("/readyz with the database down = %d, want 503", got)
+	}
+}
+
+func TestReadinessCheck_UnreadableMigrationsStaysUnready(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	check := readinessCheck(&db.Client{}, filepath.Join(t.TempDir(), "missing"), log)
+	if err := check(context.Background()); err == nil {
+		t.Error("a missing migrations directory must keep the backend unready")
+	}
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "000001_init.up.sql"), []byte("SELECT 1;"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := readinessCheck(&db.Client{}, dir, log)(context.Background()); err == nil {
+		t.Error("a client without a pool must not be ready")
 	}
 }

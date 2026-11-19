@@ -18,11 +18,11 @@ export const potsApi = {
   },
 
   async createPot(data: PotCreate): Promise<Pot> {
-    return budgetClient.post("pots", { json: data }).json<Pot>();
+    return budgetClient.post("pots", data).json<Pot>();
   },
 
   async updatePot(id: string, data: PotUpdate): Promise<Pot> {
-    return budgetClient.patch(`pots/${id}`, { json: data }).json<Pot>();
+    return budgetClient.patch(`pots/${id}`, data).json<Pot>();
   },
 
   async deletePot(id: string): Promise<void> {
@@ -30,7 +30,7 @@ export const potsApi = {
   },
 
   async allocateCascade(data: CascadeAllocationRequest): Promise<CascadeAllocationResponse> {
-    return budgetClient.post("pots/cascade", { json: data }).json<CascadeAllocationResponse>();
+    return budgetClient.post("pots/cascade", data).json<CascadeAllocationResponse>();
   },
 
   async calculateSinkingFundGap(id: string): Promise<SinkingFundCalculationResponse> {

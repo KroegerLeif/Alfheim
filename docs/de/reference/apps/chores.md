@@ -23,7 +23,7 @@ Quelle: [`apps/chores/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/c
 
 ## 🏗️ Architektur & Tech Stack
 
-- **Backend:** Python 3.12 / FastAPI-Microservice mit SQLModel (async SQLAlchemy), FastMCP-KI-Tools und Background-Reset-Scheduler-Schleife.
+- **Backend:** Python 3.14 / FastAPI-Microservice mit SQLModel (async SQLAlchemy), FastMCP-KI-Tools und Background-Reset-Scheduler-Schleife.
 - **Frontend:** Next.js 16 (App Router) Microfrontend, TanStack Query, Tailwind CSS v4 und `@alfheim/shared`.
 - **Datenbank:** Gehostet auf `postgres-core` (`alfheim_chores`-Datenbank, Besitzer `chores_user`).
 
@@ -80,7 +80,8 @@ Aufgaben wiederholen sich immer täglich; der einzige Schalter pro Vorlage ist `
 - **Nicht-kumulative Vorlagen (Standard):** Eine unerledigte Instanz des Vortags wird als `missed` markiert, eine frische `pending`-Instanz erzeugt und der Haushalt-Streak auf 0 zurückgesetzt.
 - **Kumulative Vorlagen:** Eine unerledigte Instanz wird nicht als verpasst markiert. Sie rollt weiter (ihr `due_date` wird heute) und stapelt sich, bis sie jemand abschließt. Für sich allein setzt sie den Streak nicht zurück.
 - **Streak:** Der Streak wächst um eins, wenn alle Instanzen eines Tages abgeschlossen sind, entweder beim Abschluss der letzten oder beim Reset des Folgetags. Eine Lücke von mehr als einem Tag ohne Instanzen setzt ihn auf 0 zurück. Übersprungene Tage werden nicht nachgefüllt.
-- **Zuweisen und Übernehmen:** Jedes Mitglied kann eine nicht zugewiesene Aufgabe für sich übernehmen oder die eigene Übernahme aufheben. Das Zuweisen an ein anderes Mitglied erfordert die Haushaltsrolle `OWNER` oder `ADMIN` und ein Mitglied als Ziel. Eine abgeschlossene oder verpasste Instanz kann nicht neu zugewiesen werden.
+- **Zuweisen und Übernehmen:** Jedes Mitglied kann eine nicht zugewiesene Aufgabe für sich übernehmen oder die eigene Übernahme aufheben. Das Zuweisen an ein anderes Mitglied erfordert die Haushaltsrolle `OWNER` oder `ADMIN` und ein Ziel, dessen Benutzer-ID zu einem Mitglied des Haushalts gehört (abgeglichen mit der Mitgliederliste der Household-App, daher funktionieren auch Mitglieder ohne UUID-Subject); ein schreibgeschützter `GUEST` kann nicht zugewiesen werden (`422`). Eine abgeschlossene oder verpasste Instanz kann nicht neu zugewiesen werden.
+- **Abgleich der Zuweisungen:** `GET /api/v1/chores/today` gibt offene Aufgaben frei, deren zugewiesene Person den Haushalt verlassen hat oder `GUEST` geworden ist. Abgeschlossene und verpasste Aufgaben behalten ihre zugewiesene Person als Verlauf. Ist die Mitgliederliste nicht lesbar, werden die Aufgaben unverändert geliefert.
 - **Abschließen:** Als Benutzer wird immer der authentifizierte Aufrufer gespeichert; nur der Anzeigename darf vom Client mitgegeben werden.
 
 ---
@@ -156,7 +157,5 @@ Invarianten:
 ## ⚠️ Bekannte Probleme & offene Folgearbeiten
 
 Keine bekannten offenen Probleme über die allgemeinen Punkte zur Haushalts-Autorisierung in [Bekannte Probleme](../../explanation/known-issues.md) hinaus.
-
-- **Zuweisungen werden nach Mitgliedschaftsänderungen nicht abgeglichen (#581).** Eine Aufgabe behält ihre zugewiesene Person, auch wenn diese den Haushalt verlässt. Rollenwechsel spielen keine Rolle: Übernehmen und Abschließen stehen jeder Mitgliedsrolle offen. Für den Abgleich muss die gespeicherte (abgeleitete) Benutzer-ID gegen die Mitgliederliste des Haushalts aufgelöst werden; `GET /internal/v1/households/{householdId}/members` existiert, `backend_shared` hat dafür aber noch keinen Client (#583).
 
 ---

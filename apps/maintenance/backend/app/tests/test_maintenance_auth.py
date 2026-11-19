@@ -27,13 +27,6 @@ DEVICE_PAYLOAD = {
 
 
 @pytest.mark.asyncio
-async def test_maintenance_health(client: AsyncClient):
-    response = await client.get("/api/v1/health")
-    assert response.status_code == 200
-    assert response.json()["status"] == "ok"
-
-
-@pytest.mark.asyncio
 async def test_device_creation_and_retrieval(client: AsyncClient, membership: StaticMembershipLookup):
     response = await client.post("/api/v1/devices", json=DEVICE_PAYLOAD)
     assert response.status_code == 201

@@ -67,6 +67,7 @@
       "title": "Lending Tracker",
       "subtitle": "Overview of lent media and contacts",
       "lendItem": "Lend Item",
+      "lendFromCatalog": "Lend an item",
       "markReturned": "Mark as Returned",
       "statusAvailable": "Available",
       "statusLent": "Lent Out",

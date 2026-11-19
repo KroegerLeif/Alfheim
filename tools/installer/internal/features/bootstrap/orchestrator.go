@@ -22,6 +22,9 @@ type Orchestrator struct {
 	layout paths.Layout
 	clock  clock
 	log    io.Writer
+	// env is passed to every compose invocation; it carries
+	// COMPOSE_PROFILES once WithProfiles is set.
+	env []string
 }
 
 // Option customises an Orchestrator.
@@ -32,6 +35,15 @@ func WithClock(c clock) Option { return func(o *Orchestrator) { o.clock = c } }
 
 // WithLogger directs progress output to w.
 func WithLogger(w io.Writer) Option { return func(o *Orchestrator) { o.log = w } }
+
+// WithProfiles passes COMPOSE_PROFILES=<profiles> to every compose call, so
+// only the enabled optional apps start. An empty list is passed as well: it
+// overrides any COMPOSE_PROFILES in .env and starts the Lean Core only.
+func WithProfiles(profiles []string) Option {
+	return func(o *Orchestrator) {
+		o.env = []string{"COMPOSE_PROFILES=" + strings.Join(profiles, ",")}
+	}
+}
 
 // New returns an Orchestrator.
 func New(r runner.Runner, l paths.Layout, opts ...Option) *Orchestrator {
@@ -193,6 +205,7 @@ func (o *Orchestrator) compose(ctx context.Context, args []string) error {
 		Name:   "docker",
 		Args:   full,
 		Dir:    o.layout.Root,
+		Env:    o.env,
 		Stdout: o.log,
 	})
 	if err != nil {

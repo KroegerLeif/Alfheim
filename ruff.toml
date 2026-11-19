@@ -1,4 +1,7 @@
-target-version = "py312"
+target-version = "py314"
+# Repository scripts run on the host or CI runner's own python3, not in the 3.14
+# images, so they keep syntax that Python 3.12 understands.
+per-file-target-version = { "scripts/**" = "py312" }
 line-length = 120
 indent-width = 4
 
@@ -9,7 +12,7 @@ select = [
     "F",     # pyflakes
     "I",     # isort / import ordering
     "B",     # flake8-bugbear
-    "UP",    # pyupgrade (Python 3.12 modern idioms)
+    "UP",    # pyupgrade (Python 3.14 modern idioms)
     "ASYNC", # flake8-async (asyncio safety)
     "FAST",  # FastAPI specific best practices
     "T20",   # flake8-print (prevent rogue print statements)

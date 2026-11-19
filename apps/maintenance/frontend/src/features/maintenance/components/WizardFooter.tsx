@@ -3,7 +3,7 @@
 import React from "react";
 import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { cn } from "@/core/utils";
+import { cn } from "@alfheim/shared";
 
 interface WizardFooterProps {
   currentStepIndex: number;

@@ -102,3 +102,11 @@ export interface TelemetryLogsResponse {
 export interface UserCapabilities {
   operator: boolean;
 }
+
+/** Live state of one app backend, probed by the dashboard backend (GET /api/v1/apps/health). */
+export type AppHealthState = 'online' | 'degraded' | 'offline';
+
+export interface AppHealthResponse {
+  apps: Record<string, AppHealthState>;
+  checked_at: string;
+}

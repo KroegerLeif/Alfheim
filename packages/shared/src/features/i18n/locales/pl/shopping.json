@@ -26,6 +26,7 @@
     "einlagernBtn": "Zapisz do spiżarni",
     "pantryBadge": "Spiżarnia",
     "pantryLegend": "Powiązano ze spiżarnią — zostanie automatycznie dodane do zapasów",
+    "pantryUnavailable": "Spiżarnia nie jest zainstalowana, więc zakupy nie są dodawane do zapasów.",
     "share": "Udostępnij",
     "print": "Drukuj",
     "clearCompleted": "Usuń ukończone",
@@ -105,7 +106,8 @@
     "reasonProductNotFound": "Spiżarnia nadal nie znajduje produktu o tej nazwie ani kodzie kreskowym.",
     "reasonInvalidUnit": "Spiżarnia nie zna jednostki tego artykułu.",
     "reasonIncompatibleUnits": "Jednostka nie pasuje do jednostki wpisu w katalogu.",
-    "reasonSystemLocationMissing": "Spiżarnia nie ma jeszcze miejsca przechowywania nowych zapasów. Otwórz Spiżarnię raz, aby je utworzyć."
+    "reasonSystemLocationMissing": "Spiżarnia nie ma jeszcze miejsca przechowywania nowych zapasów. Otwórz Spiżarnię raz, aby je utworzyć.",
+    "reasonLookupUnavailable": "Pantry nie mogła teraz wyszukać tej pozycji. Spróbuj ponownie za chwilę."
   },
   "Error": {
     "nameRequired": "Nazwa artykułu jest wymagana",

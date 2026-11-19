@@ -26,6 +26,7 @@
     "einlagernBtn": "Pantry Transfer",
     "pantryBadge": "Pantry",
     "pantryLegend": "Linked with Pantry app — will be automatically added to stock",
+    "pantryUnavailable": "Pantry is not installed, so purchases are not added to stock.",
     "share": "Share",
     "print": "Print",
     "clearCompleted": "Clear Completed",
@@ -105,7 +106,8 @@
     "reasonProductNotFound": "Pantry still cannot find a product with this name or barcode.",
     "reasonInvalidUnit": "Pantry does not know the unit of this item.",
     "reasonIncompatibleUnits": "The unit does not match the unit of the catalog entry.",
-    "reasonSystemLocationMissing": "Pantry has no storage location for new stock yet. Open Pantry once to set it up."
+    "reasonSystemLocationMissing": "Pantry has no storage location for new stock yet. Open Pantry once to set it up.",
+    "reasonLookupUnavailable": "Pantry could not look up this item right now. Try again in a moment."
   },
   "Error": {
     "nameRequired": "Item name is required",

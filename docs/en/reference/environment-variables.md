@@ -12,6 +12,8 @@ sidebar:
 ## 📋 Table of Contents
 - [Root Platform Configuration](#root-platform-configuration)
 - [Identity & Access Management (Generic OIDC & Zitadel)](#identity--access-management-generic-oidc--zitadel)
+- [Social Login](#social-login)
+- [E-mail (SMTP)](#e-mail-smtp)
 - [Object Storage (RustFS S3)](#object-storage-rustfs-s3)
 - [Data Locations](#data-locations)
 - [Observability Stack (VictoriaStack & Telemetry)](#observability-stack-victoriastack--telemetry)
@@ -30,12 +32,15 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
 | `ALFHEIM_BASE_URL` | `https://alfheim.loegien.de` | Root public domain for frontend ingress |
+| `ALFHEIM_CORS_ORIGINS` | _(rendered: `ALFHEIM_BASE_URL`)_ | Origins allowed to call the production backends cross-origin, comma-separated exact `scheme://host[:port]` entries, never a wildcard (#921). The installer renders the public app origin on every run; `compose.prod.yaml` passes it to every backend as `CORS_ORIGINS` (FastAPI) and `CORS_ALLOWED_ORIGINS` (Go) and falls back to `ALFHEIM_BASE_URL` when it is unset. Empty allows no cross-origin access. See [CORS](../explanation/authentication-security.md#cross-origin-requests-cors) |
 | `ALFHEIM_HOST` | `alfheim.loegien.de` | Canonical hostname for the main application |
 | `DOMAIN` | `loegien.de` | Root domain for all services |
 | `IMAGE_REGISTRY` | `ghcr.io` | Container image registry |
 | `IMAGE_REPO` | `kroegerleif/alfheim` | Container image repository |
 | `IMAGE_TAG` | _(required)_ | Container image tag. `compose.prod.yaml` refuses to start without it; the installer always writes it (default: the installer's own release version, `latest` for a development build) |
 | `CADDY_TLS_DIRECTIVE` | _(empty)_ | Optional Caddy TLS override (`tls internal` for locally signed HTTPS; leave empty for auto-HTTPS) |
+| `ALFHEIM_ENABLED_APPS` | _(unset: every app)_ | Comma-separated optional apps that run, for example `pantry,shopping,telemetry`. Core apps are always on and need not be listed; an empty value is the Lean Core. Written by `alfheim-setup apps enable/disable` ([Installer CLI](./installer-cli.md#the-apps-subcommand), [ADR 0007](../explanation/decisions/0007-lean-core-app-set.md)). `compose.prod.yaml` passes it to `dashboard-backend` (as `all` when unset), which lists only the enabled apps' tiles |
+| `COMPOSE_PROFILES` | every profile | Compose profiles to start, read by `docker compose` from `.env`. Each optional app has a profile named after it (`pantry`, `shopping`, `budget`, `chores`, `library`, `workout`, `maintenance`, `chat`) plus `telemetry`; the Lean Core has none and always starts. `.env.example` lists every profile so the dev stack starts everything; the installer keeps it in line with `ALFHEIM_ENABLED_APPS`. An empty value starts the Lean Core only |
 | `ALFHEIM_EXTRA_CA_FILE` | _(empty)_ | In-container path to a PEM bundle of extra root CAs that server-side OIDC clients (Python backends, dashboard and chat Go backends, Grafana via `GF_AUTH_GENERIC_OAUTH_TLS_CLIENT_CA`) trust **in addition to** the system roots. The installer sets `/etc/alfheim/ca/alfheim-root-ca.crt` for the `internal` TLS strategy (host directory `infrastructure/ca/`, mounted read-only) and leaves it empty otherwise. An unreadable or non-PEM file is reported as an error naming the path, never silently ignored |
 
 ---
@@ -58,6 +63,51 @@ Configured centrally in root `.env` (generated from `.env.example` via `./script
 | `ZITADEL_DB_NAME` | `zitadel` | Zitadel database name |
 | `ZITADEL_DB_USER` | `zitadel_user` | Zitadel database user |
 | `ZITADEL_DB_PASSWORD` | `postgres` | Zitadel database password |
+| `ZITADEL_BOOTSTRAP_USERNAME` | `alfheim-bootstrap` | Machine user Zitadel creates with its first instance; `alfheim-setup` provisions as this user |
+| `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` | _(render time + 7 days, UTC)_ | Expiry of the PAT Zitadel creates for that user on first init. Required by `compose.prod.yaml`. `alfheim-setup update` and a re-run of `alfheim-setup` add it when missing and move it one week ahead when it is past (a database wiped while `.env` is kept), as `scripts/init-env.sh` does. Ignored once the instance exists. |
+| `ZITADEL_BOOTSTRAP_PAT` | _(empty)_ | Stays empty. Set it only to recover after the machine key expired; the next provisioning run uses it once, revokes it in Zitadel and clears it. See [Zitadel credential](installer-cli.md#zitadel-credential). |
+
+The Zitadel service in `compose.prod.yaml` and `infrastructure/compose.yml` also sets two values that are not read from `.env`, because the rest of the stack depends on them. Both apply only when Zitadel creates its instance:
+
+| Variable | Value | Description |
+| :--- | :--- | :--- |
+| `ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED` | `false` | Keeps the built-in Login V1 at `/ui/login`; Login V2 would need a separate `zitadel-login` container |
+| `ZITADEL_DEFAULTINSTANCE_WEBKEYS_TYPE` | `rsa` | Signs tokens with RSA web keys, matching the `RS256` check in every backend |
+
+---
+
+## Social Login
+
+Optional. Read only by `alfheim-setup` (install, re-run, `update`, `provision`), which configures the providers in Zitadel; no container reads them, except `ALFHEIM_SIGNUP_ALLOWLIST`, which `household-backend` reads. Empty values keep a provider off. See [Set up social login](../how-to/social-login.md) and [ADR 0008](../explanation/decisions/0008-social-login-policy.md).
+
+| Variable | Default Value | Description |
+| :--- | :--- | :--- |
+| `ALFHEIM_GOOGLE_CLIENT_ID` | _(empty)_ | Google OAuth client ID. Set together with the secret to add "Sign in with Google"; flag `--google-client-id`. |
+| `ALFHEIM_GOOGLE_CLIENT_SECRET` | _(empty)_ | Google OAuth client secret. Environment or `.env` only (no flag), never printed. |
+| `ZITADEL_GOOGLE_IDP_FINGERPRINT` | _(written by provisioning)_ | SHA-256 over the configured Google credentials, so the next run detects a rotated secret. A hash, not the secret. Do not edit. |
+| `ALFHEIM_APPLE_CLIENT_ID` | _(empty)_ | Apple Services ID. Set all four Apple values to add "Sign in with Apple"; flag `--apple-client-id`. |
+| `ALFHEIM_APPLE_TEAM_ID` | _(empty)_ | Apple developer Team ID (10 characters); flag `--apple-team-id`. |
+| `ALFHEIM_APPLE_KEY_ID` | _(empty)_ | Key ID of the Sign in with Apple key (10 characters); flag `--apple-key-id`. |
+| `ALFHEIM_APPLE_PRIVATE_KEY_FILE` | _(empty)_ | Absolute path of the `.p8` key file, mode `0600` or stricter (the installer refuses anything looser). Only the path is stored; the key is uploaded to Zitadel. Flag `--apple-private-key-file`. |
+| `ZITADEL_APPLE_IDP_FINGERPRINT` | _(written by provisioning)_ | SHA-256 over the configured Apple values including the key, so a replaced key is detected. Do not edit. |
+| `ALFHEIM_SIGNUP_ALLOWLIST` | _(empty)_ | Optional sign-up allowlist ([ADR 0009](../explanation/decisions/0009-signup-allowlist.md)): comma-separated e-mail addresses (`alice@example.com`) and domains (`@example.com` or `example.com`). When set, a user who belongs to no household may create one only if their **verified** e-mail address or its domain is listed; invited users can always join. Empty keeps the open behaviour of ADR 0008. A malformed entry stops `household-backend` at startup. Kept across installer re-runs. |
+
+---
+
+## E-mail (SMTP)
+
+Optional. Read only by `alfheim-setup` (install, re-run, `update`, `provision`), which configures Zitadel's SMTP e-mail provider; no container reads them. An empty host keeps e-mail off: password reset, invitations and e-mail verification then do not work and the login page hides **Forgot password**. See [Configure e-mail (SMTP)](../how-to/configure-smtp.md).
+
+| Variable | Default Value | Description |
+| :--- | :--- | :--- |
+| `ALFHEIM_SMTP_HOST` | _(empty)_ | SMTP server host name, without port or scheme; flag `--smtp-host`. `mailpit` in the local stack. |
+| `ALFHEIM_SMTP_PORT` | `587` once a host is set | SMTP port; flag `--smtp-port`. |
+| `ALFHEIM_SMTP_USER` | _(empty)_ | SMTP user; empty for a relay without authentication. Set together with the password; flag `--smtp-user`. |
+| `ALFHEIM_SMTP_PASSWORD` | _(empty)_ | SMTP password. Environment or `.env` only (no flag), never printed. |
+| `ALFHEIM_SMTP_SENDER_ADDRESS` | _(empty)_ | From address of every e-mail, required with a host; flag `--smtp-sender-address`. |
+| `ALFHEIM_SMTP_SENDER_NAME` | `Alfheim` once a host is set | From name; flag `--smtp-sender-name`. |
+| `ALFHEIM_SMTP_TLS` | `true` once a host is set | `true` uses implicit TLS or STARTTLS; `false` only for a relay on the same host. Flag `--smtp-tls`. |
+| `ZITADEL_SMTP_FINGERPRINT` | _(written by provisioning)_ | SHA-256 over the configured SMTP values including the password, so a changed password is detected. A hash, not the password. Do not edit. |
 
 ---
 
@@ -83,7 +133,7 @@ By default every data class lives in a Docker named volume. Setting one of these
 
 | Variable | Default | Mounted at | Owner the directory needs |
 | :--- | :--- | :--- | :--- |
-| `ALFHEIM_DB_DATA_PATH` | _(empty: volume `postgres_core_data`)_ | PostgreSQL `/var/lib/postgresql/data` | `70:70`, mode `0700` (alpine `postgres` user) |
+| `ALFHEIM_DB_DATA_PATH` | _(empty: volume `postgres_core_data`)_ | PostgreSQL `/var/lib/postgresql` | `70:70`, mode `0700` (alpine `postgres` user) |
 | `ALFHEIM_OBJECT_DATA_PATH` | _(empty: volume `rustfs_data`)_ | RustFS `/data` | `10001:10001`, mode `0700` |
 | `ALFHEIM_METRICS_DATA_PATH` | _(empty: volume `victoriametrics_data`)_ | VictoriaMetrics `/victoria-metrics-data` | `0:0` (the image runs as root) |
 | `ALFHEIM_LOGS_DATA_PATH` | _(empty: volume `victorialogs_data`)_ | VictoriaLogs `/victoria-logs-data` | `0:0` (the image runs as root) |
@@ -92,7 +142,7 @@ Notes:
 
 - Paths must be absolute, must not contain `:` and must differ from each other. Grafana and Caddy keep their named volumes.
 - Do not change a variable on a running install by editing `.env` alone: the new directory starts empty. Migrate with `alfheim-setup backup`, stop the stack, set the variable (or re-run `alfheim-setup --reconfigure` with the flag), then `alfheim-setup restore`. Backup and restore work the same for volumes and bind mounts.
-- PostgreSQL 18 images keep the data in a version subdirectory below `/var/lib/postgresql`. When you upgrade to that major version, change the mount target together with the image; the directory you configured here then holds `18/docker`.
+- The `postgres:18-alpine` image keeps its cluster in `/var/lib/postgresql/18/docker`, so the directory you configure here holds an `18/docker` subdirectory. The image refuses to start when something is mounted at the old `/var/lib/postgresql/data` target, and it does not upgrade a cluster from an earlier major version: a data directory created by PostgreSQL 16 must be removed and the install recreated. New clusters have data checksums enabled.
 
 ---
 
@@ -100,12 +150,13 @@ Notes:
 
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
+| `OTEL_ENABLED` | `false` | Turns the optional observability stack on. `compose.prod.yaml` passes it to every FastAPI backend (`${OTEL_ENABLED:-false}`); the installer creates Grafana's OIDC client only when it is `true`. It follows the `telemetry` module of `ALFHEIM_ENABLED_APPS`; `alfheim-setup apps enable|disable telemetry` writes both, and an installation from before the Lean Core gets `true` on its first update. With it off the backends export nothing and never contact the collector. The development `.env.example` sets `true` because `scripts/up.sh` starts the observability stack by default |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://otel-collector:4317` | OTLP gRPC endpoint for metrics and trace export |
 | `OTEL_EXPORTER_OTLP_INSECURE` | `true` | Allow unencrypted OTLP connections (set to `false` for TLS) |
 | `GRAFANA_ADMIN_USER` | `admin` | Grafana initial admin username |
 | `GRAFANA_ADMIN_PASSWORD` | `admin` | Grafana initial admin password |
 | `GRAFANA_OIDC_CLIENT_ID` | `alfheim-grafana` | Zitadel OIDC client ID for Grafana SSO |
-| `GRAFANA_OIDC_CLIENT_SECRET` | _(auto-provisioned)_ | Zitadel OIDC client secret for Grafana SSO (set by `alfheim-setup provision` / the installer's provisioning step) |
+| `GRAFANA_OIDC_CLIENT_SECRET` | _(auto-provisioned)_ | Zitadel OIDC client secret for Grafana SSO (set by `alfheim-setup provision` / the installer's provisioning step, only while `OTEL_ENABLED=true`) |
 
 Grafana SSO is restricted to users holding the Zitadel project role `alfheim_operator`; everyone else is denied. The local `admin` login keeps working. See [Grant Grafana access](../how-to/grafana-access.md).
 
@@ -116,15 +167,17 @@ Grafana SSO is restricted to users holding the Zitadel project role `alfheim_ope
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
 | `{SERVICE}_DATABASE_URL` | _(constructed)_ | Explicit PostgreSQL connection string for a service (e.g., `DASHBOARD_DATABASE_URL`, `PANTRY_DATABASE_URL`); when empty, services construct it from `{SERVICE}_POSTGRES_*` variables |
+| `CORS_ORIGINS` / `CORS_ALLOWED_ORIGINS` | _(dev hosts in development, none in production)_ | Cross-origin allowlist of the FastAPI and Go backends, comma-separated (FastAPI also accepts a JSON list). `compose.prod.yaml` sets both from `ALFHEIM_CORS_ORIGINS`. A wildcard or a malformed entry stops the backend at startup |
+| `ENVIRONMENT` | `development` | `production` in `compose.prod.yaml` for every backend: production logging (INFO, no source) and no fallback to the development CORS hosts |
 | `TESTING` | _(unset)_ | Set to `true` only in backend test suites; bypasses JWT verification. Never set it in a deployed stack |
-| `OTEL_ENABLED` | _(per compose file)_ | Enables OpenTelemetry collection in the FastAPI backends |
+| `OTEL_ENABLED` | `false` | Enables OpenTelemetry export in the FastAPI backends; see [Observability Stack](#observability-stack-victoriastack--telemetry) |
 | `CHAT_ENCRYPTION_KEY` | _(empty)_ | AES-256-GCM key (base64-encoded) for encrypting stored LLM API keys and credentials |
 | `CHAT_ENCRYPTION_KEY_ID` | `v1` | Version identifier for the encryption key (used for key rotation) |
 | `CHAT_ATTACHMENT_URL_SECRET` | _(empty)_ | HMAC key (at least 32 bytes) signing chat attachment download URLs. Required in production; generated by the installer |
 | `CHAT_ATTACHMENT_URL_TTL_MINUTES` | `15` | Lifetime of a signed chat attachment download URL |
-| `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp` | Comma-separated MCP server definitions for the chat assistant |
+| `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp` | Comma-separated MCP server definitions for the chat assistant. The installer rewrites it from `ALFHEIM_ENABLED_APPS` (only enabled tool apps) on install, update and `alfheim-setup apps`. An empty value is kept (no tools); only a missing one gets the default list |
 | `CHAT_ALLOWED_LLM_HOSTS` | `host.docker.internal` | Comma-separated host names, IPs and CIDR ranges that model block base URLs may point to even though they are private (see below) |
-| `PANTRY_BACKEND_URL` | `http://pantry-backend:8000` | Internal URL for shopping list service to reach the pantry inventory API |
+| `PANTRY_BACKEND_URL` | `http://pantry-backend:8000` | Internal URL for shopping list service to reach the pantry inventory API. The installer writes it from `ALFHEIM_ENABLED_APPS`: empty while pantry is disabled, which hides the shopping pantry sync |
 | `GOOGLE_BOOKS_API_KEY` | _(empty)_ | Google Books API key for library metadata enrichment (optional; leave empty to disable) |
 | `TMDB_API_KEY` | _(empty)_ | The Movie Database API key for library media metadata enrichment (optional; leave empty to disable) |
 | `MAX_MANUAL_UPLOAD_BYTES` | `52428800` | Largest accepted library manual PDF upload in bytes (50 MiB); larger uploads are rejected with HTTP 413 |
@@ -144,7 +197,7 @@ Bootstrap model blocks (seeded from `CHAT_BOOTSTRAP_*`) are managed by the serve
 
 ## Household & Roles Service (`core/household`)
 
-Tier-1 core service that owns households and member roles. `compose.prod.yaml` runs it as `household-backend` (Go, port `8080`, health `GET /healthz`) and `household-frontend` (Next.js, port `3000`, basePath `/household`). The frontend takes the same variables as `dashboard-frontend` (`NEXT_PUBLIC_OIDC_ISSUER`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` from `ALFHEIM_WEB_CLIENT_ID`, `ALFHEIM_BASE_URL`).
+Tier-1 core service that owns households and member roles. `compose.prod.yaml` runs it as `household-backend` (Go, port `8080`, liveness `GET /healthz`, readiness `GET /readyz`) and `household-frontend` (Next.js, port `3000`, basePath `/household`). The frontend takes the same variables as `dashboard-frontend` (`NEXT_PUBLIC_OIDC_ISSUER`, `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` from `ALFHEIM_WEB_CLIENT_ID`, `ALFHEIM_BASE_URL`).
 
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
@@ -192,6 +245,17 @@ Automatic TLS certificate issuance via Let's Encrypt. See `docs/en/how-to/hetzne
 | `CLOUDFLARE_API_TOKEN` | _(empty)_ | Cloudflare API token for DNS-01 challenges (required if using Cloudflare DNS) |
 | `DESEC_TOKEN` | _(empty)_ | deSEC API token for DNS-01 challenges (required if using deSEC) |
 
+### Gateway rate limits
+
+Requests per minute and client IP that Caddy allows before it answers `429`. Optional: unset keeps the default, and `alfheim-setup --reconfigure` keeps a value you set. See [Tune the gateway rate limits](../how-to/tune-rate-limits.md).
+
+| Variable | Default Value | Description |
+| :--- | :--- | :--- |
+| `ALFHEIM_RATE_LIMIT_LOGIN` | `30` | Form posts to the Zitadel login (`POST /ui/login/*`, `/ui/v2/login/*`) |
+| `ALFHEIM_RATE_LIMIT_AUTH` | `600` | Every request to the `auth.*` host |
+| `ALFHEIM_RATE_LIMIT_API` | `1200` | Every `/api/v1` request |
+| `ALFHEIM_RATE_LIMIT_LOOKUP` | `60` | Library ISBN/BGG/TMDB lookups and pantry barcode lookups |
+
 ---
 
 ## PostgreSQL Database Credentials
@@ -203,6 +267,10 @@ Microservice-specific database users and databases created on the shared `postgr
 | `POSTGRES_USER` | `postgres` | PostgreSQL superuser (used for initial setup) |
 | `POSTGRES_PASSWORD` | `super_secret_local_password` | PostgreSQL superuser password |
 | `POSTGRES_DB` | `postgres` | PostgreSQL default database name |
+| `POSTGRES_SHARED_BUFFERS` | `64MB` | `shared_buffers` of `postgres-core`, sized for Lean Core; raise to `128MB` with every app on a host with spare RAM |
+| `POSTGRES_MAX_CONNECTIONS` | `100` | `max_connections` of `postgres-core`; covers Zitadel and every backend's pool |
+| `POSTGRES_WORK_MEM` | `4MB` | `work_mem` of `postgres-core` (per sort or hash operation) |
+| `ALFHEIM_ENV` | `production` | Set on `postgres-core` by the compose file, not in `.env`. Only `development` (set by `infrastructure/compose.yml`) lets `init-multiple-dbs.sh` fall back to the password `postgres` |
 | `{SERVICE}_POSTGRES_USER` | `{service}_user` | Database user for a service (e.g., `DASHBOARD_POSTGRES_USER`) |
-| `{SERVICE}_POSTGRES_PASSWORD` | `postgres` | Database password for a service |
+| `{SERVICE}_POSTGRES_PASSWORD` | `postgres` (development only) | Database password for a service. Required in `compose.prod.yaml`; `init-multiple-dbs.sh` stops when it is empty unless `ALFHEIM_ENV=development` |
 | `{SERVICE}_POSTGRES_DB` | `alfheim_{service}` | Database name for a service |

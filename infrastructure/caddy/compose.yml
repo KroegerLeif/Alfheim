@@ -8,7 +8,11 @@ x-logging: &default-logging
 
 services:
   caddy:
-    image: caddy:2.11.6
+    # Built from ./Dockerfile like the release image: the stock caddy image
+    # lacks the rate_limit directive the Caddyfile uses.
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: alfheim_caddy
     restart: unless-stopped
     logging: *default-logging
@@ -17,6 +21,8 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Static page for a stopped or missing app (handle_errors in the Caddyfile).
+      - ./errors:/srv/alfheim-errors:ro
       - caddy_data:/data
       - caddy_config:/config
     healthcheck:

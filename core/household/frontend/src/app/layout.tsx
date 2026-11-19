@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
-import { AppShell, AuthGuard } from '@alfheim/shared';
+import { AppShell, AuthGuard, createAppMetadata } from '@alfheim/shared';
 import { LanguageProvider, ThemeProvider, QueryProvider } from '@/core/providers';
 import { AppHeader, AppSidebar } from '@/components/AppChrome';
 import { OnboardingGate } from '@/components/OnboardingGate';
@@ -19,6 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  ...createAppMetadata({ app: 'household' }),
   title: 'Alfheim OS | Household',
   description: 'Household, member and role management for Alfheim OS.',
 };

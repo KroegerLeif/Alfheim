@@ -2,6 +2,9 @@
 {
 	admin off
 	auto_https off
+	# rate_limit is a plugin directive without a default position; run it
+	# before any other handler so a throttled request never reaches a backend.
+	order rate_limit before basic_auth
 }
 
 # =============================================================================
@@ -15,11 +18,13 @@
 # (the library PDF viewer) loads a same-origin /storage URL, so SAMEORIGIN is
 # the tightest value that does not break it.
 #
-# Content-Security-Policy-Report-Only documents the intended baseline but is
-# NOT enforced yet: Next.js emits inline bootstrap scripts, so enforcing
-# script-src without nonces would break every frontend. Violations show up in
-# the browser console. connect-src lists the auth host because the browser
-# talks to Zitadel's OIDC endpoints directly.
+# Content-Security-Policy is enforced. Zitadel and Grafana send their own
+# policy, which the "?" prefix keeps. Next.js emits inline bootstrap scripts
+# without nonces, so script-src still allows 'unsafe-inline'; everything else
+# is pinned to this origin plus the few third parties the shared UI needs:
+# - connect-src: the auth host (the browser talks to Zitadel's OIDC endpoints
+#   directly) and Nominatim (AddressAutocomplete).
+# - img-src: CARTO map tiles and the Leaflet marker icons (OSMMapViewer).
 # HSTS is deliberately absent: the dev stack is plain HTTP.
 # =============================================================================
 (security_headers) {
@@ -28,9 +33,167 @@
 		?Referrer-Policy "strict-origin-when-cross-origin"
 		?X-Frame-Options "SAMEORIGIN"
 		?Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
-		?Content-Security-Policy "frame-ancestors 'self'"
-		?Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://auth.{$ALFHEIM_HOST:alfheim.loegien.de} https://auth.{$ALFHEIM_HOST:alfheim.loegien.de} http://auth.alfheim.loegien.localhost https://auth.alfheim.loegien.localhost; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		?Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.basemaps.cartocdn.com https://cdnjs.cloudflare.com; font-src 'self' data:; connect-src 'self' http://auth.{$ALFHEIM_HOST:alfheim.loegien.de} https://auth.{$ALFHEIM_HOST:alfheim.loegien.de} http://auth.alfheim.loegien.localhost https://auth.alfheim.loegien.localhost https://nominatim.openstreetmap.org; worker-src 'self' blob:; frame-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
 		-Server
+	}
+}
+
+# =============================================================================
+# Rate limits per client IP (mholt/caddy-ratelimit, compiled into the Caddy
+# image). Each zone counts requests in a sliding one-minute window; a request
+# above the limit gets 429 with Retry-After. A request can match several
+# zones and counts against each of them. Tune the limits with the
+# ALFHEIM_RATE_LIMIT_* variables (requests per minute), see
+# docs/en/how-to/tune-rate-limits.md.
+#
+# - auth_login: form posts to Zitadel's login UI (password, MFA, register).
+#   One sign-in takes 2-4 posts, so 30 per minute stops password guessing
+#   without hurting a household that shares one public IP.
+# - auth: everything else on the auth host. The login and console pages pull
+#   dozens of assets, and the OIDC token and JWKS calls land here too.
+# - lookup: library and pantry lookups that call ISBN, BGG, TMDB and Open
+#   Food Facts upstream and would otherwise burn their quotas.
+# - api: every /api/v1 route. Generous: a page load fires several calls.
+# =============================================================================
+(auth_rate_limit) {
+	rate_limit {
+		zone auth_login {
+			match {
+				method POST
+				path /ui/login/* /ui/v2/login/*
+			}
+			key {client_ip}
+			events {$ALFHEIM_RATE_LIMIT_LOGIN:30}
+			window 1m
+		}
+		zone auth {
+			key {client_ip}
+			events {$ALFHEIM_RATE_LIMIT_AUTH:600}
+			window 1m
+		}
+	}
+}
+
+(api_rate_limit) {
+	rate_limit {
+		zone lookup {
+			match {
+				path /api/v1/library/lookup* /library/api/v1/lookup* /api/v1/pantry/products/barcode/* /pantry/api/v1/products/barcode/*
+			}
+			key {client_ip}
+			events {$ALFHEIM_RATE_LIMIT_LOOKUP:60}
+			window 1m
+		}
+		zone api {
+			match {
+				path /api/v1/* */api/v1/*
+			}
+			key {client_ip}
+			events {$ALFHEIM_RATE_LIMIT_API:1200}
+			window 1m
+		}
+	}
+}
+
+# The central API host serves the app APIs without the /api/v1 prefix too
+# (/pantry/..., /library/...), so everything except storage and Grafana counts.
+# Zone names are global in Caddy, hence the separate names.
+(api_host_rate_limit) {
+	rate_limit {
+		zone api_host_lookup {
+			match {
+				path /api/v1/library/lookup* /library/api/v1/lookup* /library/lookup* /api/v1/pantry/products/barcode/* /pantry/api/v1/products/barcode/* /pantry/products/barcode/*
+			}
+			key {client_ip}
+			events {$ALFHEIM_RATE_LIMIT_LOOKUP:60}
+			window 1m
+		}
+		zone api_host {
+			match {
+				not path /storage* /grafana*
+			}
+			key {client_ip}
+			events {$ALFHEIM_RATE_LIMIT_API:1200}
+			window 1m
+		}
+	}
+}
+
+# Answers a throttled request. Browsers navigating to a page get plain text,
+# API clients a JSON body; rate_limit already set Retry-After.
+(rate_limited) {
+	handle_errors 429 {
+		# Error routes start without the headers of the failed route.
+		import security_headers
+		header Cache-Control "no-store"
+		@page header Accept *text/html*
+		handle @page {
+			respond "Too many requests. Try again in a minute." 429
+		}
+		handle {
+			header Content-Type "application/json"
+			respond `{"error":"rate_limited","message":"Too many requests. Try again in a minute."}` 429
+		}
+	}
+}
+
+# =============================================================================
+# App backends and unavailable apps, imported by the site blocks below.
+#
+# app_backend <upstream> <health path> proxies to an app backend. Passive
+# retries (lb_try_duration) let a request wait briefly for a backend that is
+# restarting instead of answering 502 at once; the active health check takes a
+# stopped backend out of rotation, so later requests fail fast with 503.
+#
+# app_unavailable answers a stopped, restarting or missing app (502, 503,
+# 504 from any upstream) with a clear error instead of an empty 502: API paths
+# get a JSON body, page paths the static page from errors/ (no external
+# assets, so it passes the CSP above). Caddy stays a host and prefix mapper:
+# the error routes only replace the failed response.
+# =============================================================================
+(app_backend) {
+	reverse_proxy {args[0]} {
+		lb_try_duration 3s
+		lb_try_interval 250ms
+		fail_duration 10s
+		health_uri {args[1]}
+		health_interval 15s
+		health_timeout 3s
+	}
+}
+
+(unavailable_json) {
+	header Content-Type "application/json"
+	respond `{"error":"service_unavailable","message":"This app is not available right now. Try again in a moment."}` 503
+}
+
+(app_unavailable) {
+	handle_errors 502 503 504 {
+		# Error routes start without the headers of the failed route.
+		import security_headers
+		header Retry-After "30"
+		header Cache-Control "no-store"
+		@api path */api/v1*
+		handle @api {
+			import unavailable_json
+		}
+		handle {
+			root * /srv/alfheim-errors
+			rewrite * /app-unavailable.html
+			file_server {
+				status 503
+			}
+		}
+	}
+}
+
+(api_unavailable) {
+	handle_errors 502 503 504 {
+		# Error routes start without the headers of the failed route.
+		import security_headers
+		header Retry-After "30"
+		header Cache-Control "no-store"
+		import unavailable_json
 	}
 }
 
@@ -43,6 +206,8 @@ http://auth.{$ALFHEIM_HOST:alfheim.loegien.de}, https://auth.{$ALFHEIM_HOST:alfh
 	{$CADDY_TLS_DIRECTIVE:}
 
 	import security_headers
+	import auth_rate_limit
+	import rate_limited
 
 	reverse_proxy zitadel:8080 {
 		# Zitadel speaks gRPC-Web / HTTP/2 to its own frontend and API.
@@ -59,6 +224,9 @@ http://{$ALFHEIM_HOST:alfheim.loegien.de}, https://{$ALFHEIM_HOST:alfheim.loegie
 	{$CADDY_TLS_DIRECTIVE:}
 
 	import security_headers
+	import app_unavailable
+	import api_rate_limit
+	import rate_limited
 
 	# Dedicated Ingress Gateway Healthcheck Endpoint (isolated from downstream services)
 	handle /livez {
@@ -72,87 +240,87 @@ http://{$ALFHEIM_HOST:alfheim.loegien.de}, https://{$ALFHEIM_HOST:alfheim.loegie
 	# API Gateway Proxies on Frontend Domain (allows relative /api/v1/... calls without CORS)
 	handle_path /api/v1/maintenance* {
 		rewrite * /api/v1{path}
-		reverse_proxy maintenance-backend:8000
+		import app_backend maintenance-backend:8000 /readyz
 	}
 	handle_path /maintenance/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy maintenance-backend:8000
+		import app_backend maintenance-backend:8000 /readyz
 	}
 
 	handle_path /api/v1/pantry* {
 		rewrite * /api/v1{path}
-		reverse_proxy pantry-backend:8000
+		import app_backend pantry-backend:8000 /readyz
 	}
 	handle_path /pantry/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy pantry-backend:8000
+		import app_backend pantry-backend:8000 /readyz
 	}
 
 	# Pass-through: the shopping backend already serves /api/v1/shopping-lists,
 	# /api/v1/shopping/items and /api/v1/shopping-history, so stripping the prefix
 	# would turn them into /api/v1-lists and /api/v1/items (404).
 	handle /api/v1/shopping* {
-		reverse_proxy shopping-backend:8000
+		import app_backend shopping-backend:8000 /readyz
 	}
 	handle_path /shopping/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy shopping-backend:8000
+		import app_backend shopping-backend:8000 /readyz
 	}
 
 	handle_path /api/v1/workout* {
 		rewrite * /api/v1{path}
-		reverse_proxy workout-backend:8000
+		import app_backend workout-backend:8000 /readyz
 	}
 	handle_path /workout/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy workout-backend:8000
+		import app_backend workout-backend:8000 /readyz
 	}
 
 	handle_path /api/v1/budget* {
 		rewrite * /api/v1{path}
-		reverse_proxy budget-backend:8000
+		import app_backend budget-backend:8000 /readyz
 	}
 	handle_path /budget/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy budget-backend:8000
+		import app_backend budget-backend:8000 /readyz
 	}
 
 	handle /api/v1/chores* {
-		reverse_proxy chores-backend:8000
+		import app_backend chores-backend:8000 /readyz
 	}
 	handle_path /chores/api/v1* {
 		rewrite * /api/v1/chores{path}
-		reverse_proxy chores-backend:8000
+		import app_backend chores-backend:8000 /readyz
 	}
 
 	handle /api/v1/chat* {
-		reverse_proxy chat-backend:8080
+		import app_backend chat-backend:8080 /readyz
 	}
 	handle_path /chat/api/v1* {
 		rewrite * /api/v1/chat{path}
-		reverse_proxy chat-backend:8080
+		import app_backend chat-backend:8080 /readyz
 	}
 
 	handle /api/v1/library* {
-		reverse_proxy library-backend:8000
+		import app_backend library-backend:8000 /readyz
 	}
 	handle_path /library/api/v1* {
 		rewrite * /api/v1/library{path}
-		reverse_proxy library-backend:8000
+		import app_backend library-backend:8000 /readyz
 	}
 
 	# Household app (core/household): households, memberships and the user
 	# profile, path preserved. Caddy sorts handle blocks by path length, so
 	# these win over the dashboard /api/v1/* catch-all below.
 	handle /api/v1/households* {
-		reverse_proxy household-backend:8080
+		import app_backend household-backend:8080 /readyz
 	}
 	handle /api/v1/profile* {
-		reverse_proxy household-backend:8080
+		import app_backend household-backend:8080 /readyz
 	}
 
 	handle /api/v1/* {
-		reverse_proxy dashboard-backend:8080
+		import app_backend dashboard-backend:8080 /readyz
 	}
 
 	# Service-to-service endpoints (ALFHEIM_INTERNAL_TOKEN) are never exposed
@@ -212,6 +380,9 @@ http://api.{$ALFHEIM_HOST:alfheim.loegien.de}, https://api.{$ALFHEIM_HOST:alfhei
 	{$CADDY_TLS_DIRECTIVE:}
 
 	import security_headers
+	import api_unavailable
+	import api_host_rate_limit
+	import rate_limited
 
 	# No CORS handling: every frontend calls the API through its own origin
 	# (NEXT_PUBLIC_API_URL is derived from ALFHEIM_BASE_URL, see the frontend
@@ -222,57 +393,57 @@ http://api.{$ALFHEIM_HOST:alfheim.loegien.de}, https://api.{$ALFHEIM_HOST:alfhei
 	# Maintenance API
 	handle_path /api/v1/maintenance* {
 		rewrite * /api/v1{path}
-		reverse_proxy maintenance-backend:8000
+		import app_backend maintenance-backend:8000 /readyz
 	}
 	handle_path /maintenance/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy maintenance-backend:8000
+		import app_backend maintenance-backend:8000 /readyz
 	}
 	handle_path /maintenance* {
 		rewrite * /api/v1{path}
-		reverse_proxy maintenance-backend:8000
+		import app_backend maintenance-backend:8000 /readyz
 	}
 
 	# Budget API
 	handle_path /api/v1/budget* {
 		rewrite * /api/v1{path}
-		reverse_proxy budget-backend:8000
+		import app_backend budget-backend:8000 /readyz
 	}
 	handle_path /budget/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy budget-backend:8000
+		import app_backend budget-backend:8000 /readyz
 	}
 	handle_path /budget* {
 		rewrite * /api/v1{path}
-		reverse_proxy budget-backend:8000
+		import app_backend budget-backend:8000 /readyz
 	}
 
 	# Workout API
 	handle_path /api/v1/workout* {
 		rewrite * /api/v1{path}
-		reverse_proxy workout-backend:8000
+		import app_backend workout-backend:8000 /readyz
 	}
 	handle_path /workout/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy workout-backend:8000
+		import app_backend workout-backend:8000 /readyz
 	}
 	handle_path /workout* {
 		rewrite * /api/v1{path}
-		reverse_proxy workout-backend:8000
+		import app_backend workout-backend:8000 /readyz
 	}
 
 	# Pantry API
 	handle_path /api/v1/pantry* {
 		rewrite * /api/v1{path}
-		reverse_proxy pantry-backend:8000
+		import app_backend pantry-backend:8000 /readyz
 	}
 	handle_path /pantry/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy pantry-backend:8000
+		import app_backend pantry-backend:8000 /readyz
 	}
 	handle_path /pantry* {
 		rewrite * /api/v1{path}
-		reverse_proxy pantry-backend:8000
+		import app_backend pantry-backend:8000 /readyz
 	}
 
 	# Shopping API
@@ -280,68 +451,68 @@ http://api.{$ALFHEIM_HOST:alfheim.loegien.de}, https://api.{$ALFHEIM_HOST:alfhei
 	# /api/v1/shopping/items and /api/v1/shopping-history, so stripping the prefix
 	# would turn them into /api/v1-lists and /api/v1/items (404).
 	handle /api/v1/shopping* {
-		reverse_proxy shopping-backend:8000
+		import app_backend shopping-backend:8000 /readyz
 	}
 	handle_path /shopping/api/v1* {
 		rewrite * /api/v1{path}
-		reverse_proxy shopping-backend:8000
+		import app_backend shopping-backend:8000 /readyz
 	}
 	handle_path /shopping* {
 		rewrite * /api/v1{path}
-		reverse_proxy shopping-backend:8000
+		import app_backend shopping-backend:8000 /readyz
 	}
 
 	# Chores API
 	handle /api/v1/chores* {
-		reverse_proxy chores-backend:8000
+		import app_backend chores-backend:8000 /readyz
 	}
 	handle_path /chores/api/v1* {
 		rewrite * /api/v1/chores{path}
-		reverse_proxy chores-backend:8000
+		import app_backend chores-backend:8000 /readyz
 	}
 	handle_path /chores* {
 		rewrite * /api/v1/chores{path}
-		reverse_proxy chores-backend:8000
+		import app_backend chores-backend:8000 /readyz
 	}
 
 	# Library API
 	handle /api/v1/library* {
-		reverse_proxy library-backend:8000
+		import app_backend library-backend:8000 /readyz
 	}
 	handle_path /library/api/v1* {
 		rewrite * /api/v1/library{path}
-		reverse_proxy library-backend:8000
+		import app_backend library-backend:8000 /readyz
 	}
 	handle_path /library* {
 		rewrite * /api/v1/library{path}
-		reverse_proxy library-backend:8000
+		import app_backend library-backend:8000 /readyz
 	}
 
 	# Chat API
 	handle /api/v1/chat* {
-		reverse_proxy chat-backend:8080
+		import app_backend chat-backend:8080 /readyz
 	}
 	handle_path /chat/api/v1* {
 		rewrite * /api/v1/chat{path}
-		reverse_proxy chat-backend:8080
+		import app_backend chat-backend:8080 /readyz
 	}
 	handle_path /chat* {
 		rewrite * /api/v1/chat{path}
-		reverse_proxy chat-backend:8080
+		import app_backend chat-backend:8080 /readyz
 	}
 
 	# Household API (core/household), path preserved. Same routes as on the
 	# frontend host; longer paths than the dashboard catch-all, so they win.
 	handle /api/v1/households* {
-		reverse_proxy household-backend:8080
+		import app_backend household-backend:8080 /readyz
 	}
 	handle /api/v1/profile* {
-		reverse_proxy household-backend:8080
+		import app_backend household-backend:8080 /readyz
 	}
 
 	# Dashboard Backend (Go backend: /api/v1/apps, /telemetry, ...)
 	handle /api/v1/* {
-		reverse_proxy dashboard-backend:8080
+		import app_backend dashboard-backend:8080 /readyz
 	}
 
 	# Service-to-service endpoints are never exposed through the gateway.

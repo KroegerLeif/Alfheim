@@ -8,10 +8,10 @@ import datetime
 from typing import Any
 
 from backend_shared.mcp_middleware import get_mcp_household_context
+from backend_shared.mcp_permissions import mcp_requires_role
 
 from app.core.database import async_session_factory
 from app.core.mcp import mcp_server
-from app.core.permissions import mcp_requires_role
 from app.features.tasks.exceptions import TaskError
 from app.features.tasks.schemas import TaskStateUpdate
 from app.features.tasks.service import TaskService
@@ -53,18 +53,16 @@ async def update_task_state_tool(
 
     Args:
         step_id: The integer ID of the target MaintenanceStep.
-        comment: Optional inspection note or description override.
+        comment: Optional inspection note; an empty string clears it. The procedure description is never changed.
         supply_needed_date: Optional YYYY-MM-DD next due date string.
         supply_item: Optional replacement supply item description.
     """
     try:
         user_context = get_mcp_household_context()
 
-        payload = TaskStateUpdate(
-            comment=comment,
-            supply_needed_date=supply_needed_date,
-            supply_item=supply_item,
-        )
+        # Only the arguments the caller passed are set, so an omitted comment keeps the stored note.
+        provided = {"comment": comment, "supply_needed_date": supply_needed_date, "supply_item": supply_item}
+        payload = TaskStateUpdate(**{key: value for key, value in provided.items() if value is not None})
         async with async_session_factory() as session:
             step = await TaskService.update_task_state(
                 session, step_id, payload, household_id=user_context.household_id
@@ -75,6 +73,7 @@ async def update_task_state_tool(
             "step_id": step.id,
             "title": step.title,
             "description": step.description,
+            "comment": step.comment,
             "supply_needed_date": step.supply_needed_date,
             "supply_item": step.supply_item,
         }

@@ -4,14 +4,22 @@ Exposes REST endpoints for devices and the current household, delegating all dom
 logic to DeviceService.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from backend_shared.household.permissions import require_writer
+from fastapi import APIRouter, Depends, HTTPException, Path, Response, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_db_session
 from app.core.dependencies import HouseholdContext, require_household
-from app.core.permissions import require_writer
-from app.features.devices.exceptions import DeviceError, DeviceNotFoundError
-from app.features.devices.schemas import DeviceCreate, DeviceRead, HouseholdRead
+from app.features.devices.exceptions import DeviceError, DeviceNotFoundError, DeviceStepNotFoundError
+from app.features.devices.schemas import (
+    DeviceCreate,
+    DeviceRead,
+    DeviceUpdate,
+    HouseholdRead,
+    MaintenanceStepRead,
+    StepCreate,
+    StepUpdate,
+)
 from app.features.devices.service import DeviceService
 
 router = APIRouter(prefix="/api/v1", tags=["devices"])
@@ -90,3 +98,100 @@ async def create_device(
         return await DeviceService.create_device(session, payload, household_id=context.household_id)
     except DeviceError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.patch(
+    "/devices/{device_id}",
+    response_model=DeviceRead,
+    summary="Update a device's details",
+)
+async def update_device(
+    payload: DeviceUpdate,
+    device_id: int = Path(..., description="Device primary key"),
+    session: AsyncSession = Depends(get_db_session),
+    context: HouseholdContext = Depends(require_writer),
+):
+    """Change the fields sent in the body; omitted fields keep their value.
+
+    Returns 404 if the device does not exist or belongs to a different household, and 422 for an
+    explicit null on a required field.
+    """
+    try:
+        return await DeviceService.update_device(session, device_id, payload, household_id=context.household_id)
+    except DeviceNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.delete(
+    "/devices/{device_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a device with its maintenance steps and service history",
+)
+async def delete_device(
+    device_id: int = Path(..., description="Device primary key"),
+    session: AsyncSession = Depends(get_db_session),
+    context: HouseholdContext = Depends(require_writer),
+) -> Response:
+    """Remove a retired device. Returns 404 if it does not exist or belongs to a different household."""
+    try:
+        await DeviceService.delete_device(session, device_id, household_id=context.household_id)
+    except DeviceNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/devices/{device_id}/steps",
+    response_model=MaintenanceStepRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a maintenance step to a device",
+)
+async def add_step(
+    payload: StepCreate,
+    device_id: int = Path(..., description="Device primary key"),
+    session: AsyncSession = Depends(get_db_session),
+    context: HouseholdContext = Depends(require_writer),
+):
+    """Add a step; its first due date is one interval from today. 404 for a foreign or unknown device."""
+    try:
+        return await DeviceService.add_step(session, device_id, payload, household_id=context.household_id)
+    except DeviceNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.patch(
+    "/devices/{device_id}/steps/{step_id}",
+    response_model=MaintenanceStepRead,
+    summary="Edit a maintenance step of a device",
+)
+async def update_step(
+    payload: StepUpdate,
+    device_id: int = Path(..., description="Device primary key"),
+    step_id: int = Path(..., description="Maintenance step primary key"),
+    session: AsyncSession = Depends(get_db_session),
+    context: HouseholdContext = Depends(require_writer),
+):
+    """Change the title, procedure, interval or supply item of a step; a new interval moves the due date."""
+    try:
+        return await DeviceService.update_step(session, device_id, step_id, payload, household_id=context.household_id)
+    except DeviceStepNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.delete(
+    "/devices/{device_id}/steps/{step_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove a maintenance step from a device",
+)
+async def delete_step(
+    device_id: int = Path(..., description="Device primary key"),
+    step_id: int = Path(..., description="Maintenance step primary key"),
+    session: AsyncSession = Depends(get_db_session),
+    context: HouseholdContext = Depends(require_writer),
+) -> Response:
+    """Delete a step. Returns 404 if it does not exist on that device of the household."""
+    try:
+        await DeviceService.delete_step(session, device_id, step_id, household_id=context.household_id)
+    except DeviceStepNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

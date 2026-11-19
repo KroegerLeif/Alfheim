@@ -54,10 +54,49 @@ and `apps/*/compose.yml` provide defaults so a fresh checkout runs without
 setup. These are convenience values, not secrets. A production deployment must
 source `.env` explicitly so every one of them is overridden.
 
+**Production refuses database password defaults.** `compose.prod.yaml` requires
+`POSTGRES_PASSWORD`, `ZITADEL_DB_PASSWORD` and every `<APP>_POSTGRES_PASSWORD`,
+so `docker compose config` fails and names the variable when one is missing.
+`infrastructure/postgres/init-multiple-dbs.sh` falls back to `postgres` only
+when `ALFHEIM_ENV=development`, which only `infrastructure/compose.yml` sets; in
+any other case it stops instead of creating a role with a public password.
+`alfheim-setup update` adds a generated value for any of them an older `.env`
+lacks.
+
 **Rendered configuration must not embed secrets.** The Caddyfile references
 ACME tokens as `{env.HETZNER_API_TOKEN}` rather than inlining them, which keeps
 it safe to attach to a support request or a configuration backup. Preserve that
 property in anything you add.
+
+### Social login credentials
+
+The optional [social login](social-login.md) providers are the one place where
+the operator supplies a credential instead of the generator:
+
+* **Google:** `ALFHEIM_GOOGLE_CLIENT_SECRET` lives in `.env` like every other
+  secret. Pass it through the environment or `.env`, never as a flag: the
+  installer has no flag for it, because a flag value is visible to every local
+  user in the process list.
+* **Apple:** the `.p8` signing key never goes into `.env`. Keep it in its own
+  file, owned by the user that runs `alfheim-setup`, with mode `0600`, and put
+  only its absolute path in `ALFHEIM_APPLE_PRIVATE_KEY_FILE`:
+
+  ```bash
+  sudo install -m 600 -o root -g root AuthKey_<KEY ID>.p8 /etc/alfheim/AuthKey_<KEY ID>.p8
+  ```
+
+  `alfheim-setup` refuses to continue when the file is readable by its group or
+  by others (`chmod 600` fixes it), is not a regular file, or does not hold a
+  PKCS #8 EC key. It checks before any container starts and again before every
+  provisioning run. It reads the key only to upload it to Zitadel, which stores
+  it encrypted with `ZITADEL_MASTERKEY` and mints Apple's short-lived client
+  secret from it at each login. The key is never written to `.env`, a log or the
+  installer output.
+
+`.env` also holds `ZITADEL_GOOGLE_IDP_FINGERPRINT` and
+`ZITADEL_APPLE_IDP_FINGERPRINT`. They are SHA-256 hashes over the configured
+credentials, used to detect a rotation; they reveal neither the secret nor the
+key.
 
 ---
 
@@ -69,12 +108,17 @@ property in anything you add.
 grep -E '(password|secret|key|token)' .env | grep -iE 'changeme|postgres$|admin$|Password1!|super_secret'
 ```
 
-Any match is a value the generator did not replace. Regenerate rather than
-editing by hand:
+Any match is a value the generator did not replace. Run the generator again
+rather than editing by hand. Without `--force` it keeps every value you changed
+and only replaces keys that still hold their `.env.example` placeholder:
 
 ```bash
-./scripts/init-env.sh --force
+./scripts/init-env.sh --auto
 ```
+
+A stack that already ran on the placeholders keeps them in its volumes, so
+reset it after the rotation (for a database password, see
+[Rotating a secret](#rotating-a-secret)).
 
 ### 2. File permissions
 
@@ -83,6 +127,12 @@ stat -c '%a %n' .env
 ```
 
 Expect `600`. The installer sets this; a restore from backup often does not.
+With Sign in with Apple configured, check the key file as well; the installer
+refuses to run otherwise:
+
+```bash
+stat -c '%a %n' "$(grep '^ALFHEIM_APPLE_PRIVATE_KEY_FILE=' .env | cut -d= -f2)"
+```
 
 ### 3. Containers run unprivileged
 
@@ -114,6 +164,16 @@ Two exceptions:
 * **`CHAT_ENCRYPTION_KEY` cannot be rotated in place** without first
   re-encrypting stored LLM API keys. Clear them in the chat settings, rotate,
   then re-enter them.
+* **Social login credentials live in Zitadel too.** After changing
+  `ALFHEIM_GOOGLE_CLIENT_SECRET`, or replacing the Apple key file (and
+  `ALFHEIM_APPLE_KEY_ID`), re-run `alfheim-setup` so it uploads the new value;
+  restarting the containers alone does not. See
+  [Set up social login](social-login.md#rotate-a-secret-or-key).
+* **The SMTP password lives in Zitadel too.** After changing
+  `ALFHEIM_SMTP_PASSWORD`, re-run `alfheim-setup` so it updates the e-mail
+  provider. Like the Google secret it has no flag; pass it through the
+  environment or `.env`. See
+  [Configure e-mail (SMTP)](configure-smtp.md#change-a-value-or-the-password).
 
 Database passwords must be changed in PostgreSQL as well as in `.env`:
 

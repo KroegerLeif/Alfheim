@@ -48,6 +48,12 @@ services:
       HETZNER_API_TOKEN: "${HETZNER_API_TOKEN:-}"
       CLOUDFLARE_API_TOKEN: "${CLOUDFLARE_API_TOKEN:-}"
       DESEC_TOKEN: "${DESEC_TOKEN:-}"
+      # Gateway rate limits, requests per minute and client IP (see the
+      # rate_limit snippets in the Caddyfile).
+      ALFHEIM_RATE_LIMIT_LOGIN: "${ALFHEIM_RATE_LIMIT_LOGIN:-30}"
+      ALFHEIM_RATE_LIMIT_AUTH: "${ALFHEIM_RATE_LIMIT_AUTH:-600}"
+      ALFHEIM_RATE_LIMIT_API: "${ALFHEIM_RATE_LIMIT_API:-1200}"
+      ALFHEIM_RATE_LIMIT_LOOKUP: "${ALFHEIM_RATE_LIMIT_LOOKUP:-60}"
     volumes:
       - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       # Installer-generated root cert + key that sign the --tls internal
@@ -57,10 +63,11 @@ services:
       - caddy_config:/config
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:80/livez || exit 1"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 10
       start_period: 10s
+      start_interval: 5s
     networks:
       # Backends validate access tokens by fetching OIDC discovery/JWKS from
       # OIDC_ISSUER_URL (http://<ZITADEL_EXTERNALDOMAIN>) from inside their
@@ -75,25 +82,37 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 96m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 48m
           cpus: 0.5
   # ----------------------------------------------------------------------------
   # 2. CONSOLIDATED POSTGRESQL CORE DATABASE SERVER & IAM / CENTRAL STORAGE
   # ----------------------------------------------------------------------------
   postgres-core:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: alfheim_postgres_core
     restart: unless-stopped
     logging: *default-logging
     # lz4 decompresses much faster than the default pglz at a similar ratio;
-    # it only applies to newly written TOAST values.
-    command: ["postgres", "-c", "default_toast_compression=lz4"]
+    # it only applies to newly written TOAST values. The memory settings are
+    # sized for the Lean Core tier and overridable from .env (.env.example).
+    command:
+      - postgres
+      - -c
+      - default_toast_compression=lz4
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-64MB}
+      - -c
+      - max_connections=${POSTGRES_MAX_CONNECTIONS:-100}
+      - -c
+      - work_mem=${POSTGRES_WORK_MEM:-4MB}
     security_opt:
       - no-new-privileges:true
     environment:
+      # Makes init-multiple-dbs.sh refuse to create a role without a password.
+      ALFHEIM_ENV: production
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set}
@@ -122,13 +141,16 @@ services:
     volumes:
       - ./infrastructure/postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh:ro
       # A host path (ALFHEIM_DB_DATA_PATH) turns this into a bind mount owned by uid 70.
-      - ${ALFHEIM_DB_DATA_PATH:-postgres_core_data}:/var/lib/postgresql/data
+      # Postgres 18 images keep PGDATA in /var/lib/postgresql/18/docker and refuse
+      # to start with a mount on the old /var/lib/postgresql/data target.
+      - ${ALFHEIM_DB_DATA_PATH:-postgres_core_data}:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?POSTGRES_USER must be set}"]
+      interval: 30s
       timeout: 5s
       retries: 15
       start_period: 30s
+      start_interval: 5s
     networks:
       infra-net:
         aliases:
@@ -175,13 +197,13 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1g
+          memory: 384m
           cpus: 1
         reservations:
-          memory: 1g
+          memory: 160m
           cpus: 1
   zitadel:
-    image: ghcr.io/zitadel/zitadel:v2.66.1
+    image: ghcr.io/zitadel/zitadel:v4.20.3
     container_name: alfheim_zitadel
     init: true
     restart: unless-stopped
@@ -201,6 +223,18 @@ services:
       ZITADEL_EXTERNALDOMAIN: "${ZITADEL_EXTERNALDOMAIN:?ZITADEL_EXTERNALDOMAIN must be set}"
       ZITADEL_EXTERNALPORT: "${ZITADEL_EXTERNALPORT:?ZITADEL_EXTERNALPORT must be set}"
       ZITADEL_TLS_ENABLED: "false"
+      # --- Login UI and token signing (Zitadel v4) ---
+      # v4 creates new instances with Login V2 required, which redirects every
+      # OIDC authorize request to /ui/v2/login, served by a separate
+      # zitadel-login container. Alfheim keeps the built-in Login V1 (still
+      # supported in v4, and it renders the external IdP buttons social login
+      # needs), so no second container or login-client PAT is required.
+      # FIRSTINSTANCE/DEFAULTINSTANCE values only apply when an instance is
+      # created; changing them later does not touch an existing instance.
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: "false"
+      # Every backend pins RS256 when it verifies tokens against the JWKS, so
+      # the web keys v4 signs with must stay RSA (also v4's default).
+      ZITADEL_DEFAULTINSTANCE_WEBKEYS_TYPE: rsa
       ZITADEL_DATABASE_POSTGRES_HOST: "${ZITADEL_DB_HOST:?ZITADEL_DB_HOST must be set}"
       ZITADEL_DATABASE_POSTGRES_PORT: "${ZITADEL_DB_PORT:?ZITADEL_DB_PORT must be set}"
       ZITADEL_DATABASE_POSTGRES_DATABASE: "${ZITADEL_DB_NAME:?ZITADEL_DB_NAME must be set}"
@@ -219,21 +253,24 @@ services:
       # the mail round-trip an unconfigured SMTP setup could never complete.
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_ADDRESS: "${ZITADEL_ADMIN_EMAIL:?ZITADEL_ADMIN_EMAIL must be set}"
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_VERIFIED: "true"
-      # Machine user whose personal access token the installer's Zitadel
-      # provisioning step (internal/features/provisioning) authenticates
-      # with, mirroring infrastructure/compose.yml's dev setup.
+      # Machine user the installer's Zitadel provisioning step authenticates
+      # as. Its first-instance personal access token is short-lived (the
+      # installer renders the expiry into .env) and only used once: the first
+      # provisioning run registers a rotated machine key for the same user and
+      # revokes the token (tools/installer/internal/features/zitadelauth).
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: "${ZITADEL_BOOTSTRAP_USERNAME:?ZITADEL_BOOTSTRAP_USERNAME must be set}"
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: "Alfheim Bootstrap"
-      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "2519-04-01T08:45:00Z"
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "${ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE:?ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE must be set}"
       ZITADEL_FIRSTINSTANCE_PATPATH: /machinekey/pat.txt
     volumes:
       - ./infrastructure/zitadel/machinekey:/machinekey
     healthcheck:
       test: ["CMD", "/app/zitadel", "ready"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 30
       start_period: 60s
+      start_interval: 5s
     depends_on:
       postgres-core:
         condition: service_healthy
@@ -245,10 +282,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 256m
           cpus: 0.5
         reservations:
-          memory: 512m
+          memory: 128m
           cpus: 0.5
   rustfs:
     # RustFS is the intended S3 implementation (see infrastructure/rustfs/README.md).
@@ -271,10 +308,11 @@ services:
       - ${ALFHEIM_OBJECT_DATA_PATH:-rustfs_data}:/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f -s http://127.0.0.1:9000/health || exit 1"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 15s
+      start_interval: 5s
     networks:
       - infra-net
       - gateway-net
@@ -283,17 +321,18 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 256m
           cpus: 0.5
         reservations:
-          memory: 512m
+          memory: 128m
           cpus: 0.5
   # ----------------------------------------------------------------------------
   # 3. OBSERVABILITY & TELEMETRY
   # ----------------------------------------------------------------------------
   victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.154.1
+    image: victoriametrics/victoria-metrics:v1.156.0
     container_name: victoriametrics
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -308,20 +347,21 @@ services:
       - ./infrastructure/telemetry/victoriametrics/scrape.yml:/etc/victoriametrics/scrape.yml:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8428/health || exit 1"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
+      start_interval: 5s
     networks:
       - observability-internal
 
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 192m
           cpus: 0.5
         reservations:
-          memory: 512m
+          memory: 96m
           cpus: 0.5
   # Host metrics for the dashboard's system health widget. VictoriaMetrics
   # scrapes it (infrastructure/telemetry/victoriametrics/scrape.yml). The host
@@ -332,6 +372,7 @@ services:
   node-exporter:
     image: prom/node-exporter:v1.12.1
     container_name: node-exporter
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -353,10 +394,11 @@ services:
       - /:/host:ro,rslave
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 -O /dev/null http://127.0.0.1:9100/metrics || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
+      start_interval: 5s
     networks:
       - observability-internal
 
@@ -366,11 +408,35 @@ services:
           memory: 64m
           cpus: 0.10
         reservations:
-          memory: 64m
+          memory: 32m
           cpus: 0.10
+  # VictoriaLogs >= 1.53 and the OTel Collector contrib image ship without a
+  # shell or wget. This one-shot service copies a static busybox into a
+  # read-only volume so their healthchecks can still probe from inside the
+  # container.
+  victorialogs-probe:
+    image: busybox:1.38.0-musl
+    container_name: victorialogs-probe
+    profiles: ["telemetry"]
+    restart: "no"
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    network_mode: none
+    read_only: true
+    command: ["cp", "/bin/busybox", "/probe/busybox"]
+    volumes:
+      - victorialogs_probe:/probe
+    deploy:
+      resources:
+        limits:
+          memory: 16m
+          cpus: 0.10
+
   victorialogs:
-    image: victoriametrics/victoria-logs:v1.51.1
+    image: victoriametrics/victoria-logs:v1.53.0
     container_name: victorialogs
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -381,26 +447,32 @@ services:
       - "-httpListenAddr=:9428"
     volumes:
       - ${ALFHEIM_LOGS_DATA_PATH:-victorialogs_data}:/victoria-logs-data
+      - victorialogs_probe:/probe:ro
+    depends_on:
+      victorialogs-probe:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:9428/health || exit 1"]
-      interval: 5s
+      test: ["CMD", "/probe/busybox", "wget", "-q", "--spider", "http://127.0.0.1:9428/health"]
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
+      start_interval: 5s
     networks:
       - observability-internal
 
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 128m
           cpus: 0.25
         reservations:
-          memory: 256m
+          memory: 64m
           cpus: 0.25
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.163.2
+    image: otel/opentelemetry-collector-contrib:0.165.0
     container_name: otel-collector
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -408,24 +480,37 @@ services:
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
       - ./infrastructure/telemetry/collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
-    # No healthcheck: the contrib image is a minimal/scratch-based build with no
-    # shell or wget, so a CMD-SHELL probe can never succeed and only stalls
-    # startup until timeout. Downstream services depend on service_started.
+      # Static busybox from victorialogs-probe: the contrib image has no shell
+      # or wget, so the healthcheck below runs this binary instead.
+      - victorialogs_probe:/probe:ro
+    # The collector's health_check extension (collector/config.yaml) answers
+    # on :13133 once every pipeline is running.
+    healthcheck:
+      test: ["CMD", "/probe/busybox", "wget", "-q", "--spider", "http://127.0.0.1:13133/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      # The collector needs several seconds to start its pipelines; probe every
+      # 5 s for up to 60 s instead of waiting a full interval after a miss.
+      start_period: 60s
+      start_interval: 5s
     depends_on:
       victoriametrics:
         condition: service_healthy
       victorialogs:
         condition: service_healthy
+      victorialogs-probe:
+        condition: service_completed_successfully
     networks:
       - observability-internal
 
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 128m
           cpus: 0.25
         reservations:
-          memory: 256m
+          memory: 64m
           cpus: 0.25
   # Read-only Docker API gateway for Vector. Mounting docker.sock into Vector
   # directly would hand it root on the host, even with :ro. The proxy holds the
@@ -435,8 +520,9 @@ services:
   # is denied by the default-deny allowlist. It sits on a private internal
   # network that only Vector can reach.
   docker-socket-proxy:
-    image: wollomatic/socket-proxy:1.13.1
+    image: wollomatic/socket-proxy:1.13.2
     container_name: docker-socket-proxy
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging: *default-logging
     # Container group must match the host docker group that owns the socket.
@@ -459,23 +545,26 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     healthcheck:
       test: ["CMD", "./healthcheck"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
+      start_interval: 5s
     networks:
       - docker-proxy-net
 
     deploy:
       resources:
         limits:
-          memory: 64m
+          memory: 32m
           cpus: 0.10
         reservations:
-          memory: 64m
+          memory: 16m
           cpus: 0.10
   vector:
-    image: timberio/vector:0.60.0-alpine
+    image: timberio/vector:0.61.0-alpine
     container_name: vector-shipper
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -485,10 +574,11 @@ services:
       - ./infrastructure/telemetry/vector/vector.toml:/etc/vector/vector.toml:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8686/health || exit 1"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
+      start_interval: 5s
     depends_on:
       victorialogs:
         condition: service_started
@@ -501,14 +591,15 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 96m
           cpus: 0.25
         reservations:
-          memory: 256m
+          memory: 48m
           cpus: 0.25
   grafana:
-    image: grafana/grafana:13.2.4
+    image: grafana/grafana:13.3.1
     container_name: alfheim_grafana
+    profiles: ["telemetry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -517,6 +608,9 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
       - GF_USERS_ALLOW_SIGN_UP=false
+      # Grafana sends its own nonce-based Content-Security-Policy (it needs
+      # 'unsafe-eval' and remote images), which the gateway leaves in place.
+      - GF_SECURITY_CONTENT_SECURITY_POLICY=true
       - GF_SERVER_ROOT_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_AUTH_GENERIC_OAUTH_ENABLED=true
@@ -555,10 +649,11 @@ services:
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/api/health || exit 1"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
+      start_interval: 5s
     networks:
       - gateway-net
       - observability-internal
@@ -569,7 +664,7 @@ services:
           memory: 256m
           cpus: 0.25
         reservations:
-          memory: 256m
+          memory: 128m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 4. CONTROL PLANE: DASHBOARD SERVICE
@@ -582,10 +677,17 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - ENVIRONMENT=production
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ALLOWED_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - PORT=8080
-      - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-dashboard_user}:${DASHBOARD_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${DASHBOARD_POSTGRES_DB:-alfheim_dashboard}?sslmode=disable}
+      - DATABASE_URL=${DASHBOARD_DATABASE_URL:-postgres://${DASHBOARD_POSTGRES_USER:-dashboard_user}:${DASHBOARD_POSTGRES_PASSWORD:?DASHBOARD_POSTGRES_PASSWORD must be set}@postgres-core:5432/${DASHBOARD_POSTGRES_DB:-alfheim_dashboard}?sslmode=disable}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
+      # Enabled optional apps (ADR 0007): the dashboard lists only their tiles.
+      # Unset means every app, like an installation from before the Lean Core.
+      - ALFHEIM_ENABLED_APPS=${ALFHEIM_ENABLED_APPS-all}
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
@@ -593,11 +695,12 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/readyz || exit 1"]
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -612,10 +715,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 64m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 32m
           cpus: 0.5
   dashboard-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/dashboard-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
@@ -629,7 +732,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -638,20 +741,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 4b. CORE: HOUSEHOLD & ROLES SERVICE (core/household)
@@ -664,6 +768,14 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      # Optional sign-up allowlist (ADR 0009): comma-separated e-mail addresses
+      # and @domains allowed to create a first household. Empty keeps the
+      # instance open; invites always work.
+      - ALFHEIM_SIGNUP_ALLOWLIST=${ALFHEIM_SIGNUP_ALLOWLIST:-}
+      - ENVIRONMENT=production
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ALLOWED_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - PORT=8080
       - DATABASE_URL=${HOUSEHOLD_DATABASE_URL:-postgres://${HOUSEHOLD_POSTGRES_USER:-household_user}:${HOUSEHOLD_POSTGRES_PASSWORD:?HOUSEHOLD_POSTGRES_PASSWORD must be set}@postgres-core:5432/${HOUSEHOLD_POSTGRES_DB:-alfheim_household}?sslmode=disable}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -678,11 +790,12 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/readyz || exit 1"]
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -695,10 +808,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 64m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 32m
           cpus: 0.5
   household-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/household-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
@@ -712,7 +825,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -722,20 +835,21 @@ services:
     healthcheck:
       # Next.js basePath is /household, so / itself is a 404.
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/household', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 256m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 5. CHAT ASSISTANT SERVICE
@@ -743,6 +857,7 @@ services:
   chat-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chat-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: chat-backend
+    profiles: ["chat"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -750,8 +865,12 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
+      - ENVIRONMENT=production
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ALLOWED_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - PORT=8080
-      - DATABASE_URL=${CHAT_DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-chat_user}:${CHAT_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${CHAT_POSTGRES_DB:-alfheim_chat}?sslmode=disable}
+      - DATABASE_URL=${CHAT_DATABASE_URL:-postgres://${CHAT_POSTGRES_USER:-chat_user}:${CHAT_POSTGRES_PASSWORD:?CHAT_POSTGRES_PASSWORD must be set}@postgres-core:5432/${CHAT_POSTGRES_DB:-alfheim_chat}?sslmode=disable}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend
@@ -768,18 +887,21 @@ services:
       - CHAT_ENCRYPTION_KEY_ID=${CHAT_ENCRYPTION_KEY_ID:-v1}
       - CHAT_ATTACHMENT_URL_SECRET=${CHAT_ATTACHMENT_URL_SECRET:?CHAT_ATTACHMENT_URL_SECRET must be set}
       - ALFHEIM_BASE_URL=${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}
-      - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS:-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
+      # alfheim-setup renders the list from the enabled apps; an empty value
+      # (no tool app installed) is kept, only a missing one gets the default.
+      - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
       # Hosts the chat backend may call as an LLM endpoint (SSRF allowlist).
       - CHAT_ALLOWED_LLM_HOSTS=${CHAT_ALLOWED_LLM_HOSTS:-host.docker.internal}
     volumes:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/api/v1/chat/health || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/readyz || exit 1"]
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -795,14 +917,15 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 128m
           cpus: 0.5
         reservations:
-          memory: 512m
+          memory: 64m
           cpus: 0.5
   chat-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chat-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: chat-frontend
+    profiles: ["chat"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -812,7 +935,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -821,20 +944,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/chat
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chat/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 6. PANTRY MANAGEMENT SERVICE
@@ -842,14 +966,18 @@ services:
   pantry-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/pantry-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: pantry-backend
+    profiles: ["pantry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
       - no-new-privileges:true
     environment:
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - ENVIRONMENT=production
       - DEBUG=false
-      - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-pantry_user}:${PANTRY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${PANTRY_POSTGRES_DB:-alfheim_pantry}}
+      - DATABASE_URL=${PANTRY_DATABASE_URL:-postgresql+asyncpg://${PANTRY_POSTGRES_USER:-pantry_user}:${PANTRY_POSTGRES_PASSWORD:?PANTRY_POSTGRES_PASSWORD must be set}@postgres-core:5432/${PANTRY_POSTGRES_DB:-alfheim_pantry}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend
@@ -859,7 +987,7 @@ services:
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=pantry-backend
@@ -867,11 +995,12 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')\" || exit 1"]
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -887,14 +1016,15 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 320m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 176m
           cpus: 0.5
   pantry-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/pantry-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: pantry-frontend
+    profiles: ["pantry"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -904,7 +1034,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -913,20 +1043,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/pantry/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/pantry/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 7. SHOPPING LIST SERVICE
@@ -934,15 +1065,20 @@ services:
   shopping-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/shopping-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: shopping-backend
+    profiles: ["shopping"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
       - no-new-privileges:true
     environment:
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - ENVIRONMENT=production
       - DEBUG=false
-      - DATABASE_URL=${SHOPPING_DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-shopping_user}:${SHOPPING_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${SHOPPING_POSTGRES_DB:-alfheim_shopping}}
-      - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL:-http://pantry-backend:8000}
+      - DATABASE_URL=${SHOPPING_DATABASE_URL:-postgresql+asyncpg://${SHOPPING_POSTGRES_USER:-shopping_user}:${SHOPPING_POSTGRES_PASSWORD:?SHOPPING_POSTGRES_PASSWORD must be set}@postgres-core:5432/${SHOPPING_POSTGRES_DB:-alfheim_shopping}}
+      # Empty while pantry is disabled: shopping then hides its pantry sync.
+      - PANTRY_BACKEND_URL=${PANTRY_BACKEND_URL-http://pantry-backend:8000}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend
@@ -952,7 +1088,7 @@ services:
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=shopping-backend
@@ -960,11 +1096,12 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\" || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')\" || exit 1"]
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -980,14 +1117,15 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 320m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 128m
           cpus: 0.5
   shopping-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/shopping-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: shopping-frontend
+    profiles: ["shopping"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -997,7 +1135,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3010
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -1006,20 +1144,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/shopping/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3010/shopping/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 8. MAINTENANCE & DEVICES SERVICE
@@ -1027,14 +1166,18 @@ services:
   maintenance-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/maintenance-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: maintenance-backend
+    profiles: ["maintenance"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
       - no-new-privileges:true
     environment:
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - ENVIRONMENT=production
       - DEBUG=false
-      - DATABASE_URL=${MAINTENANCE_DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-maintenance_user}:${MAINTENANCE_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${MAINTENANCE_POSTGRES_DB:-alfheim_maintenance}}
+      - DATABASE_URL=${MAINTENANCE_DATABASE_URL:-postgresql+asyncpg://${MAINTENANCE_POSTGRES_USER:-maintenance_user}:${MAINTENANCE_POSTGRES_PASSWORD:?MAINTENANCE_POSTGRES_PASSWORD must be set}@postgres-core:5432/${MAINTENANCE_POSTGRES_DB:-alfheim_maintenance}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend
@@ -1044,7 +1187,7 @@ services:
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=maintenance-backend
@@ -1052,11 +1195,12 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')\" || exit 1"]
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -1072,14 +1216,15 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 320m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 176m
           cpus: 0.5
   maintenance-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/maintenance-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: maintenance-frontend
+    profiles: ["maintenance"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1089,7 +1234,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -1098,20 +1243,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/maintenance
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/maintenance/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 9. HOUSEHOLD CHORES SERVICE
@@ -1119,14 +1265,18 @@ services:
   chores-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chores-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: chores-backend
+    profiles: ["chores"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
       - no-new-privileges:true
     environment:
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - ENVIRONMENT=production
       - DEBUG=false
-      - DATABASE_URL=${CHORES_DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-chores_user}:${CHORES_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${CHORES_POSTGRES_DB:-alfheim_chores}}
+      - DATABASE_URL=${CHORES_DATABASE_URL:-postgresql+asyncpg://${CHORES_POSTGRES_USER:-chores_user}:${CHORES_POSTGRES_PASSWORD:?CHORES_POSTGRES_PASSWORD must be set}@postgres-core:5432/${CHORES_POSTGRES_DB:-alfheim_chores}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend
@@ -1136,7 +1286,7 @@ services:
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=chores-backend
@@ -1144,11 +1294,12 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')\" || exit 1"]
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -1164,14 +1315,15 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 320m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 128m
           cpus: 0.5
   chores-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/chores-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: chores-frontend
+    profiles: ["chores"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1181,7 +1333,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -1190,20 +1342,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/chores
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/chores/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 10. BUDGET & FINANCE SERVICE
@@ -1211,14 +1364,18 @@ services:
   budget-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/budget-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: budget-backend
+    profiles: ["budget"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
       - no-new-privileges:true
     environment:
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - ENVIRONMENT=production
       - DEBUG=false
-      - DATABASE_URL=${BUDGET_DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-budget_user}:${BUDGET_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${BUDGET_POSTGRES_DB:-alfheim_budget}}
+      - DATABASE_URL=${BUDGET_DATABASE_URL:-postgresql+asyncpg://${BUDGET_POSTGRES_USER:-budget_user}:${BUDGET_POSTGRES_PASSWORD:?BUDGET_POSTGRES_PASSWORD must be set}@postgres-core:5432/${BUDGET_POSTGRES_DB:-alfheim_budget}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend
@@ -1235,7 +1392,7 @@ services:
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:-budget-receipts}
       # Presigned URLs handed to the browser point here (the gateway proxies /storage to RustFS).
       - S3_PUBLIC_URL=${S3_PUBLIC_URL:-${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/storage}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=budget-backend
@@ -1243,11 +1400,12 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')\" || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')\" || exit 1"]
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -1263,14 +1421,15 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 320m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 128m
           cpus: 0.5
   budget-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/budget-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: budget-frontend
+    profiles: ["budget"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1280,7 +1439,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -1289,10 +1448,11 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/budget
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/budget/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
       - observability-internal
@@ -1300,10 +1460,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 11. WORKOUT TRACKING SERVICE
@@ -1311,14 +1471,18 @@ services:
   workout-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/workout-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: workout-backend
+    profiles: ["workout"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
       - no-new-privileges:true
     environment:
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - ENVIRONMENT=production
       - DEBUG=false
-      - DATABASE_URL=${WORKOUT_DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-workout_user}:${WORKOUT_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${WORKOUT_POSTGRES_DB:-alfheim_workout}}
+      - DATABASE_URL=${WORKOUT_DATABASE_URL:-postgresql+asyncpg://${WORKOUT_POSTGRES_USER:-workout_user}:${WORKOUT_POSTGRES_PASSWORD:?WORKOUT_POSTGRES_PASSWORD must be set}@postgres-core:5432/${WORKOUT_POSTGRES_DB:-alfheim_workout}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend
@@ -1328,7 +1492,7 @@ services:
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=workout-backend
@@ -1336,11 +1500,12 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')\" || exit 1"]
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -1356,14 +1521,15 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 320m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 128m
           cpus: 0.5
   workout-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/workout-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: workout-frontend
+    profiles: ["workout"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1373,7 +1539,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -1382,20 +1548,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/workout/api/v1
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/workout/de', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
   # ----------------------------------------------------------------------------
   # 12. MEDIA LIBRARY SERVICE
@@ -1403,14 +1570,18 @@ services:
   library-backend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/library-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: library-backend
+    profiles: ["library"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
       - no-new-privileges:true
     environment:
+      # Cross-origin allowlist (#921): the public app origin by default; the
+      # frontends call the API same-origin through Caddy. Never a wildcard.
+      - CORS_ORIGINS=${ALFHEIM_CORS_ORIGINS-${ALFHEIM_BASE_URL:-}}
       - ENVIRONMENT=production
       - DEBUG=false
-      - DATABASE_URL=${LIBRARY_DATABASE_URL:-postgresql+asyncpg://${LIBRARY_POSTGRES_USER:-library_user}:${LIBRARY_POSTGRES_PASSWORD:-postgres}@postgres-core:5432/${LIBRARY_POSTGRES_DB:-alfheim_library}}
+      - DATABASE_URL=${LIBRARY_DATABASE_URL:-postgresql+asyncpg://${LIBRARY_POSTGRES_USER:-library_user}:${LIBRARY_POSTGRES_PASSWORD:?LIBRARY_POSTGRES_PASSWORD must be set}@postgres-core:5432/${LIBRARY_POSTGRES_DB:-alfheim_library}}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_AUDIENCE=${OIDC_AUDIENCE:?OIDC_AUDIENCE must be set}
       # Service-to-service membership checks against household-backend
@@ -1420,7 +1591,7 @@ services:
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
-      - OTEL_ENABLED=true
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - OTEL_SERVICE_NAME=library-backend
@@ -1435,11 +1606,12 @@ services:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\" || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')\" || exit 1"]
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     depends_on:
       zitadel:
         condition: service_healthy
@@ -1455,14 +1627,15 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 320m
           cpus: 0.5
         reservations:
-          memory: 256m
+          memory: 176m
           cpus: 0.5
   library-frontend:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_REPO:-kroegerleif/alfheim}/library-frontend:${IMAGE_TAG:?IMAGE_TAG must be set}
     container_name: library-frontend
+    profiles: ["library"]
     restart: unless-stopped
     logging: *default-logging
     security_opt:
@@ -1472,7 +1645,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=3000
-      - NODE_OPTIONS=--max-http-header-size=65536
+      - NODE_OPTIONS=--max-http-header-size=65536 --max-old-space-size=160
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-${ALFHEIM_BASE_URL:-https://alfheim.loegien.de}}
       - NEXT_PUBLIC_OIDC_ISSUER=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:?OIDC_ISSUER_URL must be set}
@@ -1481,20 +1654,21 @@ services:
       - NEXT_PUBLIC_API_URL=${ALFHEIM_BASE_URL:?ALFHEIM_BASE_URL must be set}/api/v1/library
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/library/en', (res) => process.exit(res.statusCode < 400 ? 0 : 1))\""]
-      interval: 10s
+      interval: 30s
       timeout: 10s
       retries: 20
       start_period: 180s
+      start_interval: 5s
     networks:
       - gateway-net
 
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 224m
           cpus: 0.25
         reservations:
-          memory: 128m
+          memory: 112m
           cpus: 0.25
 # ==============================================================================
 # VOLUMES & PERSISTENT DATA
@@ -1506,6 +1680,7 @@ volumes:
   rustfs_data:
   victoriametrics_data:
   victorialogs_data:
+  victorialogs_probe:
   grafana_data:
 
 # ==============================================================================

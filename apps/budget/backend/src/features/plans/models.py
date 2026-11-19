@@ -122,7 +122,7 @@ class PlanCategoryRead(PlanCategoryBase):
 class PlanCategoryTreeRead(PlanCategoryRead):
     """Pydantic model for category response including subcategories hierarchy."""
 
-    subcategories: list["PlanCategoryTreeRead"] = []
+    subcategories: list[PlanCategoryTreeRead] = []
 
 
 class PlanSummaryResponse(BaseModel):

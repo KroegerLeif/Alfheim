@@ -9,6 +9,7 @@ description: "Checkliste, um einen Release-Kandidaten vor dem Wechsel von dev na
 
 ## 📋 Inhaltsverzeichnis
 - [Zuerst den Release-Dry-Run ausführen](#zuerst-den-release-dry-run-ausführen)
+- [Signaturen und Attestierungen prüfen](#signaturen-und-attestierungen-prüfen)
 - [Wegwerf-Host vorbereiten](#wegwerf-host-vorbereiten)
 - [1. Neuinstallation](#1-neuinstallation)
 - [2. Beispieldaten und Backup](#2-beispieldaten-und-backup)
@@ -34,9 +35,9 @@ gh run watch
 Ein Dry-Run führt dieselben Qualitäts-Gates aus, baut jedes Image nativ für
 `linux/amd64` (`ubuntu-24.04`) und `linux/arm64` (`ubuntu-24.04-arm`) und wendet
 das Trivy-Gate an (behebbare CRITICAL- und HIGH-Funde lassen den Job
-fehlschlagen). Er überspringt die Tag-Ancestry-Prüfung und veröffentlicht
-nichts: Es wird kein Image gepusht, kein Manifest und kein Tag angelegt, kein
-GitHub-Release erstellt und kein SARIF-Report an Code Scanning gesendet. Manuelle
+fehlschlagen) und erzeugt die SBOM jedes Images. Er überspringt die Tag-Ancestry-Prüfung und veröffentlicht
+nichts: Es wird kein Image gepusht, kein Manifest und kein Tag angelegt, nichts
+signiert oder attestiert, kein GitHub-Release erstellt und kein SARIF-Report an Code Scanning gesendet. Manuelle
 Läufe mit `dry_run=false` werden abgelehnt; nur ein Tag-Push `v*.*.*` erzeugt
 ein Release.
 
@@ -50,6 +51,60 @@ behobene Schicht des Basis-Images gezogen wird. Führe danach den Dry-Run erneut
 aus. Ein Fund ohne verfügbaren Fix (`ignore-unfixed`) lässt das Gate nie
 fehlschlagen. Tagge nicht, solange ein Dry-Run rot ist; ein Tag-Lauf scheitert
 am selben Gate, nachdem die Tests schon gelaufen sind.
+
+---
+
+## Signaturen und Attestierungen prüfen
+
+Jeder Tag-Lauf (auch Release-Kandidaten) signiert und attestiert, was er
+veröffentlicht: schlüssellos über Sigstore mit der GitHub-OIDC-Identität des
+Release-Workflows. Nichts wird mit einem langlebigen Schlüssel signiert.
+Releases vor `v0.5.0` tragen keine Signaturen.
+
+| Artefakt | Signatur | Attestierungen |
+| --- | --- | --- |
+| Jedes Multi-Arch-Image (`ghcr.io/kroegerleif/alfheim/<name>:<tag>`) | cosign, auf dem Index und jedem Plattform-Manifest | SLSA-Build-Provenance auf dem Index, SPDX-SBOM auf jedem Plattform-Image |
+| `SHA256SUMS` | cosign-Bundle `SHA256SUMS.sigstore.json` (Release-Asset) | – |
+| Installer-Binaries und Stack-Dateien aus `SHA256SUMS` | über die signierte `SHA256SUMS` | SLSA-Build-Provenance |
+
+Prüfe sie am Kandidaten vor der Installation unten. Du brauchst
+[cosign](https://docs.sigstore.dev/cosign/system_config/installation/) und die
+GitHub CLI.
+
+```bash
+TAG="v0.5.0-rc.1"
+IMAGE="ghcr.io/kroegerleif/alfheim/caddy"
+IDENTITY='^https://github\.com/KroegerLeif/Alfheim/\.github/workflows/release\.yml@refs/tags/v'
+ISSUER="https://token.actions.githubusercontent.com"
+
+# Image-Signatur, gebunden an release.yml auf einem v*-Tag
+cosign verify "${IMAGE}:${TAG}" \
+  --certificate-identity-regexp "${IDENTITY}" --certificate-oidc-issuer "${ISSUER}"
+
+# Build-Provenance des Multi-Arch-Images
+gh attestation verify "oci://${IMAGE}:${TAG}" --repo KroegerLeif/Alfheim \
+  --signer-workflow KroegerLeif/Alfheim/.github/workflows/release.yml
+
+# SBOM des amd64-Images (arm64 für die andere Plattform)
+DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${TAG}" --format '{{json .Manifest}}' \
+  | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
+gh attestation verify "oci://${IMAGE}@${DIGEST}" --repo KroegerLeif/Alfheim \
+  --predicate-type https://spdx.dev/Document/v2.3
+```
+
+Für die Installer-Assets lädst du `SHA256SUMS`, `SHA256SUMS.sigstore.json` und
+das Binary von der Release-Seite herunter, dann:
+
+```bash
+cosign verify-blob SHA256SUMS --bundle SHA256SUMS.sigstore.json \
+  --certificate-identity-regexp "${IDENTITY}" --certificate-oidc-issuer "${ISSUER}"
+sha256sum --check --ignore-missing SHA256SUMS
+gh attestation verify alfheim-setup_linux_amd64 --repo KroegerLeif/Alfheim
+```
+
+Jeder Befehl muss mit einer erfolgreichen Prüfung enden. Schlägt einer bei
+einem Tag fehl, den der Workflow veröffentlicht hat, wurde das Release nicht
+korrekt signiert oder attestiert: Gib es nicht frei.
 
 ---
 
@@ -77,6 +132,7 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 | Prüfung | Erwartet |
 | --- | --- |
 | Exit-Code des Installers und `scripts/verify-stack.sh` | 0, jeder Dienst gesund |
+| Zitadel-Anmeldung | Die Anmeldung aus dem Dashboard leitet auf `/ui/login/login` (Login V1) weiter, nicht auf `/ui/v2/login`; `GET /oauth/v2/keys` listet `RS256`-Schlüssel |
 | Zitadel `GET /admin/v1/policies/login` | `allowRegister` fehlt oder ist `false`; `/ui/login/register` antwortet „Registration is not allowed“ |
 | Projektrolle `alfheim_operator` | existiert, dem Admin zugewiesen, `projectRoleAssertion: true` |
 | Access-Token des Admins | enthält `alfheim_operator` unter `urn:zitadel:iam:org:project:roles` |
@@ -85,6 +141,8 @@ curl -fsSL https://raw.githubusercontent.com/KroegerLeif/Alfheim/main/install.sh
 | `GET /api/v1/chat/mcp-servers/diagnostics`, `PATCH /api/v1/chat/mcp-servers/{id}` | 200 für den Admin, 403 für andere (die Liste selbst sehen sie gekürzt) |
 | Budget-Beleg: Handyfoto an eine Buchung anhängen | Der Browser sendet die Datei an `/api/v1/budget/transactions/receipt` (nie an `/storage/`); das gespeicherte Objekt ist ein kleines WebP |
 | Chat-Anhang hochladen | 201, das Objekt liegt in RustFS |
+| Zitadel-Zugangsdaten | `ZITADEL_BOOTSTRAP_PAT` in der `.env` ist leer, `infrastructure/zitadel/machinekey/pat.txt` ist gelöscht, `infrastructure/zitadel/provisioner/` hat Modus `0700` und `machine-key.json` Modus `0600`; `alfheim-setup zitadel-token --env-file .env` gibt ein Token aus |
+| Passwort-Zurücksetzung per E-Mail (mit SMTP) | **Forgot password** wird auf der Login-Seite angezeigt, und die E-Mail kommt an. Gegen Mailpit prüft `scripts/verify-stack.sh` das mit `ALFHEIM_SMTP_HOST=mailpit` selbst ([E-Mail einrichten](./configure-smtp.md#lokal-mit-mailpit-testen)); ohne SMTP ist der Link ausgeblendet |
 
 Prüfe die Zeilen für „andere“ mit einem zweiten Benutzer, dem ein eigener
 Haushalt gehört: Haushaltsrollen dürfen keine installationsweiten Ressourcen
@@ -153,5 +211,23 @@ aus. Erwartet:
   `DOCKER_SOCKET_GID`);
 - die Registrierung wird abgeschaltet und `alfheim_operator` wird auf der
   bestehenden Installation angelegt und zugewiesen;
+- das langlebige `ZITADEL_BOOTSTRAP_PAT` wird einmal verwendet, in Zitadel
+  widerrufen und aus der `.env` entfernt; stattdessen wird ein
+  Maschinenschlüssel gespeichert (Verzeichnis `0700`, Datei `0600`), und
+  `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` wird in der `.env` ergänzt;
 - alle mit dem vorherigen Release angelegten Daten sind noch da und
   beschreibbar.
+
+Ein Upgrade von v0.4.x oder älter hebt Zitadel außerdem von v2.66 auf v4.
+Zusätzlich erwartet:
+
+- Zitadel startet auf derselben Datenbank und mit demselben Masterkey und
+  führt seine Setup-Migrationen selbst aus (`start-from-init` überspringt die
+  Init-Schritte, die es bereits vorfindet);
+- vor dem Update ausgestellte Tokens werden abgelehnt (401), weil v4 nur mit
+  neuen Web Keys signiert; Benutzer melden sich neu an und behalten ihre
+  Zitadel-Benutzer-ID, ihre Haushalte bleiben also unverändert;
+- in den ersten Minuten nach dem Update kann `GET /oauth/v2/keys`
+  `{"keys":null}` liefern und die Anmeldung mit `Errors.WebKey.NoActive`
+  scheitern, während Zitadel seine Projektionen nachzieht; das erholt sich
+  ohne Eingriff.

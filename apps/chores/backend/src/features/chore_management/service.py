@@ -5,6 +5,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import date
 
+from backend_shared.household import MemberDirectory, MembershipServiceError
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.features.chore_management.models import (
     ChoreCompletionHistory,
@@ -92,9 +93,22 @@ class ChoreService:
         session: AsyncSession,
         home_id: uuid.UUID,
         due_date: date | None = None,
+        member_directory: MemberDirectory | None = None,
     ) -> Sequence[ChoreInstance]:
-        """Return the household's chore instances for a date (default today), generating missing ones first."""
-        return await InstanceService.get_today_chores(session, home_id, due_date)
+        """Return the household's chore instances for a date (default today), generating missing ones first.
+
+        With a ``member_directory`` open chores of former members or guests are released first
+        (#581). When the household app cannot list the members the chores are returned as stored.
+        """
+        instances = await InstanceService.get_today_chores(session, home_id, due_date)
+        if member_directory is not None:
+            try:
+                members = await member_directory.list_members(home_id)
+            except MembershipServiceError as e:
+                logger.warning("Skipping chore assignee reconciliation: %s", e)
+            else:
+                await InstanceService.reconcile_assignees(session, instances, members)
+        return instances
 
     @staticmethod
     async def assign_chore_instance(

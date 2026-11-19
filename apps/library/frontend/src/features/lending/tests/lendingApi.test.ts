@@ -29,7 +29,7 @@ describe("lendingApi", () => {
     await lendingApi.lendItem("item-1", { contact_name: "Alice" });
     await lendingApi.returnItem("item-1");
 
-    expect(libraryClient.post).toHaveBeenNthCalledWith(1, "items/item-1/lend", { json: { contact_name: "Alice" } });
-    expect(libraryClient.post).toHaveBeenNthCalledWith(2, "items/item-1/return", { json: {} });
+    expect(libraryClient.post).toHaveBeenNthCalledWith(1, "items/item-1/lend", { contact_name: "Alice" });
+    expect(libraryClient.post).toHaveBeenNthCalledWith(2, "items/item-1/return", {});
   });
 });

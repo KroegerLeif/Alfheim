@@ -4,3 +4,4 @@ export * from './ClientHeader';
 export * from './Sidebar';
 export * from './SidePanel';
 export * from './ChatWidget';
+export * from './useAppEnabled';

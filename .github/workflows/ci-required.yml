@@ -58,7 +58,9 @@ jobs:
               - 'apps/chat/backend/**'
               - 'core/dashboard/backend/**'
               - 'core/household/backend/**'
+              - 'packages/go-shared/**'
               - 'tools/installer/**'
+              - 'go.work'
               - '.github/workflows/go-ci.yml'
               - '.github/workflows/ci-required.yml'
             frontend:
@@ -69,6 +71,18 @@ jobs:
               - 'pnpm-lock.yaml'
               - '.github/workflows/frontend-ci.yml'
               - '.github/workflows/ci-required.yml'
+
+  # Runs on every PR: a version bump in any one file (a Dockerfile, go.mod, a
+  # workflow) without versions.json and the other pins fails here.
+  versions:
+    name: Stack Version Pins
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check Pins Against versions.json
+        run: ./scripts/sync-versions.sh --check
 
   python:
     name: Python
@@ -90,7 +104,7 @@ jobs:
 
   ci-required:
     name: ci-required
-    needs: [changes, python, go, frontend]
+    needs: [changes, versions, python, go, frontend]
     if: always()
     runs-on: ubuntu-latest
     steps:

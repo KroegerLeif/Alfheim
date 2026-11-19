@@ -91,10 +91,14 @@ class InventoryLedger(SQLModel, table=True):
     )
 
     # Relationships
-    product: Optional["Product"] = Relationship(
+    # SQLAlchemy resolves this relationship target from the annotation string;
+    # keep the quoted forward reference inside Optional so it resolves on 3.14.
+    product: Optional["Product"] = Relationship(  # noqa: UP037, UP045
         sa_relationship_kwargs={"lazy": "selectin"},
     )
-    location: Optional["Location"] = Relationship(
+    # SQLAlchemy resolves this relationship target from the annotation string;
+    # keep the quoted forward reference inside Optional so it resolves on 3.14.
+    location: Optional["Location"] = Relationship(  # noqa: UP037, UP045
         sa_relationship_kwargs={"lazy": "selectin"},
     )
 
@@ -158,10 +162,14 @@ class InventoryState(SQLModel, table=True):
     )
 
     # Relationships
-    product: Optional["Product"] = Relationship(
+    # SQLAlchemy resolves this relationship target from the annotation string;
+    # keep the quoted forward reference inside Optional so it resolves on 3.14.
+    product: Optional["Product"] = Relationship(  # noqa: UP037, UP045
         sa_relationship_kwargs={"lazy": "selectin"},
     )
-    location: Optional["Location"] = Relationship(
+    # SQLAlchemy resolves this relationship target from the annotation string;
+    # keep the quoted forward reference inside Optional so it resolves on 3.14.
+    location: Optional["Location"] = Relationship(  # noqa: UP037, UP045
         sa_relationship_kwargs={"lazy": "selectin"},
     )
 

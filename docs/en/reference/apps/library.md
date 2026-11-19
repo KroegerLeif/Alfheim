@@ -28,7 +28,7 @@ Source: [`apps/library/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/
 
 ## 🏗️ Architecture & Tech Stack
 
-- **Backend:** Python 3.12 / FastAPI microservice with SQLModel (async SQLAlchemy) and OpenLibrary API client.
+- **Backend:** Python 3.14 / FastAPI microservice with SQLModel (async SQLAlchemy) and OpenLibrary API client.
 - **Frontend:** Next.js 16 (App Router) microfrontend, Tailwind CSS v4, Lucide React, and `@alfheim/shared`.
 - **Database:** Hosted on `postgres-core` (`alfheim_library` database, owned by `library_user`).
 
@@ -39,7 +39,7 @@ Source: [`apps/library/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/
 ### Gateway & Network Matrix
 | Service | Internal Port | Host Mapping / Gateway Route | Protocol & Description |
 | :--- | :--- | :--- | :--- |
-| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 16 Core Database Server |
+| `postgres-core` | 5432 | Shared multi-zone networks | PostgreSQL 18 Core Database Server |
 | `library-backend` | 8000 | `/library/api/v1` | FastAPI REST API |
 | `library-frontend` | 3000 | `alfheim.loegien.localhost/library` | Next.js Microfrontend |
 
@@ -77,6 +77,7 @@ organized by API module instead:
 ## 🧾 API Behaviour
 
 - **Paging:** `GET /items`, `GET /search` and `GET /lending/history` accept `skip` and `limit` (default 50, maximum 100) and return `total`. The catalog UI requests pages of 48 and shows a "load more" control with a shown/total counter.
+- **Lending** starts from a catalog card: writers see "Lend Item" on an available item and "Mark as Returned" on a lent one; the Lending page links to the catalog.
 - **Lending records** carry `item_title`, so clients never need a second lookup to name the item.
 - **Providers:** `provider_name`, `provider_type` (`STREAMING`, `GAMING_PASS` or `BOOK_PASS`; the column is a free string up to 50 characters), `is_active` and `icon_url`. Items link to a provider through `provider_id`, which the item form exposes as a select; the `provider_id` and `active_providers_only` search filters match only linked items.
 - **Error contract:** errors that clients react to use `{"detail": {"code", "message", ...}}` with stable codes:
@@ -119,7 +120,6 @@ write). See
   sprint if still wanted.
 - **MCP tools are a placeholder**: `get_library_status` is the only tool; the catalog, lending and
   lookup features have no MCP integration yet.
-- **No way to lend an item from the UI**: the backend (`POST /items/{id}/lend`) and a `LendItemDialog` exist, but no page opens the dialog (#551). Only returning a loan works.
 - **Catalog facets are not exposed**: player count, duration and FSK filters exist in `GET /search` but not in the filter bar (#567).
 - **Provider notes are not stored**: the backend has no notes field for provider subscriptions (#618).
 - The lending overview shows the latest 100 history records and says so when more exist; open loans are always complete.

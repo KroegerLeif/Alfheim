@@ -31,7 +31,7 @@ class StorageSettings(BaseSettings):
     S3_REGION: str = "us-east-1"
 
     @model_validator(mode="after")
-    def validate_secrets(self) -> "StorageSettings":
+    def validate_secrets(self) -> StorageSettings:
         """Enforce mandatory S3 secrets in non-development/testing environments."""
         base_url = (os.getenv("ALFHEIM_BASE_URL") or "").strip().rstrip("/")
         if base_url and self.S3_PUBLIC_URL == "http://api.alfheim.loegien.localhost/storage":

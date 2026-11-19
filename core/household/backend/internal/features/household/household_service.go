@@ -2,13 +2,14 @@ package household
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
 	"unicode/utf8"
 
-	"alfheim/household/internal/shared/middleware"
+	"alfheim/go-shared/auth"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 )
@@ -38,7 +39,7 @@ func validateHouseholdName(name string) (string, error) {
 	return name, nil
 }
 
-func (s *service) CreateHousehold(ctx context.Context, claims *middleware.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
+func (s *service) CreateHousehold(ctx context.Context, claims *auth.UserClaims, req CreateHouseholdRequest) (*HouseholdResponse, error) {
 	name, err := validateHouseholdName(req.Name)
 	if err != nil {
 		return nil, err
@@ -51,6 +52,10 @@ func (s *service) CreateHousehold(ctx context.Context, claims *middleware.UserCl
 	slug = formatSlug(slug)
 	if slug == "" || len(slug) > maxHouseholdNameLength {
 		return nil, fmt.Errorf("%w: cannot derive a slug", ErrInvalidHouseholdName)
+	}
+
+	if err := s.checkSignup(ctx, claims); err != nil {
+		return nil, err
 	}
 
 	h := &Household{
@@ -167,4 +172,24 @@ func (s *service) RenameHousehold(ctx context.Context, requesterID string, house
 	}
 	s.log.Info("renamed household", slog.String("household_id", householdID), slog.String("user_id", requesterID))
 	return s.GetHouseholdDetails(ctx, requesterID, householdID)
+}
+
+// checkSignup applies the sign-up allowlist to a caller without any household.
+// A failed lookup denies as well: the instance stays closed when in doubt.
+func (s *service) checkSignup(ctx context.Context, claims *auth.UserClaims) error {
+	if s.signup == nil {
+		return nil
+	}
+	households, err := s.repo.GetHouseholdsByUserID(ctx, claims.Subject)
+	if err != nil {
+		return err
+	}
+	if len(households) > 0 {
+		return nil
+	}
+	if err := s.signup.AllowHouseholdCreation(ctx, claims); err != nil {
+		s.log.Warn("first household creation denied", slog.String("user_id", claims.Subject), slog.String("reason", err.Error()))
+		return errors.Join(ErrSignupNotAllowed, err)
+	}
+	return nil
 }

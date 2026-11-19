@@ -9,6 +9,118 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+<!-- One line per change, imperative mood, issue or PR number in parentheses: "- Add X (#123)".
+     Use only Added, Changed, Deprecated, Removed, Fixed and Security, each at most once.
+     A release moves these entries under a new version heading and adds its compare link. -->
+
+---
+
+## [v0.5.0] - 2026-11-18
+
+Release from the v0.5.0 milestone: the Lean Core (infrastructure, dashboard and household, about 752 MB reserved) becomes the default install, with every other app and the telemetry stack as optional modules switched by `alfheim-setup apps`. PostgreSQL moves to 18 and Zitadel to v4.20.3, provisioning uses a rotated machine key instead of the never-expiring bootstrap PAT, and optional Google and Apple sign-in and SMTP e-mail are configured by the installer. The gateway enforces its CSP and rate limits, and release images are signed. Breaking: PostgreSQL 16 data cannot be upgraded in place, so follow [Updating from v0.4.x](docs/en/how-to/update-installation.md#updating-from-v04x) (full backup, fresh install, data import); every user signs in again once after the Zitadel upgrade.
+
+### Added
+- ADR 0007 records the Lean Core app set (infrastructure, dashboard, household) and the optional modules; the apps catalog gains a `Tier` column (#855).
+- `alfheim-setup apps list|enable <name>|disable <name>` switches optional apps on and off and stores the set as `ALFHEIM_ENABLED_APPS` in `.env`; a missing key means all apps, and disabling never removes volumes or databases (#856).
+- Compose profiles: every service of an optional app gets the profile named after the app and the telemetry services get `telemetry`; the Lean Core has none. `.env.example` and the installer's `.env` set `COMPOSE_PROFILES` to every profile, so `./scripts/up.sh` and existing installs start what they did before (#857).
+- The installer applies the enabled app set: install, re-run, `update` and `restore` pass `COMPOSE_PROFILES` from `ALFHEIM_ENABLED_APPS` to every compose call, so an update never restarts a disabled app; `apps enable` creates missing databases, starts the app and waits for it; the Caddyfile answers 404 for a disabled app's API and redirects its pages (and `/grafana` without telemetry) to the dashboard (#858).
+- `alfheim-setup` installs the Lean Core by default: `--apps=all|none|<list>` (or `ALFHEIM_APPS`) selects optional apps non-interactively, and the wizard has an app step listing each optional app with its description and memory, plus a separate telemetry question (default off); a re-run keeps the stored set (#859).
+- `./scripts/up.sh --lean` and `--apps=<list>` boot the dev stack with only the Lean Core or the listed modules, with one stage per app derived from a single array; `./scripts/verify-stack.sh` skips and lists the routes of apps that are not running (#860).
+- List only the enabled apps on the dashboard: the backend reads `ALFHEIM_ENABLED_APPS` at startup (unset means every app), so a disabled app has no tile (#863).
+- Show live health on every core app card: `GET /api/v1/apps/health` probes each enabled app backend with a 2 s timeout, caches the result for 15 s with one probe round per window, and the card shows online, degraded or offline next to its configured status (#810).
+- Answer a stopped or restarting app with a clear error instead of an empty 502: Caddy's `handle_errors` returns JSON `503 service_unavailable` with `Retry-After` on API paths and a static page with a link back to the dashboard on page paths, in the dev Caddyfile and the installer template (#887).
+- Add passive retries (`lb_try_duration`) and active health checks on each backend's health path to every app backend proxy, so short backend restarts no longer surface as 502 (#811).
+- Add `GET /api/v1/shopping/capabilities` (`pantry_available`); the shopping frontend hides the pantry sync when Pantry is not installed (#864).
+- ADR 0008 records the social login policy: first-time Google or Apple users are created just in time, linked to an existing account only by a verified e-mail, start without a household, and local registration stays off (#884).
+- Add optional "Sign in with Google": `alfheim-setup` creates or updates the Zitadel identity provider from `ALFHEIM_GOOGLE_CLIENT_ID` / `ALFHEIM_GOOGLE_CLIENT_SECRET` (flag `--google-client-id`, an opt-in wizard step, or `.env`), prints the redirect URI to register, makes no change on a repeated run, and takes the provider off the login page when the values are emptied (#885).
+- Add optional "Sign in with Apple" through the same mechanism from `ALFHEIM_APPLE_CLIENT_ID`, `ALFHEIM_APPLE_TEAM_ID`, `ALFHEIM_APPLE_KEY_ID` and `ALFHEIM_APPLE_PRIVATE_KEY_FILE` (or the matching `--apple-*` flags); the `.p8` key is uploaded to Zitadel and never copied into `.env` (#886).
+- Add optional SMTP e-mail for Zitadel: `alfheim-setup` configures an SMTP provider from `ALFHEIM_SMTP_*` (the `--smtp-*` flags, an opt-in wizard step, or `.env`; the password from the environment or `.env` only), so password reset, invitations and e-mail verification work; a repeated run makes no change, and without SMTP the installer states what does not work and hides "Forgot password" on the login page (#456).
+- Check password-reset e-mail delivery in `scripts/verify-stack.sh`: when Zitadel's SMTP server is Mailpit (`ALFHEIM_SMTP_HOST=mailpit`) or `VERIFY_STACK_MAILPIT_URL` is set, it creates a throwaway user, requests a reset, waits for the e-mail in Mailpit's API and deletes both again; against any other mail server the check is skipped. `./scripts/up.sh` starts Mailpit when `.env` points SMTP at it.
+- Add `scripts/test-gateway-hardening.sh`, run in `smoke-test.yml`: it starts the Caddy image alone and checks the enforced CSP, that traffic below every rate limit passes and that traffic above it gets `429` with `Retry-After` (#785, #786).
+- Add database-aware readiness probes to every backend: `GET /readyz` answers `200` only when the database answers (`SELECT 1` or a pool ping, 2 s timeout) and its schema is at the newest Alembic revision or golang-migrate version, `503` otherwise; `GET /healthz` stays a liveness probe. Compose healthchecks, Caddy's active health checks, the dashboard's app-health tiles and `verify-stack.sh` use `/readyz`, so a backend reports healthy only once its database is reachable (#788).
+- Give the OTel Collector a healthcheck (its `health_check` extension on `:13133`, probed with the static busybox from `victorialogs-probe`); `scripts/up.sh` now waits for it with `wait_healthy` (#812).
+- Add an optional sign-up allowlist, `ALFHEIM_SIGNUP_ALLOWLIST` (ADR 0009): when set, a user without a household may create one only when their verified e-mail address or its domain is listed; invited users always join, and the household app explains the refusal (#923).
+- Edit and delete maintenance devices and their steps: `PATCH`/`DELETE /api/v1/devices/{id}` and `POST`/`PATCH`/`DELETE /api/v1/devices/{id}/steps[/{step_id}]` (household-scoped, writers only), with edit and delete actions in the device panel and the Steps tab (#505).
+- Lend and return library items from their catalog card; the Lending page links to the catalog with a "Lend an item" action (#551).
+- Add `GET /api/v1/apps/enabled` (dashboard backend) and `useAppEnabled` in `@alfheim/shared`, so frontends can leave out entry points into an optional app that is not installed (#917).
+- Add `HouseholdMembershipClient.list_members`, `find_member` and the `get_member_directory` dependency to `backend_shared.household`, reading the household app's member listing with the user id apps store (#583).
+- Add `useAutoClear` to `@alfheim/shared` for flash and toast messages that hide themselves (#647).
+- Track the core stack versions (Go, Python, Node.js, Next.js, PostgreSQL, Zitadel, Caddy, RustFS) in `versions.json`: `./scripts/sync-versions.sh --write` rewrites every pin and the generated [`VERSIONS.md`](VERSIONS.md), and `--check` fails `./scripts/verify.sh --security` and the new `Stack Version Pins` job of `ci-required` on any drift.
+- Merge Dependabot pull requests into `dev` once CI passes when every bump is a minor or patch update (`dependabot-auto-merge.yml`); majors, PRs with non-Dependabot commits and bumps of a version tracked in `versions.json` stay open for review.
+
+### Changed
+- Ignore Git worktrees, local agent settings, `.envrc` and build outputs in `.gitignore` (#866)
+- Run gitleaks on every push and pull request; path-filter only the dependency and image scans (#867)
+- Fail `verify.sh --security` when gitleaks is missing unless `--allow-missing-gitleaks` is passed (#868)
+- Run the gitleaks pre-commit hook and the Go hooks for every `go.work` module (#868)
+- Group Dependabot security fixes and per-image major updates, and pin `pnpm/action-setup` to one SHA (#869)
+- Serve the favicon bundle and web manifest from `packages/shared` in every frontend, including budget, library and chat, which had none; frontends copy it at `predev`/`prebuild` and link it through `createAppMetadata` (#874)
+- Remove the unused per-app `assets/branding` logo copies; `packages/shared/src/assets/brand/` is the only home of the Alfheim logo (#875)
+- Use the shared `cn()` helper from `@alfheim/shared` in chores, maintenance, pantry, shopping and workout instead of five local copies (#876)
+- Give the shared `createApiClient` an 8 s default timeout (`ApiTimeoutError`), mapped errors (`ApiError`), a `session` option (bearer token, refresh on 401, household headers) and a streaming opt-out; the dashboard, household and chat frontends and the shared household membership request use it instead of their own clients. Chat now starts a new login when a 401 cannot be refreshed, like the other apps (#877)
+- Generate every tier-2 frontend's `navigation.ts`, `proxy.ts`, `i18n.ts`, `[locale]/providers.tsx` and `[locale]/loading.tsx` from shared factories (`@alfheim/shared/i18n/*`, `@alfheim/shared/app-shell`) instead of eight hand-copied variants (#878)
+- Share the frontend `tsconfig` base, the Vitest preset and the common test setup (matchers, storage, MSW lifecycle, module doubles) from `packages/shared`; the per-app copies and the eleven `jest-dom.d.ts` files go away (#879)
+- Move the Alembic `env.py` body and the startup migration runner into `backend_shared.migrations` and `backend_shared.db`; each Python backend's `env.py` is one `run_env` call and `alembic.ini` keeps only the `[alembic]` section, with revisions and advisory lock keys unchanged (#881)
+- Move the `require_writer` / `require_admin` role matrix of chores, pantry and maintenance into `backend_shared.household.permissions` and the duplicated app `test_storage.py` copies into the `backend_shared` suite (#882)
+- Make the telemetry stack optional in production: `OTEL_ENABLED` (default `false`) now controls OpenTelemetry export in every backend and Grafana's OIDC client, and follows the `telemetry` module of `ALFHEIM_ENABLED_APPS` (`alfheim-setup apps enable|disable telemetry`, or `provision --telemetry`); `/grafana` redirects to the dashboard while it is off, and an existing installation keeps telemetry on through its first update (#861)
+- Right-size `compose.prod.yaml`: memory reservations follow measured idle use with limits at about twice that (Lean Core reserves 752 MB, the full stack 3.2 GB instead of 8 GB), Next.js heaps are capped, `postgres-core` gets `POSTGRES_SHARED_BUFFERS`, `POSTGRES_MAX_CONNECTIONS` and `POSTGRES_WORK_MEM`, and healthchecks run every 30 s with a 5 s `start_interval`, which needs Docker Engine 25 (#862)
+- Validate JWTs in one shared Go package: `packages/go-shared` (`auth`, `httpmw`, `db`, `logger`) replaces the copies in the dashboard, household and chat backends. Every Go backend now requires a configured audience and a token subject and accepts RS256 only; the dashboard, household and chat images build from the repository root (#883)
+- Split the four frontend components over 200 lines (`HouseholdProvider`, budget `QuickAddModal`, chat `ModelBlockFormModal`, landing `AppsGrid`) into hooks and sibling components, and move the GitHub mark into the shared brand assets (#880)
+- Move the budget, chores, library, maintenance, pantry, shopping and workout frontends to the shared `createApiClient` instead of their own ky wrappers, and give it a `searchParams` option; `ky` is no longer a dependency, uploads keep their longer timeouts (#877)
+- Render `CHAT_MCP_SERVERS` and `PANTRY_BACKEND_URL` from the enabled apps in the installer; chat only offers tools of the listed apps and treats an unreachable MCP server as "tools unavailable" with a 2 s connect and 5 s discovery timeout (#864)
+- Move every PostgreSQL pin (compose files, CI, scripts) to `postgres:18-alpine` and mount the data at `/var/lib/postgresql`, where the 18 image keeps its cluster in `18/docker`; new clusters have data checksums on. There is no in-place upgrade: installs and dev data directories created on PostgreSQL 16 must be recreated (#871)
+- Shorten the root `AGENTS.md` to rules plus links to the convention pages, add `.ai/README.md` and `.ai/workflow.md` (the issue-to-PR loop, linking to `docs/` instead of copying it), allow exactly those two files in `scripts/check-markdown-links.py`, and correct the chat backend note on audience checks (#872).
+- Restructure `CHANGELOG.md` to Keep a Changelog: one section per release tag, summaries for v0.1.2 to v0.3.0, one heading of each type per version, and compare links (#873).
+- Upgrade Zitadel from v2.66.1 to v4.20.3, keeping the built-in Login V1 and RSA token signing for new instances; an updated installation migrates in place, and every user signs in again once because v4 replaces the token signing keys (#765).
+- Document the Lean Core setup: new how-tos for low-spec hosts and for managing apps, one hardware tier table built from the measured reservations (the stale 4 GB / 8 GB figures are gone), memory and requirements in the apps catalog, and the v0.4.x update steps for Zitadel v4 and PostgreSQL 18 (#889)
+- Regenerate the ingress matrix from the Caddyfile with a prefix-handling column, state that backends accept `RS256` only, document the gateway's CORS stance, and fix stale paths in `README.md` and the Caddy Dockerfile (#890)
+- Bring the German docs up to the English ones for v0.5.0: the machine-key flow replacing the bootstrap PAT, the v0.4.x update steps (Zitadel v4, PostgreSQL 18), the `apps` and `zitadel-token` subcommands, social login and SMTP variables, and a new German "Configure e-mail (SMTP)" how-to with local Mailpit testing.
+- Build the dev Caddy container from `infrastructure/caddy/Dockerfile` instead of the stock `caddy` image, since the Caddyfile now needs the rate-limit module; `scripts/test-prod-startup.sh` builds Caddy from the checkout as well (#785).
+- Let Grafana send its own nonce-based Content-Security-Policy (`GF_SECURITY_CONTENT_SECURITY_POLICY=true`), which the gateway keeps (#786).
+- Standardise backend probes on `/healthz` and `/readyz`; the per-app paths `/health`, `/api/v1/health` and `/api/v1/chat/health` are gone. Probe requests are logged at DEBUG in the Go backends and dropped from the uvicorn access log (#788).
+- Move Zitadel provisioning to the v2 APIs (projects, OIDC applications, project roles, the operator role grant, machine-key rotation); only the login policy, identity providers and SMTP stay on v1, which Zitadel 4 has no v2 write API for (#915).
+- Recreate `dashboard-backend` and, while chat is enabled, `chat-backend` after `alfheim-setup apps enable|disable` and wait for them, so dashboard tiles and ALFI's tools follow the change without `alfheim-setup update` (#922).
+- Enforce Go coverage gates in `verify.sh --go` and CI through `scripts/check-go-coverage.sh`: chat 94 %, dashboard 95 %, household 97 %, go-shared 96 %, installer 80 % (#813).
+- Run the Go backends with `ENVIRONMENT=production` in `compose.prod.yaml`, so they log at INFO instead of DEBUG.
+- Run every Python backend on Python 3.14 (`python:3.14-alpine`, `requires-python = ">=3.14"` across the root `uv` workspace, CI and `ruff` target `py314`); 3.15 was not chosen because PyYAML has no musllinux wheel for it yet. Docker builds install from the root `uv.lock` with `uv sync --frozen --package <backend>`, the runtime images drop the base image's unused `pip` (whose vendored msgpack, setuptools and urllib3 failed the Trivy gate), the per-app `.python-version` files are gone in favour of the root one, and pantry keeps quoted `Optional[...]` relationship annotations that SQLAlchemy resolves from the annotation string.
+- Build the Next.js production check in CI on Node.js 24, the version the frontend images use, instead of 22, and run the Caddy image on `caddy:2.11.9-alpine`, matching its 2.11.9 builder.
+
+### Fixed
+- Answer Pantry failures in the shopping backend with 502 (unreachable) or 503 (not installed) instead of 400, with short timeouts on the cross-app calls (#864)
+- Show "ALFI is not available" in the chat widget when the chat app is stopped or not installed instead of failing silently, ignore a user-initiated abort, and log instead of swallowing errors in `@alfheim/shared` (#888)
+- Enforce mode `0700` on `infrastructure/zitadel/provisioner/` when the installer writes the machine key; a git checkout or an older install had created it `0755`, and `MkdirAll` keeps an existing directory's mode.
+- Refresh `ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE` to one week ahead on `update` and on a plain re-run when it is missing, unparseable or past, as `scripts/init-env.sh` does; Zitadel refuses an expired date when it creates its first instance again after the database was wiped while `.env` was kept.
+- Roll the dashboard schema back past migration 4: the down migration of 000006 recreates `app_catalog`; a PostgreSQL round-trip test runs in the Go CI matrix (#916).
+- Make `scripts/verify-stack.sh` check the dev stack in a repository checkout: with both compose files present it picks `compose.yaml` when only that project is running, instead of always `compose.prod.yaml`, whose empty project failed the service and TOAST checks.
+- Hide pantry's ALFI chat button and widget when the optional chat app is not installed; an installed but stopped chat app still shows "not available" (#917).
+- Answer the dashboard shell's `status`, `apps`, `uptime` and `ping` from the app health probe, the telemetry metrics and a measured round trip instead of fixed text (#640).
+- Reject chat model blocks with a provider type the backend cannot run (`anthropic`, `gemini`, `openrouter`, ...) with `400`; OpenRouter works as `openai_compatible` (#632).
+- Cancel flash and toast timers when their component unmounts in maintenance, shopping, dashboard and household (#647).
+- Answer a budget transaction `PATCH` with an explicit `null` for a required field (`amount`, `description`, ...) with `422` instead of storing it (#790).
+- Report a failed barcode lookup in pantry's bulk add as `pantry.error.lookup_unavailable` and log it, instead of `product_not_found` (#630).
+- Count each Einlagern purchase in the shopping history once; items Pantry did not recognize are no longer counted again on every later sync (#628).
+- Remove the target-household picker from the Einlagern dialog; stock always goes to the list's own household, the only one the backend can serve (#627).
+- Keep a maintenance step's procedure when an inspection comment is saved: comments get their own `comment` field and an empty comment clears it (#620).
+- Give maintenance steps a first due date one interval after they are created, so new devices show up as due (#621).
+- Assign chores to members whose OIDC subject is not a UUID, reject read-only guests as assignees, and release open chores of someone who left the household or became a guest when the day's chores are listed (#581, #583).
+
+### Security
+- Require every per-app database password in `compose.prod.yaml` and make `init-multiple-dbs.sh` refuse the `postgres` fallback outside the development stack (#865).
+- Make `scripts/init-env.sh` replace every secret-like key that still holds its `.env.example` placeholder, printing key names only (#870).
+- Refuse an Apple sign-in key file that its group or others can access (mode must be `0600` or stricter), before any container starts and before every provisioning run (#886).
+- Never pass the Google client secret as a command-line flag: `alfheim-setup` reads it from the environment or `.env` only, and prints neither it nor the Apple key (#885).
+- Update Go 1.27.3 → 1.27.4 in `go.work`, all four `go.mod` files, the Go Dockerfiles, the Caddy builder toolchain and the CI `go-version` pins to fix the `net/http` vulnerability GO-2026-6859 reported by govulncheck.
+- Replace the never-expiring Zitadel bootstrap PAT: provisioning uses it once to store a machine key (`infrastructure/zitadel/provisioner/machine-key.json`, mode `0600`, rotated every run with a 90-day expiry), revokes every PAT of the machine user and clears `ZITADEL_BOOTSTRAP_PAT`, then authenticates with access tokens that expire within hours; existing installs migrate on their next `update`, the first-instance PAT now expires after a week (`ZITADEL_BOOTSTRAP_PAT_EXPIRATIONDATE`), `provision --pat-file` is optional and `alfheim-setup zitadel-token` prints a short-lived token for manual API calls (#789).
+- Update the telemetry and edge images (#914): VictoriaMetrics 1.156.0, VictoriaLogs 1.53.0, OTel Collector 0.165.0, Vector 0.61.0, Grafana 13.3.1, socket-proxy 1.13.2, Caddy 2.11.8 and Mailpit 1.33.1. VictoriaLogs is now distroless, so a one-shot `victorialogs-probe` service copies a static busybox into the read-only `victorialogs_probe` volume that its healthcheck runs from.
+- Update 17 frontend dependencies (#908), among them Next.js 16.4.6, next-intl 4.15.0, TanStack Query 5.107.1, Vite 8.3.8, Tailwind CSS 4.3.5, Astro 7.4.10 and Starlight 0.42.10. A workspace override keeps `@emnapi/core` and `@emnapi/runtime` on the stable 1.x line, because the 2.0.0 pre-release that peer resolution picked crashed `astro check`.
+- Rate-limit the gateway per client IP with the pinned `caddy-ratelimit` module: 30 Zitadel login posts, 600 auth-host requests, 1200 `/api/v1` requests and 60 external ISBN/BGG/TMDB/Open Food Facts lookups per minute, answered with `429` and `Retry-After`. `ALFHEIM_RATE_LIMIT_LOGIN`, `_AUTH`, `_API` and `_LOOKUP` tune the limits, and `alfheim-setup --reconfigure` keeps them (#785).
+- Enforce the Content-Security-Policy instead of sending it report-only, in the installer template and the dev Caddyfile: same-origin by default, no external scripts or `eval`, `object-src 'none'`, `frame-ancestors 'self'`, and only the CARTO tiles, Leaflet marker icons and Nominatim as third parties. `verify-stack.sh` checks the enforced header (#786).
+- Sign every release image (multi-arch index and platform manifests) with cosign keyless, attach SLSA build provenance and a per-platform SPDX SBOM as signed attestations, sign `SHA256SUMS` (`SHA256SUMS.sigstore.json`) and attest the provenance of every release asset; the verify-release how-to shows the `cosign` and `gh attestation verify` commands (#787).
+- Remove the `pnpm audit` ignores for `http-cache-semantics` (patched 4.3.0 is locked) and `braces` (advisory withdrawn), and raise the `fast-uri` override to 3.1.9 (#645).
+- Restrict production CORS to the operator's own origin: the installer renders `ALFHEIM_CORS_ORIGINS` from the app host and `compose.prod.yaml` passes it to every backend; without it a production backend allows no cross-origin access instead of the development hosts, and a wildcard or malformed origin stops the backend at startup (#921).
+- Upgrade the Alpine packages in the runtime stage of every Python app backend image, so `krb5-libs` moves from 1.22.2-r1 to the patched 1.22.3-r0 (16 HIGH CVEs, among them CVE-2026-107364) instead of waiting for a rebuilt `python:3.12-alpine`.
+- Raise `golang.org/x/net` in the custom Caddy build from v0.60.0 to v0.62.0 (CVE-2026-78661, HIGH).
+
 ---
 
 ## [v0.4.0] - 2026-11-05
@@ -47,6 +159,8 @@ Release from the v0.3.3 milestone: agent instructions move to the `AGENTS.md` st
 ## [v0.3.1] - 2026-10-29
 
 > `v0.3.0` was tagged on 2026-10-23 but never published: the release pipeline's image vulnerability gate blocked it (certifi, authlib and dnspython in the Python images, npm inside the Node base image, an outdated Caddy build) and an emulated arm64 build hung. v0.3.1 contains everything listed for v0.3.0 plus those fixes; only `dashboard-backend`, `household-backend` and `chat-backend` were pushed as `v0.3.0`.
+>
+> The lists below collect every change since v0.1.0-beta.1, because v0.1.2 to v0.3.0 were cut without their own sections; those sections were added later as short summaries.
 
 Release from the October 2026 project review: tenant isolation and role matrix across all apps, real Alembic migrations, backup and restore, the `alfheim_operator` role, a hardened gateway, CI and release pipeline, multi-arch images (linux/amd64 and linux/arm64), and fixes found by an end-to-end installer verification. Upgrading from v0.2.2 with `alfheim-setup update` takes a backup first, migrates every database and repairs `.env` (S3 endpoints, `DOCKER_SOCKET_GID`, new secrets).
 
@@ -102,10 +216,7 @@ Release from the October 2026 project review: tenant isolation and role matrix a
 - Central Known Issues & System Trade-Offs register (`docs/en/explanation/known-issues.md`).
 - `ALFHEIM_EXTRA_CA_FILE`: server-side OIDC clients (`backend_shared`, the dashboard and chat Go backends) and Grafana (`GF_AUTH_GENERIC_OAUTH_TLS_CLIENT_CA`) trust an extra PEM root CA on top of the system roots for discovery, JWKS and token calls. `compose.prod.yaml` mounts `./infrastructure/ca` read-only at `/etc/alfheim/ca` for those services and `./infrastructure/caddy/pki` at `/etc/caddy/pki` for Caddy only. Unset keeps library defaults; an unreadable or non-PEM file is an error naming the path.
 - How-to guide `trust-local-root-ca.md` (EN and DE): verifying the root CA fingerprint, importing it per OS, browser and mobile device, and the fallback of accepting the warning for both hosts.
-
 - Dashboard launcher tile for the new Tier-1 `core/household` app (slug `household`, path `/household`, icon `home`), visible to every authenticated user.
-
-### Added
 - `scripts/check-compose.py` (#808), run by `verify.sh --security` and the new `compose-guard` workflow: fails if a service in `compose.prod.yaml` lacks bounded logging or a memory limit, or a dev service lacks bounded logging.
 
 ### Changed
@@ -285,7 +396,66 @@ Release from the October 2026 project review: tenant isolation and role matrix a
 
 ---
 
-## [v0.1.0-beta.1] - 2026-03-01
+## [v0.3.0] - 2026-10-23
+
+Tagged but never published (see v0.3.1); the full list is under v0.3.1.
+
+### Changed
+- Run real Alembic migrations at startup in every Python backend (#692) and add `alfheim-setup backup` and `restore`, with a backup before every update (#690).
+- Publish multi-arch linux/amd64 and linux/arm64 images and harden the release pipeline with pinned actions and the `ci-required` aggregator (#684, #708).
+
+### Fixed
+- Serve real logs and host metrics instead of fabricated telemetry (#701, #709), and make chat attachments and budget receipt uploads work in production (#702, #710).
+- Fix installer S3 endpoints, the Grafana operator role, Docker socket detection and deSEC issuance (#673, #688).
+
+### Security
+- Enforce tenant isolation and the household role matrix on every write route, MCP tool and frontend (#681, #689, #696).
+- Harden JWT validation, Go services, invite tokens, outbound LLM URLs and the gateway headers (#677, #678, #680, #685); gate the MCP registry and telemetry on `alfheim_operator` (#691).
+
+## [v0.2.2] - 2026-10-19
+
+### Added
+- deSEC DNS-01 TLS strategy for Caddy and the installer (#660).
+
+### Changed
+- Move to Go 1.26 with consolidated dependency updates; Dependabot targets `dev` (#661).
+
+## [v0.2.1] - 2026-10-10
+
+### Fixed
+- Add the missing `greenlet` dependency to the workout backend for SQLAlchemy asyncio (#651).
+
+## [v0.2.0] - 2026-10-08
+
+### Fixed
+- Stabilise all apps, the shared packages, the docs portal and the gateway in one sweep (#643).
+
+## [v0.1.3] - 2026-10-02
+
+### Fixed
+- Reattach the TTY in installer update mode so the confirmation prompt works under `curl | bash`.
+
+## [v0.1.2] - 2026-10-02
+
+First stable release after the pre-releases v0.1.0-rc.1 to v0.1.1-rc.13, which introduced the installer, Zitadel, the docs portal and the `core/household` app.
+
+### Added
+- `alfheim-setup update` for one-command releases, and the Tier-1 `core/household` app with the internal membership API that every backend uses for household checks.
+
+### Changed
+- Narrow `GET /api/v1/user/links` on the dashboard to the caller's own links.
+
+### Fixed
+- Dashboard: remove fabricated telemetry, the fake infra panel and placeholder registry entries; launcher tiles use full-page navigation.
+- Chores: verify assignees are household members, fix streaks and point totals, and localize dashboard widgets.
+- Budget: apply transactions to account and pot balances, block deleting referenced accounts, render real cashflow data and stop fabricating receipt OCR results.
+
+### Security
+- Update Next.js and add pnpm overrides for high-severity advisories.
+
+## v0.1.0-beta.1 - 2026-03-01
+
+Never tagged in git, so there is no compare link.
 
 ### Added
 - Initial public beta release of Alfheim Sovereign OS.
@@ -295,3 +465,14 @@ Release from the October 2026 project review: tenant isolation and role matrix a
 - Central Caddy ingress reverse-proxy gateway routing.
 - VictoriaStack observability pipeline (Vector, OTel Collector, VictoriaMetrics, VictoriaLogs, Grafana).
 - Automated staged cluster boot orchestrator (`scripts/up.sh`) and verification suite (`scripts/verify.sh`).
+
+[Unreleased]: https://github.com/KroegerLeif/Alfheim/compare/v0.5.0...dev
+[v0.5.0]: https://github.com/KroegerLeif/Alfheim/compare/v0.4.0...v0.5.0
+[v0.4.0]: https://github.com/KroegerLeif/Alfheim/compare/v0.3.1...v0.4.0
+[v0.3.1]: https://github.com/KroegerLeif/Alfheim/compare/v0.3.0...v0.3.1
+[v0.3.0]: https://github.com/KroegerLeif/Alfheim/compare/v0.2.2...v0.3.0
+[v0.2.2]: https://github.com/KroegerLeif/Alfheim/compare/v0.2.1...v0.2.2
+[v0.2.1]: https://github.com/KroegerLeif/Alfheim/compare/v0.2.0...v0.2.1
+[v0.2.0]: https://github.com/KroegerLeif/Alfheim/compare/v0.1.3...v0.2.0
+[v0.1.3]: https://github.com/KroegerLeif/Alfheim/compare/v0.1.2...v0.1.3
+[v0.1.2]: https://github.com/KroegerLeif/Alfheim/compare/v0.1.0-rc.1...v0.1.2

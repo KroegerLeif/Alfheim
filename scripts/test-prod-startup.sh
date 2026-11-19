@@ -208,7 +208,7 @@ wait_for_health() {
 # to Zitadel's /machinekey is writable by the container's own user before
 # Zitadel ever starts.
 #
-# The ghcr.io/zitadel/zitadel:v2.66.1 image runs as uid:gid 1000:1000 (the
+# The ghcr.io/zitadel/zitadel image (v2 through v4) runs as uid:gid 1000:1000 (the
 # "zitadel" user baked into its /etc/passwd). A bind-mount directory that
 # does not exist yet is created by the Docker daemon itself, root-owned —
 # not by the container — which denies that user the write it needs to save
@@ -335,7 +335,7 @@ wait_for_health "victorialogs" "VictoriaLogs" 30
 wait_for_health "otel-collector" "OpenTelemetry Collector" 30
 
 if [[ "${BIND_MOUNTS}" == "true" ]]; then
-  assert_bind_mount alfheim_postgres_core /var/lib/postgresql/data
+  assert_bind_mount alfheim_postgres_core /var/lib/postgresql
   assert_bind_mount alfheim_rustfs /data
   assert_bind_mount victoriametrics /victoria-metrics-data
   assert_bind_mount victorialogs /victoria-logs-data
@@ -346,6 +346,12 @@ log_info "Launching Zitadel Identity Provider (bootstraps first instance on cold
 docker compose -f "${COMPOSE_FILE}" up -d zitadel
 
 wait_for_health "alfheim_zitadel" "Zitadel Identity Provider" "${TIMEOUT}"
+
+# Build Caddy from this checkout instead of pulling the published image: the
+# Caddyfile under test may use a module (rate_limit) that an older release
+# image lacks, and the image and the Caddyfile ship together.
+log_info "Building the Caddy image from infrastructure/caddy..."
+docker compose -f "${COMPOSE_FILE}" build caddy
 
 log_info "Launching Caddy Ingress Gateway..."
 docker compose -f "${COMPOSE_FILE}" up -d caddy
@@ -368,7 +374,7 @@ fi
 
 log_info "Testing DNS resolution to 'postgres-core' and legacy alias 'postgres-iam' on infra-net..."
 for host in postgres-core postgres-iam; do
-  if docker run --rm --network infra-net postgres:16-alpine pg_isready -h "${host}" -p 5432 -t 5 >/dev/null 2>&1; then
+  if docker run --rm --network infra-net postgres:18-alpine pg_isready -h "${host}" -p 5432 -t 5 >/dev/null 2>&1; then
     log_success "infra-net -> ${host}:5432 resolved and accepting connections"
   else
     log_error "Failed to resolve or reach ${host}:5432 on infra-net"

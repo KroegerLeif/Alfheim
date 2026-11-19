@@ -4,9 +4,10 @@ import { describe, it, expect, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { axe } from 'vitest-axe'
 import { EinlagernModal } from '../EinlagernModal'
+import { StaticHouseholdProvider } from '@alfheim/shared'
 import { createQueryWrapper } from '@/tests/utils'
 import { server } from '@/tests/mocks/server'
-import { PANTRY_PRODUCT_ID, makeItem } from '@/tests/mocks/handlers'
+import { PANTRY_PRODUCT_ID, VALID_UUID_HOME, makeItem } from '@/tests/mocks/handlers'
 import { UnrecognizedShoppingItem } from '../../types'
 
 const LIST_ID = '11111111-1111-4111-a111-111111111111'
@@ -275,5 +276,55 @@ describe('EinlagernModal Component', () => {
     renderModal()
     expect(await screen.findByText('2 Unbekannte Artikel gefunden')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Später erledigen' })).toBeInTheDocument()
+  })
+
+  it('offers no target household picker and stocks into the list household (#627)', async () => {
+    const SECOND_HOME = '99999999-9999-4999-a999-999999999999'
+    const householdHeaders: (string | null)[] = []
+    server.use(
+      http.post('*/api/v1/products', ({ request }) => {
+        householdHeaders.push(request.headers.get('X-Household-ID'))
+        const now = new Date().toISOString()
+        return HttpResponse.json({
+          id: PANTRY_PRODUCT_ID,
+          name: 'Oat Milk',
+          base_unit: 'ml',
+          minimum_stock: 0,
+          created_at: now,
+          updated_at: now,
+        })
+      }),
+      http.post('*/api/v1/shopping-lists/:id/sync-to-pantry', ({ request }) => {
+        householdHeaders.push(request.headers.get('X-Household-ID'))
+        return HttpResponse.json({ status: 'success', synced_count: 1, unrecognized_count: 0, unrecognized_items: [] })
+      })
+    )
+    const QueryWrapper = createQueryWrapper()
+    render(<EinlagernModal listId={LIST_ID} initialItems={mockUnrecognizedItems} onClose={vi.fn()} />, {
+      wrapper: ({ children }) => (
+        <QueryWrapper>
+          <StaticHouseholdProvider
+            householdId={VALID_UUID_HOME}
+            value={{
+              role: 'OWNER',
+              households: [
+                { id: VALID_UUID_HOME, name: 'Main Household', role: 'OWNER' },
+                { id: SECOND_HOME, name: 'Holiday Home', role: 'OWNER' },
+              ],
+            }}
+          >
+            {children}
+          </StaticHouseholdProvider>
+        </QueryWrapper>
+      ),
+    })
+
+    expect(await screen.findByText('Main Household')).toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).toBeNull()
+    expect(screen.queryByText('Holiday Home')).toBeNull()
+
+    saveToCatalog('Oat Milk', 'Oat Milk')
+    await waitFor(() => expect(householdHeaders).toHaveLength(2))
+    expect(householdHeaders).toEqual([VALID_UUID_HOME, VALID_UUID_HOME])
   })
 })

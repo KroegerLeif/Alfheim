@@ -7,19 +7,21 @@
     "node": ">=24.0.0"
   },
   "scripts": {
+    "predev": "node ../../packages/shared/scripts/sync-brand-assets.mjs",
     "dev": "astro dev",
+    "prebuild": "node ../../packages/shared/scripts/sync-brand-assets.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "check-types": "astro check"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.42.8",
-    "astro": "^7.4.4",
+    "@astrojs/starlight": "^0.42.10",
+    "astro": "^7.4.10",
     "sharp": "^0.35.4"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
-    "@astrojs/markdown-satteri": "^0.4.6",
+    "@astrojs/markdown-satteri": "^0.4.8",
     "typescript": "^5.7.0"
   }
 }

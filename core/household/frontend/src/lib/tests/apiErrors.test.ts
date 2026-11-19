@@ -7,12 +7,12 @@ import { describeApiError, getServerMessage, messageFromBody } from '../apiError
 
 const t = (key: string, params?: Record<string, string | number>) => translateLocal('en', key, params) ?? key
 
-/** Performs a real request through the app's ky client and returns the thrown error. */
+/** Performs a real request through the app's API client and returns the thrown error. */
 async function failingRequest(status: number, body: string, contentType: string): Promise<unknown> {
   server.use(
     http.post('*/api/v1/households/join', () => new HttpResponse(body, { status, headers: { 'Content-Type': contentType } })),
   )
-  return api.post('api/v1/households/join', { json: { token: 't' } }).json().catch((err: unknown) => err)
+  return api.post('households/join', { token: 't' }).json().catch((err: unknown) => err)
 }
 
 describe('describeApiError (issue #574)', () => {
@@ -60,6 +60,13 @@ describe('describeApiError (issue #574)', () => {
     )
     expect(describeApiError(await failingRequest(404, body, 'application/json'), t, 'household')).toBe(
       "This household doesn't exist or you are no longer a member.",
+    )
+  })
+
+  it('explains a sign-up allowlist refusal (ADR 0009)', async () => {
+    const body = JSON.stringify({ error: 'signup_not_allowed', message: 'restricted' })
+    expect(describeApiError(await failingRequest(403, body, 'application/json'), t)).toBe(
+      'Creating a household is restricted on this instance. Ask a member of a household to invite you.',
     )
   })
 

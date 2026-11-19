@@ -17,14 +17,14 @@ export async function fetchProviders(is_active?: boolean): Promise<ProviderSubsc
 export async function createProvider(
   payload: ProviderCreatePayload
 ): Promise<ProviderSubscription> {
-  return libraryClient.post("providers", { json: payload }).json<ProviderSubscription>();
+  return libraryClient.post("providers", payload).json<ProviderSubscription>();
 }
 
 export async function updateProvider(
   id: string,
   payload: ProviderUpdatePayload
 ): Promise<ProviderSubscription> {
-  return libraryClient.put(`providers/${id}`, { json: payload }).json<ProviderSubscription>();
+  return libraryClient.put(`providers/${id}`, payload).json<ProviderSubscription>();
 }
 
 export async function deleteProvider(id: string): Promise<void> {

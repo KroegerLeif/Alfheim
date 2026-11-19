@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAutoClear } from '@alfheim/shared';
 import { useTranslation } from '@/i18n';
 import { useUserProfile, useUpdateProfile, ProfileHeaderBanner, ProfileOidcClaims } from '@/features/profile';
 import { useAuth } from '@/core/providers';
@@ -16,6 +17,9 @@ export default function ProfilePage() {
   // (undefined) follow the loaded profile.
   const [draft, setDraft] = useState<{ firstName?: string; lastName?: string; avatarUrl?: string }>({});
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  // The saved confirmation hides itself; an error stays until the next submit.
+  const savedMessage = t('household_app.profile.saved');
+  useAutoClear(statusMessage === savedMessage ? statusMessage : null, () => setStatusMessage(null), 4000);
 
   const firstName = draft.firstName ?? (profile?.first_name || authUser?.given_name || '');
   const lastName = draft.lastName ?? (profile?.last_name || authUser?.family_name || '');
@@ -37,7 +41,6 @@ export default function ProfilePage() {
       {
         onSuccess: () => {
           setStatusMessage(t('household_app.profile.saved'));
-          setTimeout(() => setStatusMessage(null), 4000);
         },
         onError: (error) => {
           setStatusMessage(describeApiError(error, t));

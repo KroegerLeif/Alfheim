@@ -1,5 +1,4 @@
-import { HTTPError } from "ky";
-import { parseApiErrorBody } from "@alfheim/shared";
+import { isApiError, parseApiErrorBody } from "@alfheim/shared";
 
 /** Longest server message that is shown to the user; longer bodies (stack dumps) are cut. */
 const MAX_DETAIL_LENGTH = 300;
@@ -27,16 +26,16 @@ function validationMessages(detail: unknown): string | null {
 }
 
 /**
- * Extract status, stable code and server message from a ky failure so callers can show a localized
+ * Extract status, stable code and server message from a failed API call so callers can show a localized
  * message and still surface what the server said.
  */
 export async function readApiError(error: unknown): Promise<ApiErrorInfo> {
-  if (!(error instanceof HTTPError)) {
+  if (!isApiError(error)) {
     return { status: null, code: null, itemCount: null, detail: null };
   }
 
-  const info: ApiErrorInfo = { status: error.response.status, code: null, itemCount: null, detail: null };
-  // ky consumes the response body into `error.data`: parsed JSON for JSON responses, otherwise text
+  const info: ApiErrorInfo = { status: error.status, code: null, itemCount: null, detail: null };
+  // The shared client reads the response body into `error.data`: parsed JSON for JSON responses, otherwise text
   // (for example a proxy error page), where only the status is useful.
   const body = error.data;
   if (body && typeof body === "object") {

@@ -9,13 +9,13 @@ import {
 export const lendingApi = {
   async lendItem(itemId: string, payload: LendItemPayload): Promise<LendingRecord> {
     return await libraryClient
-      .post(`items/${itemId}/lend`, { json: payload })
+      .post(`items/${itemId}/lend`, payload)
       .json<LendingRecord>();
   },
 
   async returnItem(itemId: string, payload?: ReturnItemPayload): Promise<LendingRecord> {
     return await libraryClient
-      .post(`items/${itemId}/return`, { json: payload || {} })
+      .post(`items/${itemId}/return`, payload || {})
       .json<LendingRecord>();
   },
 

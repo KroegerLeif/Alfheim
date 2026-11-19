@@ -2,7 +2,6 @@ from unittest.mock import MagicMock, patch
 
 from backend_shared import oidc_discovery
 from fastapi import Request
-from httpx import AsyncClient
 from src.core.config import Settings
 from src.main import value_error_exception_handler
 
@@ -42,10 +41,3 @@ async def test_value_error_handler():
     res = await value_error_exception_handler(req, ValueError("Invalid value parameter"))
     assert res.status_code == 400
     assert b"Invalid value parameter" in res.body
-
-
-async def test_health_check_endpoint(client: AsyncClient):
-    """Verify health check endpoint returns 200."""
-    res = await client.get("/api/v1/health")
-    assert res.status_code == 200
-    assert res.json()["status"] == "ok"

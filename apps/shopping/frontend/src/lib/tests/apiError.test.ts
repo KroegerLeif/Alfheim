@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { NetworkError } from 'ky'
+import { ApiTimeoutError } from '@alfheim/shared'
 import { describeApiError } from '../apiError'
 
 const BASE = 'Could not add the item.'
@@ -23,8 +23,8 @@ describe('describeApiError', () => {
     expect(describeApiError(undefined, BASE, UNREACHABLE)).toBe(`${BASE} ${UNREACHABLE}`)
   })
 
-  it('hints that the service is unreachable for a ky NetworkError', () => {
-    const error = new NetworkError(new Request('http://localhost/api'), { cause: new TypeError('Failed to fetch') })
+  it('hints that the service is unreachable for a timeout', () => {
+    const error = new ApiTimeoutError('http://localhost/shopping/api/v1/shopping-lists', 10000)
     expect(describeApiError(error, BASE, UNREACHABLE)).toBe(`${BASE} ${UNREACHABLE}`)
   })
 

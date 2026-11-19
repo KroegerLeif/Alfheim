@@ -49,7 +49,7 @@ async def init_test_db():
 
 
 @pytest_asyncio.fixture
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
+async def db_session() -> AsyncGenerator[AsyncSession]:
     async with test_engine.connect() as conn:
         transaction = await conn.begin()
         async with AsyncSession(conn, expire_on_commit=False) as session:
@@ -58,7 +58,7 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest_asyncio.fixture
-async def membership(db_session: AsyncSession) -> AsyncGenerator[StaticMembershipLookup, None]:
+async def membership(db_session: AsyncSession) -> AsyncGenerator[StaticMembershipLookup]:
     """Stubbed household membership API: ``TEST_USER_SUB`` is OWNER of ``TEST_HOUSEHOLD_ID``."""
 
     async def _get_test_db():
@@ -71,7 +71,7 @@ async def membership(db_session: AsyncSession) -> AsyncGenerator[StaticMembershi
 
 
 @pytest_asyncio.fixture
-async def client(membership: StaticMembershipLookup) -> AsyncGenerator[AsyncClient, None]:
+async def client(membership: StaticMembershipLookup) -> AsyncGenerator[AsyncClient]:
     """Client authenticated as ``TEST_USER_SUB`` acting in ``TEST_HOUSEHOLD_ID``."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test", headers=auth_headers()) as ac:
@@ -79,7 +79,7 @@ async def client(membership: StaticMembershipLookup) -> AsyncGenerator[AsyncClie
 
 
 @pytest_asyncio.fixture
-async def anon_client(membership: StaticMembershipLookup) -> AsyncGenerator[AsyncClient, None]:
+async def anon_client(membership: StaticMembershipLookup) -> AsyncGenerator[AsyncClient]:
     """Client without default credentials (each test supplies its own headers)."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:

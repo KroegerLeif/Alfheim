@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { Device, MaintenanceStep } from "@/shared/types";
-import { cn, daysUntil, dueStatusFromDays } from "@/core/utils";
+import { cn, useAutoClear } from "@alfheim/shared";
+import { daysUntil, dueStatusFromDays } from "@/core/utils";
 import { useFormatDate } from "@/core/useFormatDate";
 import { useUpdateTaskState } from "../hooks/useScheduled";
 import { ChevronDown, Calendar } from "lucide-react";
@@ -35,8 +36,9 @@ export function ScheduledTaskItem({ step, device }: ScheduledTaskItemProps) {
   const t = useTranslations("maintenance");
   const formatDate = useFormatDate();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [comment, setComment] = useState(step.description ?? "");
+  const [comment, setComment] = useState(step.comment ?? "");
   const [savedFlash, setSavedFlash] = useState(false);
+  useAutoClear(savedFlash, () => setSavedFlash(false), SAVED_FLASH_MS);
 
   const remainingDays = daysUntil(step.supply_needed_date);
   const status = dueStatusFromDays(remainingDays);
@@ -44,7 +46,6 @@ export function ScheduledTaskItem({ step, device }: ScheduledTaskItemProps) {
   // Use FDD custom mutation hook
   const mutation = useUpdateTaskState(step.id, () => {
     setSavedFlash(true);
-    setTimeout(() => setSavedFlash(false), SAVED_FLASH_MS);
   });
 
   const handleSaveComment = () => {

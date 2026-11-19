@@ -24,7 +24,9 @@ scripts/
 ├── diagnose-mcp.sh         # FastMCP endpoint connectivity & tool discovery diagnostic
 ├── check-frontend-runtime-config.sh  # Fails a build that leaked OIDC config into static output
 ├── check-markdown-links.py # Fails CI on a broken relative link in any Markdown file
+├── sync-versions.sh        # Checks or rewrites every stack version pin from versions.json
 ├── test-prod-startup.sh    # Preflight/smoke-test harness for `compose.prod.yaml`
+├── test-gateway-hardening.sh  # Caddy rate-limit (429) and enforced-CSP checks
 ├── install-hooks.sh        # Installs the repo's git hooks
 └── hooks/                  # Git hook scripts installed by install-hooks.sh
 ```
@@ -86,8 +88,9 @@ Checks a *running* stack end to end instead of the source tree: every Compose se
 healthy, Caddy's `/livez`, that OIDC discovery names the configured issuer, every app route
 resolves through the gateway without a 5xx, `/internal/*` is blocked at the edge, and the
 household API rejects a request with no bearer token. Auto-detects `compose.yaml` (local dev)
-or `compose.prod.yaml` (a production install); `alfheim-setup update` runs it automatically
-after a Day-2 upgrade.
+or `compose.prod.yaml` (a production install); where both exist, as in a repository checkout,
+it picks `compose.yaml` when only its project is running. `alfheim-setup update` runs it
+automatically after a Day-2 upgrade.
 * **Usage**: `./scripts/verify-stack.sh [--dir DIR] [--compose-file NAME]`
 * **Flags**:
   * `--dir DIR`: Directory holding the compose file and `.env` (default: repository root).
@@ -104,6 +107,23 @@ prerendered HTML or JS — that config must only ever be delivered at request ti
 `<basePath>/runtime-config.js` route, never baked into a static `next build` output.
 * **Usage**: `./scripts/check-frontend-runtime-config.sh <frontend-dir>` (run after `next build`
   with no `OIDC_*` build-time env vars set)
+
+#### 10. `test-gateway-hardening.sh` — Gateway Rate Limits and CSP
+Builds the Caddy image, starts it alone with the dev Caddyfile and lowered
+`ALFHEIM_RATE_LIMIT_*` values, and checks the enforced Content-Security-Policy
+header, that traffic below each rate limit passes, and that traffic above it
+gets `429` with `Retry-After` for every zone. Runs in `smoke-test.yml`.
+* **Usage**: `./scripts/test-gateway-hardening.sh` (set `GATEWAY_TEST_IMAGE` to reuse an image)
+
+#### 11. `sync-versions.sh` — Stack Version Pins
+`versions.json` at the repository root is the single source of truth for the Go, Python, Node.js,
+Next.js, PostgreSQL, Zitadel, Caddy and RustFS versions. The script finds every pin of them
+(`go.work`, `go.mod`, `pyproject.toml`, `.python-version`, `ruff.toml`, Dockerfiles, compose files,
+workflows, `package.json`, `pnpm-lock.yaml`; the rules live in `scripts/lib/sync_versions.py`) and
+generates `VERSIONS.md`. `--check` runs in `verify.sh --security` and in the `Stack Version Pins`
+job of `ci-required`.
+* **Usage**: `./scripts/sync-versions.sh --check | --write` (`--write` cannot regenerate
+  `uv.lock` or `pnpm-lock.yaml`; run `uv lock` or `pnpm install` afterwards)
 
 ---
 

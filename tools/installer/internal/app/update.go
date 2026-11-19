@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"alfheim/installer/internal/features/bootstrap"
 	"alfheim/installer/internal/features/onboarding"
 	"alfheim/installer/internal/features/updater"
 	"alfheim/installer/internal/shared/assets"
@@ -24,10 +23,11 @@ import (
 // UpdateApp is the assembled `alfheim-setup update` command: the one-command
 // Day-2 path a fresh install's owner runs on every later release. It never
 // runs the configuration wizard and never touches a secret, the generated
-// root CA, the Zitadel machinekey/PAT, or a Docker volume — only the
-// standalone stack files (internal/shared/assets.StackAssets), the IMAGE_TAG
-// line in .env, and whatever backfillSecrets/provisionZitadel already do for
-// a plain no-flag re-run.
+// root CA, or a Docker volume — only the standalone stack files
+// (internal/shared/assets.StackAssets), the IMAGE_TAG line in .env, and
+// whatever backfillSecrets/provisionZitadel already do for a plain no-flag
+// re-run. Provisioning rotates Zitadel's provisioning machine key and, on
+// an install that predates it, revokes and clears the bootstrap PAT.
 type UpdateApp struct {
 	Options *UpdateOptions
 	Build   BuildInfo
@@ -171,6 +171,13 @@ func (u *UpdateApp) execute(ctx context.Context) error {
 	}
 	printWarnings(u.Stdout, envWarnings)
 
+	// The stored app set decides which services start below, so an update
+	// never brings back an app the operator disabled.
+	set, err := recordEnabledApps(u.Stdout, layout, existing)
+	if err != nil {
+		return u.rollbackError(backupDir, previousTag, layout, err)
+	}
+
 	caddyfileChanged, err := u.rerenderCaddyfile(layout, existing, target)
 	if err != nil {
 		return u.rollbackError(backupDir, previousTag, layout, err)
@@ -189,7 +196,7 @@ func (u *UpdateApp) execute(ctx context.Context) error {
 		return u.rollbackError(backupDir, previousTag, layout, err)
 	}
 
-	orch := bootstrap.New(u.Runner, layout, bootstrap.WithLogger(u.Stdout))
+	orch := newOrchestrator(u.Runner, layout, u.Stdout, set)
 	if err := orch.EnsureDatabases(ctx); err != nil {
 		return u.rollbackError(backupDir, previousTag, layout, err)
 	}

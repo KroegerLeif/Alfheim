@@ -47,7 +47,7 @@ class WorkoutSession(SQLModel, table=True):
     )
     notes: str | None = Field(default=None, max_length=1000)
 
-    exercises: list["SessionExercise"] = Relationship(
+    exercises: list[SessionExercise] = Relationship(
         sa_relationship_kwargs={
             "lazy": "selectin",
             "order_by": "SessionExercise.exercise_order",
@@ -76,7 +76,7 @@ class SessionExercise(SQLModel, table=True):
     primary_muscle_snapshot: str = Field(sa_column=Column(String, nullable=False))
     exercise_order: int = Field(nullable=False)
 
-    sets: list["SessionSet"] = Relationship(
+    sets: list[SessionSet] = Relationship(
         sa_relationship_kwargs={
             "lazy": "selectin",
             "order_by": "SessionSet.set_order",

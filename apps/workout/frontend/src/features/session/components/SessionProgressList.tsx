@@ -1,8 +1,7 @@
 "use client";
 
-import { Badge, useTranslation } from "@alfheim/shared";
+import { Badge, useTranslation, cn } from "@alfheim/shared";
 import { Check } from "lucide-react";
-import { cn } from "@/core/utils";
 import type { SessionExerciseRead } from "../types";
 import { isSetCompleted } from "../types";
 
