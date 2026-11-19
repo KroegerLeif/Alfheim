@@ -24,6 +24,7 @@ scripts/
 ├── diagnose-mcp.sh         # FastMCP endpoint connectivity & tool discovery diagnostic
 ├── check-frontend-runtime-config.sh  # Fails a build that leaked OIDC config into static output
 ├── check-markdown-links.py # Fails CI on a broken relative link in any Markdown file
+├── sync-versions.sh        # Checks or rewrites every stack version pin from versions.json
 ├── test-prod-startup.sh    # Preflight/smoke-test harness for `compose.prod.yaml`
 ├── test-gateway-hardening.sh  # Caddy rate-limit (429) and enforced-CSP checks
 ├── install-hooks.sh        # Installs the repo's git hooks
@@ -113,6 +114,16 @@ Builds the Caddy image, starts it alone with the dev Caddyfile and lowered
 header, that traffic below each rate limit passes, and that traffic above it
 gets `429` with `Retry-After` for every zone. Runs in `smoke-test.yml`.
 * **Usage**: `./scripts/test-gateway-hardening.sh` (set `GATEWAY_TEST_IMAGE` to reuse an image)
+
+#### 11. `sync-versions.sh` — Stack Version Pins
+`versions.json` at the repository root is the single source of truth for the Go, Python, Node.js,
+Next.js, PostgreSQL, Zitadel, Caddy and RustFS versions. The script finds every pin of them
+(`go.work`, `go.mod`, `pyproject.toml`, `.python-version`, `ruff.toml`, Dockerfiles, compose files,
+workflows, `package.json`, `pnpm-lock.yaml`; the rules live in `scripts/lib/sync_versions.py`) and
+generates `VERSIONS.md`. `--check` runs in `verify.sh --security` and in the `Stack Version Pins`
+job of `ci-required`.
+* **Usage**: `./scripts/sync-versions.sh --check | --write` (`--write` cannot regenerate
+  `uv.lock` or `pnpm-lock.yaml`; run `uv lock` or `pnpm install` afterwards)
 
 ---
 

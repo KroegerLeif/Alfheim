@@ -35,7 +35,7 @@ RUN GOOS=$TARGETOS GOARCH=$TARGETARCH xcaddy build \
     --with github.com/caddy-dns/desec@v1.1.0 \
     --with github.com/mholt/caddy-ratelimit@v0.1.1-0.20260612195517-5625512f24f6
 
-FROM caddy:2.11.8-alpine
+FROM caddy:2.11.9-alpine
 
 # The base image lags behind Alpine security fixes (brotli, curl).
 RUN apk upgrade --no-cache
