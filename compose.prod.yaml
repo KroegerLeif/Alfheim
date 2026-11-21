@@ -203,7 +203,7 @@ services:
           memory: 160m
           cpus: 1
   zitadel:
-    image: ghcr.io/zitadel/zitadel:v4.20.3
+    image: ghcr.io/zitadel/zitadel:v4.20.5
     container_name: alfheim_zitadel
     init: true
     restart: unless-stopped
@@ -434,7 +434,7 @@ services:
           cpus: 0.10
 
   victorialogs:
-    image: victoriametrics/victoria-logs:v1.53.0
+    image: victoriametrics/victoria-logs:v1.54.0
     container_name: victorialogs
     profiles: ["telemetry"]
     restart: unless-stopped
