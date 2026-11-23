@@ -10,7 +10,7 @@
 #   ./scripts/verify.sh --all    # Runs Python, Go, Frontend, Security, and Smoke tests
 #   ./scripts/verify.sh --python # Runs Ruff, Ty, and Pytest (apps and packages/backend-shared)
 #   ./scripts/verify.sh --go     # Runs Go tests, race detector and coverage gates (incl. tools/installer)
-#   ./scripts/verify.sh --frontend # Runs TSC typecheck and Vitest test suites
+#   ./scripts/verify.sh --frontend # Runs TSC typecheck, ESLint and Vitest test suites
 #   ./scripts/verify.sh --security # Runs secret leakage scans and non-mutating pre-commit checks
 #   ./scripts/verify.sh --smoke  # Runs production compose startup smoke test (--prod-startup)
 #
@@ -250,7 +250,7 @@ fi
 # 3. Frontend Quality Gates
 # ------------------------------------------------------------------------------
 if [[ "$RUN_FRONTEND" == true ]]; then
-    log_banner "3. Frontend Verification (TypeScript & Vitest)"
+    log_banner "3. Frontend Verification (TypeScript, ESLint & Vitest)"
 
     if command -v pnpm >/dev/null 2>&1; then
         # Mirrors the root `check-types` script. The docs portal is an Astro project: a bare
@@ -262,6 +262,16 @@ if [[ "$RUN_FRONTEND" == true ]]; then
             log_success "TypeScript type checking passed across all frontends & packages"
         else
             log_fail "TypeScript type checking failed"
+            ERRORS=$((ERRORS + 1))
+        fi
+
+        # Every frontend and @alfheim/shared lint with the shared flat config
+        # (packages/shared/eslint.preset.mjs). Errors fail the gate; warnings are reported only.
+        log_section "ESLint (every frontend and @alfheim/shared)"
+        if pnpm -r --no-bail --filter './core/*/frontend' --filter './apps/*/frontend' --filter @alfheim/shared run lint; then
+            log_success "ESLint passed with no errors"
+        else
+            log_fail "ESLint reported errors"
             ERRORS=$((ERRORS + 1))
         fi
 

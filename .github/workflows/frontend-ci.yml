@@ -32,6 +32,9 @@ jobs:
       - name: Run TypeScript Type Check Across Workspace
         run: pnpm check-types
 
+      - name: Run ESLint Across Frontends and Shared Package
+        run: pnpm -r --no-bail --filter './core/*/frontend' --filter './apps/*/frontend' --filter @alfheim/shared run lint
+
       - name: Run Vitest Suite Across Workspace
         run: pnpm -r test
 
