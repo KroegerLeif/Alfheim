@@ -1,216 +1,184 @@
 {
   "docs": {
     "nav": {
-      "home": "Home",
+      "home": "Alfheim home",
+      "sections": "Page sections",
+      "leanCore": "Lean Core",
       "modules": "Modules",
-      "architecture": "Architecture",
-      "alfi": "Meet ALFI",
-      "quickstart": "Quickstart",
+      "integrations": "Integrations",
+      "roadmap": "Roadmap",
       "documentation": "Documentation",
-      "status": "Enclave Online",
-      "vpnProtected": "VPN Protected"
+      "language": "Language"
     },
     "hero": {
-      "badge": "Alfheim Sovereign OS",
-      "title": "Private Sovereign Micro-App Cloud",
-      "subtitle": "Self-hosted, multi-tenant home automation, inventory management, chores, and telemetry secured behind zero-trust IAM and WireGuard/Tailscale VPN.",
-      "exploreModules": "Explore Modules",
-      "readArchitecture": "Architecture Specs",
-      "githubRepo": "GitHub Repository",
-      "metrics": {
-        "architecture": {
-          "label": "Architecture",
-          "value": "Multi-Zone",
-          "note": "Isolated Networks"
-        },
-        "identity": {
-          "label": "Identity",
-          "value": "Zitadel OIDC",
-          "note": "RS256 JWT Signed"
-        },
-        "storage": {
-          "label": "Object Storage",
-          "value": "RustFS S3",
-          "note": "Tenant Presigned URLs"
-        },
-        "ai": {
-          "label": "AI Companion",
-          "value": "ALFI Agent",
-          "note": "MCP Tool Enabled"
-        }
-      }
+      "releaseLabel": "Latest release",
+      "title": "Your household, on your own hardware",
+      "subtitle": "Alfheim is a local-first household OS that runs your pantry, shopping lists, budget, chores and more on a server in your own home.",
+      "install": "Install",
+      "readDocs": "Read the docs"
     },
-    "vpnNotice": {
-      "badge": "Security Perimeter",
-      "title": "Private Network Access Notice",
-      "description": "Production apps (Dashboard, Pantry, Shopping, Chores, Maintenance, Budget, Library, Workout, Chat) run within an isolated WireGuard/Tailscale enclave. Direct access to live instances requires active VPN tunnel authorization.",
-      "gatewayInfo": "Public traffic is routed via Caddy Gateway with TLS termination."
+    "leanCore": {
+      "badge": "Lean Core",
+      "title": "Start small, add what you need",
+      "subtitle": "A default install is the Lean Core: six services that always run. Every app beyond them is an optional module you switch on when you want it.",
+      "coreTitle": "Always running",
+      "optionalTitle": "Optional modules",
+      "optionalDesc": "Pantry, shopping, budget, chores, library, workout, maintenance, chat and the telemetry stack. Turning a module off keeps its data, so you can bring it back later.",
+      "manageAppsLink": "Manage apps",
+      "services": {
+        "caddy": "Ingress and HTTPS",
+        "postgres": "One shared database",
+        "zitadel": "Sign-in and identity",
+        "rustfs": "S3 file storage",
+        "dashboard": "Launcher and app catalog",
+        "household": "Households, members and roles"
+      },
+      "table": {
+        "caption": "Hardware tiers",
+        "tier": "Tier",
+        "reserved": "Reserved RAM",
+        "host": "Host RAM",
+        "cpu": "CPU",
+        "cores": "{count} cores"
+      },
+      "tiers": {
+        "leanCore": {
+          "name": "Lean Core",
+          "runs": "The six core services"
+        },
+        "leanCorePlusApps": {
+          "name": "Lean Core + apps",
+          "runs": "Plus each app you enable"
+        },
+        "full": {
+          "name": "Full",
+          "runs": "Every optional app, telemetry off"
+        },
+        "fullTelemetry": {
+          "name": "Full + telemetry",
+          "runs": "Every app plus the telemetry stack"
+        }
+      },
+      "reservedPerApp": "{base} + {perApp} per app",
+      "host": {
+        "swap": "plus {size} swap",
+        "minimum": "{size} minimum",
+        "recommended": "{size} recommended",
+        "upToTwoApps": "{size} for up to two apps",
+        "upToFiveApps": "{size} for up to five apps"
+      },
+      "source": "These figures summarise the self-hosting guide, which is the source of truth.",
+      "sourceLink": "Hardware requirements"
     },
     "modules": {
-      "badge": "Microservices",
-      "title": "Integrated Platform Modules",
-      "subtitle": "Containerized microservices built with Python FastAPI, Go, and Next.js isolated across dedicated Docker bridge networks.",
-      "pantry": {
-        "name": "Digital Pantry",
-        "tagline": "Inventory & Stock Lifecycle",
-        "description": "Live stock tracking, barcode lookup via OpenFoodFacts, storage location management, and an immutable inventory transaction ledger.",
-        "badge": "FastAPI + Next.js",
-        "route": "/pantry"
-      },
-      "shopping": {
-        "name": "Shopping Lists",
-        "tagline": "Collaborative Realtime Lists",
-        "description": "Multi-tenant household and personal shopping lists with auto-sync from pantry deficits and category sorting.",
-        "badge": "FastAPI + Next.js",
-        "route": "/shopping"
-      },
-      "maintenance": {
-        "name": "Home Maintenance",
-        "tagline": "Asset & Task Lifecycle",
-        "description": "Preventative maintenance scheduling, warranty storage in RustFS S3, recurring alerts, and household equipment tracking.",
-        "badge": "FastAPI + Next.js",
-        "route": "/maintenance"
-      },
-      "chores": {
-        "name": "Household Chores",
-        "tagline": "Gamified Habit Tracker",
-        "description": "Recurring chore rotation, streak rewards, points system, and fair household member workload distribution.",
-        "badge": "FastAPI + Next.js",
-        "route": "/chores"
-      },
-      "budget": {
-        "name": "Budget & Treasury",
-        "tagline": "Accounts & Financial Planning",
-        "description": "Household financial accounts, sinking funds, virtual savings pots, monthly/event budget plans, and expense transaction ledgers.",
-        "badge": "FastAPI + Next.js",
-        "route": "/budget"
-      },
-      "library": {
-        "name": "Media & Library Hub",
-        "tagline": "Book & Media Collection",
-        "description": "Personal book library cataloging, reading progress tracking, item borrowing management, and metadata integration.",
-        "badge": "FastAPI + Next.js",
-        "route": "/library"
-      },
-      "workout": {
-        "name": "Workout Tracker",
-        "tagline": "Fitness & Strength Telemetry",
-        "description": "Custom exercise routine creation, set and rep logging, personal records tracking, and physical progression analytics.",
-        "badge": "FastAPI + Next.js",
-        "route": "/workout"
-      },
-      "chat": {
-        "name": "ALFI Chat",
-        "tagline": "Conversational AI & MCP Interface",
-        "description": "Multi-modal AI assistant interface powering ALFI, integrating MCP tool executions, real-time context streaming, and prompt orchestration.",
-        "badge": "Go + Next.js",
-        "route": "/chat"
-      },
-      "dashboard": {
-        "name": "Control Plane",
-        "tagline": "Central Management & Ingress",
-        "description": "Unified OIDC authentication brokering, live telemetry streaming, catalog management, and Caddy reverse proxy routing.",
-        "badge": "Go + Next.js",
-        "route": "/"
-      },
-      "storage_label": "Storage",
-      "basepath_label": "Frontend BasePath"
-    },
-    "alfi": {
-      "badge": "Autonomous Companion",
-      "title": "Meet ALFI: Your Ambient Household Companion",
-      "description": "ALFI is the intelligent orchestration layer for Alfheim. Interacting through natural language and Model Context Protocol (MCP) tools, ALFI proactively manages groceries, schedules maintenance, and distributes chores.",
-      "capabilitiesTitle": "Core AI Capabilities",
-      "cap1": "Proactive inventory restocking & deficit detection",
-      "cap2": "Natural language recipe suggestions from available pantry items",
-      "cap3": "Automated maintenance scheduling & warranty ingestion",
-      "cap4": "Fair chore allocation & streak preservation reminders",
-      "states": {
-        "idle": "Idle",
-        "thinking": "Thinking",
-        "speaking": "Speaking",
-        "listening": "Listening",
-        "eating": "Eating",
-        "fixing": "Fixing",
-        "chasing": "Chasing",
-        "sleeping": "Standby",
-        "loading": "Loading",
-        "curious": "Curious"
-      },
-      "mascotAlt": "ALFI companion",
-      "protocolFooter": "Model Context Protocol (FastMCP) · Event-Driven S3 & Telemetry Hooks"
-    },
-    "architecture": {
-      "badge": "Topology & Security",
-      "title": "Architectural Foundation",
-      "subtitle": "Security-first multi-zone network segmentation with unified Zitadel identity brokering.",
-      "diagram_title": "DOCKER MULTI-ZONE NETWORK TOPOLOGY",
-      "gateway_net_desc": "Caddy Ingress & Frontends",
-      "pillars": {
-        "iam": {
-          "title": "Zero-Trust IAM",
-          "desc": "Centralized Zitadel OIDC authentication issuing short-lived RS256 JWT tokens verified by all microservice backends."
-        },
-        "storage": {
-          "title": "Tenant S3 Storage",
-          "desc": "RustFS high-performance S3 object storage with tenant-isolated buckets and presigned PUT/GET URLs."
-        },
-        "proxy": {
-          "title": "Caddy Reverse Proxy",
-          "desc": "Central ingress gateway performing path-based routing, header injection, and HTTPS certificate management."
-        },
-        "observability": {
-          "title": "OpenTelemetry & VictoriaStack",
-          "desc": "Full distributed tracing, structured logging, and live telemetry across all containers."
-        }
-      },
-      "zones": {
-        "gateway": {
-          "desc": "Caddy Ingress & Frontends",
-          "note": "Public / WireGuard Ingress"
-        },
-        "infra": {
-          "desc": "Zitadel & postgres-core & RustFS",
-          "note": "Isolated Platform IAM"
-        },
-        "core": {
-          "desc": "Dashboard Backend & DB",
-          "note": "Platform Control Plane"
-        },
-        "apps": {
-          "desc": "8 Microservice Backends & DBs",
-          "note": "Zero Cross-App DB Coupling"
-        }
-      }
-    },
-    "techStack": {
-      "badge": "Engineering",
-      "title": "Technology Stack",
-      "frontend": "Frontends: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide Icons",
-      "backend": "Backends: Python 3.14 (FastAPI), Go 1.27, SQLAlchemy / asyncpg / sqlx",
-      "database": "Databases: PostgreSQL 18 (dedicated instances per app), ClickHouse",
-      "infra": "Infra: Docker Compose, Caddy 2, Zitadel 4, RustFS (S3-compatible)",
-      "categories": {
-        "frontends": "Frontends & UI",
-        "backends": "API Backends",
-        "storage": "Databases & Storage",
-        "platform": "Platform & Mesh"
-      },
+      "badge": "Modules",
+      "title": "Core and optional modules",
+      "subtitle": "Every module serves its pages under its own path and its API under https://<your-domain>/api/v1/<app>, on the domain you install Alfheim on.",
+      "ingressLink": "Routing in the ingress matrix",
+      "core": "Core",
+      "optional": "Optional",
+      "routeLabel": "Pages",
+      "apiLabel": "API",
+      "enableLabel": "How to enable",
+      "alwaysOn": "Always installed",
+      "requires": "Requires {app}",
       "items": {
-        "controlPlane": "Go 1.27 (Control Plane & Chat)",
-        "postgres": "PostgreSQL 18 (Isolated instances)",
-        "rustfs": "RustFS (High-performance S3)",
-        "victoria": "VictoriaStack (Metrics & Logs)",
-        "redis": "Redis (Caching)",
-        "compose": "Docker Compose & Multi-Bridge Networks",
-        "caddy": "Caddy 2 Reverse Proxy"
+        "dashboard": {
+          "name": "Dashboard",
+          "description": "The home screen: launcher, app catalog with live health, and personal links."
+        },
+        "household": {
+          "name": "Household",
+          "description": "Households, members, roles and invites. Every other app asks it who belongs where."
+        },
+        "pantry": {
+          "name": "Pantry",
+          "description": "Stock tracking, expiry alerts and barcode lookup for what is in your cupboards."
+        },
+        "shopping": {
+          "name": "Shopping",
+          "description": "Shared household lists and private lists, with items taken from pantry stock."
+        },
+        "budget": {
+          "name": "Budget",
+          "description": "Accounts, savings pots, monthly plans and a transaction ledger with receipts."
+        },
+        "chores": {
+          "name": "Chores",
+          "description": "Recurring chores, assignments, streaks and points for the whole household."
+        },
+        "library": {
+          "name": "Library",
+          "description": "A catalog of books, games and media, with loans and metadata lookup."
+        },
+        "workout": {
+          "name": "Workout",
+          "description": "Exercise catalog, routine planner, session logging and progress analytics."
+        },
+        "maintenance": {
+          "name": "Maintenance",
+          "description": "Home equipment, recurring maintenance schedules, checklists and repair history."
+        },
+        "chat": {
+          "name": "Chat with ALFI",
+          "description": "ALFI, the household assistant: any LLM provider, with tools that act on your other apps."
+        },
+        "telemetry": {
+          "name": "Telemetry",
+          "description": "Metrics, logs and Grafana dashboards for the server itself. Off by default."
+        }
       }
+    },
+    "integrations": {
+      "badge": "Integrations",
+      "title": "Connect the services you already run",
+      "subtitle": "Alfheim keeps two kinds of integration apart: links that only open another app, and plugins that talk to it.",
+      "planned": "Planned for v0.6.0",
+      "launchers": {
+        "title": "App launchers",
+        "description": "Household-managed tiles that open Home Assistant, Jellyfin, YouTube or any other address in a new tab. They are links only: Alfheim never calls the target and stores no secret for it.",
+        "today": "Today the operator can already add such links for everyone in deploy/stack-apps.yaml."
+      },
+      "plugins": {
+        "title": "Typed plugins",
+        "description": "Integrations in the dashboard backend with their own settings, encrypted household credentials, a health check and an on/off switch. They only reach hosts the operator allows.",
+        "items": {
+          "homeAssistant": {
+            "name": "Home Assistant",
+            "description": "Read and control your smart home, from the dashboard and through ALFI."
+          },
+          "media": {
+            "name": "Jellyfin and Navidrome",
+            "description": "Connect your media servers for films, series and music."
+          },
+          "llm": {
+            "name": "ALFI LLM provider",
+            "description": "Choose which language model ALFI uses for the household."
+          }
+        }
+      },
+      "adrLink": "Why two layers: ADR 0010"
+    },
+    "roadmap": {
+      "badge": "Roadmap",
+      "title": "What comes next",
+      "subtitle": "Each release is planned as a GitHub milestone with its issues.",
+      "releases": {
+        "v060": {
+          "title": "Integrations and stability",
+          "theme": "CI and installer hardening, this site, household app launchers, typed plugins for Home Assistant, Jellyfin, Navidrome and ALFI's LLM provider, and native-ready API contracts (OpenAPI, PKCE)."
+        },
+        "v070": {
+          "title": "Native Apple client",
+          "theme": "A SwiftUI app for iPad and iPhone, limited to what the browser cannot do: MusicKit and AirPlay, widgets, Siri and an offline cache."
+        }
+      },
+      "milestoneLink": "{version} milestone on GitHub"
     },
     "footer": {
-      "copyright": "© 2026 Alfheim Sovereign OS. All rights reserved.",
-      "license": "Licensed under MIT",
-      "builtWith": "Built with React 19, Vite, and Tailwind CSS v4.",
-      "zero_trust_badge": "Zero-Trust Architecture"
+      "tagline": "A local-first household OS.",
+      "changelog": "Changelog",
+      "license": "MIT License"
     }
   }
 }

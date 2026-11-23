@@ -8,12 +8,13 @@ It is deployed at the site root. The Diataxis documentation portal is a separate
 
 ## 1. Overview
 
-The landing page provides a clean, responsive, and localized introduction to the Alfheim ecosystem, its containerized microservice modules, zero-trust security architecture, and the ambient AI companion **ALFI**. It is a marketing surface, not a documentation surface.
+The landing page introduces Alfheim as a local-first household OS: the Lean Core and its hardware tiers, the core and optional modules, the two integration layers of ADR 0010 and the roadmap. It is a marketing surface, not a documentation surface: facts it shows are summaries of `docs/`, which stays the source of truth.
 
 ### Key Highlights
 * **Tech Stack**: React 19, TypeScript, Vite 8, Tailwind CSS v4, Lucide React.
 * **Shared Localization**: Native multi-language support (English, German, Polish) backed by `@alfheim/shared` locales (`packages/shared/src/features/i18n/locales/{de,en,pl}/docs.json`).
-* **Design Aesthetic**: Standalone dark palette (`#0b1326` canvas, `#111b33` frosted glass cards, `#3eb1ff` ice-cyan accents). This page hardcodes its own palette and does not consume the `@alfheim/shared` theme engine, whose default variant is `nordic`.
+* **Design Aesthetic**: Standalone dark palette defined once as Tailwind theme tokens (`canvas`, `card`, `elevated`, `line`, `primary`, `fg`, `muted`, `success`, `warning`) in `src/index.css`; components use the generated utilities and never a literal colour. The page does not consume the `@alfheim/shared` theme engine, whose default variant is `nordic`.
+* **Release badge**: `vite.config.ts` injects the latest released version from the first `## [vX.Y.Z]` heading of the root `CHANGELOG.md` as `__ALFHEIM_RELEASE__`.
 * **Automated CI/CD**: Seamless GitHub Pages continuous deployment via `.github/workflows/deploy-docs.yml`.
 
 ---
@@ -25,9 +26,10 @@ websites/landing/
 ├── public/                 # Static assets
 ├── src/
 │   ├── components/
-│   │   ├── icons/          # Vector SVG brand assets (AlfheimLogo, AlfiMascot)
+│   │   ├── icons/          # Brand logo re-exported from @alfheim/shared
 │   │   ├── layout/         # Navbar, Footer
-│   │   └── sections/       # Hero, VpnNoticeBanner, AppsGrid, AlfiSection, ArchitectureSection, TechStackSection
+│   │   └── sections/       # Hero, LeanCore (+ HardwareTierTable), AppsGrid, Integrations, Roadmap
+│   ├── data/               # Typed facts: leanCore.ts (mirrors the hardware tiers), modules.ts, roadmap.ts, links.ts
 │   ├── i18n/               # React i18n hook consuming @alfheim/shared
 │   ├── App.tsx             # Main application layout
 │   ├── index.css           # Tailwind CSS v4 & custom theme variables

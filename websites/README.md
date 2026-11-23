@@ -9,7 +9,7 @@ The `websites/` directory contains public-facing web applications, documentation
 While `apps/` and `core/` contain platform micro-applications requiring authentication and backend microservices, `websites/` hosts standalone client-side applications, such as public documentation portals and project landing pages.
 
 The projects in `websites/` are:
-* **`landing/`**: Public marketing landing page served at the site root (`https://docs.alfheim.loegien.de/`), presenting architectural overviews, interactive application grids, and technology stack summaries.
+* **`landing/`**: Public marketing landing page served at the site root (`https://docs.alfheim.loegien.de/`), presenting the Lean Core, the core and optional modules, integrations and the roadmap.
 * **`portal/`**: Astro Starlight documentation portal served under `/docs`, rendering the Diataxis corpus from the repository-root `docs/` directory.
 
 ---
@@ -20,7 +20,7 @@ The projects in `websites/` are:
 websites/
 ├── landing/                # Public marketing landing page (served at /)
 │   ├── src/
-│   │   ├── components/    # Page sections (AppsGrid, ArchitectureSection, TechStackSection)
+│   │   ├── components/    # Page sections (Hero, LeanCore, AppsGrid, Integrations, Roadmap)
 │   │   ├── i18n/          # Translation helpers consuming @alfheim/shared locales
 │   │   └── main.tsx
 │   ├── package.json        # Dependencies (React, Vite, Lucide-React, Tailwind CSS)
