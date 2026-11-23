@@ -691,6 +691,10 @@ services:
       # Extra PEM roots (the private CA of --tls internal) added to the system
       # store for OIDC discovery/JWKS. Empty keeps the default trust store.
       - ALFHEIM_EXTRA_CA_FILE=${ALFHEIM_EXTRA_CA_FILE:-}
+      # Household launchers confirm X-Household-ID against core/household's
+      # internal membership API, reached over core-net (never through Caddy).
+      - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:?ALFHEIM_INTERNAL_TOKEN must be set}
+      - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
     volumes:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
