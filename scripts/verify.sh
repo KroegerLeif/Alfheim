@@ -10,7 +10,7 @@
 #   ./scripts/verify.sh --all    # Runs Python, Go, Frontend, Security, and Smoke tests
 #   ./scripts/verify.sh --python # Runs Ruff, Ty, and Pytest (apps and packages/backend-shared)
 #   ./scripts/verify.sh --go     # Runs Go tests, race detector and coverage gates (incl. tools/installer)
-#   ./scripts/verify.sh --frontend # Runs TSC typecheck, ESLint and Vitest test suites
+#   ./scripts/verify.sh --frontend # Runs TSC typecheck, ESLint and Vitest suites with coverage floors
 #   ./scripts/verify.sh --security # Runs secret leakage scans and non-mutating pre-commit checks
 #   ./scripts/verify.sh --smoke  # Runs production compose startup smoke test (--prod-startup)
 #
@@ -250,7 +250,7 @@ fi
 # 3. Frontend Quality Gates
 # ------------------------------------------------------------------------------
 if [[ "$RUN_FRONTEND" == true ]]; then
-    log_banner "3. Frontend Verification (TypeScript, ESLint & Vitest)"
+    log_banner "3. Frontend Verification (TypeScript, ESLint & Vitest Coverage)"
 
     if command -v pnpm >/dev/null 2>&1; then
         # Mirrors the root `check-types` script. The docs portal is an Astro project: a bare
@@ -265,10 +265,11 @@ if [[ "$RUN_FRONTEND" == true ]]; then
             ERRORS=$((ERRORS + 1))
         fi
 
+        # --no-sort: in topological order a failing @alfheim/shared would skip every frontend.
         # Every frontend and @alfheim/shared lint with the shared flat config
         # (packages/shared/eslint.preset.mjs). Errors fail the gate; warnings are reported only.
         log_section "ESLint (every frontend and @alfheim/shared)"
-        if pnpm -r --no-bail --filter './core/*/frontend' --filter './apps/*/frontend' --filter @alfheim/shared run lint; then
+        if pnpm -r --no-bail --no-sort --filter './core/*/frontend' --filter './apps/*/frontend' --filter @alfheim/shared run lint; then
             log_success "ESLint passed with no errors"
         else
             log_fail "ESLint reported errors"
@@ -285,11 +286,15 @@ if [[ "$RUN_FRONTEND" == true ]]; then
         frontend_concurrency="${VERIFY_FRONTEND_CONCURRENCY:-2}"
         vitest_max_workers="${VITEST_MAX_WORKERS:-$(( cpu_count / frontend_concurrency > 0 ? cpu_count / frontend_concurrency : 1 ))}"
 
-        log_section "Vitest Test Suites (${frontend_concurrency} packages at a time, ${vitest_max_workers} workers each)"
-        if VITEST_MAX_WORKERS="$vitest_max_workers" pnpm -r --no-bail --workspace-concurrency="$frontend_concurrency" test; then
-            log_success "Vitest suites passed"
+        # With --coverage, each package fails below the floor set in its vitest.config.ts
+        # (`thresholds`, #385); @alfheim/shared enforces 90 %.
+        log_section "Vitest Test Suites with coverage floors (${frontend_concurrency} packages at a time, ${vitest_max_workers} workers each)"
+        if VITEST_MAX_WORKERS="$vitest_max_workers" pnpm -r --no-bail --workspace-concurrency="$frontend_concurrency" --no-sort \
+            --filter './core/*/frontend' --filter './apps/*/frontend' --filter @alfheim/shared \
+            exec vitest run --coverage --coverage.reporter=text-summary; then
+            log_success "Vitest suites passed and coverage meets every floor"
         else
-            log_fail "Vitest suites failed"
+            log_fail "Vitest suites failed or coverage is below a floor"
             ERRORS=$((ERRORS + 1))
         fi
     else
