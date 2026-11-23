@@ -35,13 +35,15 @@
     "./testing": {
       "types": "./src/testing/index.ts",
       "default": "./src/testing/index.ts"
-    }
+    },
+    "./eslint-preset": "./eslint.preset.mjs"
   },
   "scripts": {
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "eslint"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.0.0",
@@ -71,6 +73,8 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.3.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.6",
     "jsdom": "^30.1.3",
     "next": "^16.4.6",
     "next-intl": "^4.15.3",
