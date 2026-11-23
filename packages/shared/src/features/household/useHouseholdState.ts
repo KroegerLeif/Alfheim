@@ -81,6 +81,7 @@ export function useHouseholdState({
     // Hydrate from cache after mount (SSR-safe) so the switcher renders instantly.
     const cached = readCachedHouseholds();
     const savedId = getActiveHouseholdId();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser storage only exists after mount; reading it during render would break hydration.
     if (cached.length > 0) applyHouseholds(cached);
     setActiveId(savedId);
 

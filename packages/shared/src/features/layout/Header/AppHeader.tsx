@@ -29,12 +29,11 @@ export interface AppHeaderProps {
   children?: React.ReactNode;
 }
 
-const getFallbackDashboardUrl = (): string => {
-  if (typeof globalThis !== 'undefined' && (globalThis as Record<string, any>).process?.env?.NEXT_PUBLIC_FRONTEND_URL) {
-    return (globalThis as Record<string, any>).process.env.NEXT_PUBLIC_FRONTEND_URL;
-  }
-  return '/';
-};
+// `process` does not exist in the browser unless the bundler inlines it, so read it defensively.
+type ProcessEnvHolder = { process?: { env?: Record<string, string | undefined> } };
+
+const getFallbackDashboardUrl = (): string =>
+  (globalThis as ProcessEnvHolder).process?.env?.NEXT_PUBLIC_FRONTEND_URL || '/';
 
 /**
  * Universal Unified Application Header Component.

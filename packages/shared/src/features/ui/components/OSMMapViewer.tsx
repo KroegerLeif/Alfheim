@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { createMarkerDot, createPopupElement } from './osmMapMarkup';
@@ -46,16 +46,17 @@ export function OSMMapViewer({
 	const mapRef = useRef<L.Map | null>(null);
 	const leafletRef = useRef<typeof L | null>(null);
 	const markersGroupRef = useRef<L.FeatureGroup | null>(null);
-	const [isMounted, setIsMounted] = useState(false);
 
-	// Refs to avoid dynamic closure race conditions during async Leaflet load
+	// The async Leaflet load reads the latest props from these refs, not from a stale closure.
 	const centerRef = useRef(center);
 	const zoomRef = useRef(zoom);
 	const markersRef = useRef(markers);
 
-	centerRef.current = center;
-	zoomRef.current = zoom;
-	markersRef.current = markers;
+	useEffect(() => {
+		centerRef.current = center;
+		zoomRef.current = zoom;
+		markersRef.current = markers;
+	});
 
 	const syncMarkers = (
 		map: L.Map | null,
@@ -102,12 +103,9 @@ export function OSMMapViewer({
 		}
 	};
 
+	// Effects only run in the browser, so Leaflet never loads during SSR.
 	useEffect(() => {
-		setIsMounted(true);
-	}, []);
-
-	useEffect(() => {
-		if (!isMounted || !mapContainerRef.current) return;
+		if (!mapContainerRef.current) return;
 
 		let isCancelled = false;
 
@@ -175,7 +173,7 @@ export function OSMMapViewer({
 				markersGroupRef.current = null;
 			}
 		};
-	}, [isMounted]);
+	}, []);
 
 	// Update Map Center and Zoom dynamically
 	useEffect(() => {

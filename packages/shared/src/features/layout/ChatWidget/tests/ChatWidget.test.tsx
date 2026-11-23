@@ -6,6 +6,7 @@ import { axe } from 'vitest-axe';
 import { ChatWidget } from '../ChatWidget';
 import { AlfiAvatar } from '../AlfiAvatar';
 import { LanguageProvider } from '../../../i18n/utils/LanguageContext';
+import type { Language } from '../../../i18n/utils/types';
 
 describe('ChatWidget and AlfiAvatar Components', () => {
   beforeEach(() => {
@@ -14,8 +15,8 @@ describe('ChatWidget and AlfiAvatar Components', () => {
     vi.restoreAllMocks();
   });
 
-  const renderWithLang = (ui: React.ReactNode, lang = 'de') => {
-    return render(<LanguageProvider defaultLanguage={lang as any}>{ui}</LanguageProvider>);
+  const renderWithLang = (ui: React.ReactNode, lang: Language = 'de') => {
+    return render(<LanguageProvider defaultLanguage={lang}>{ui}</LanguageProvider>);
   };
 
   it('does not render when isOpen is false', () => {
@@ -73,7 +74,7 @@ describe('ChatWidget and AlfiAvatar Components', () => {
 
   it('sends message with context and processes SSE stream', async () => {
     const user = userEvent.setup();
-    let sentRequestBody: any = null;
+    let sentRequestBody: { source_app?: string; source_context?: unknown } | null = null;
 
     // Mock fetch for model-blocks, conversations, messages, and stream
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -89,8 +90,8 @@ describe('ChatWidget and AlfiAvatar Components', () => {
           JSON.stringify({
             id: 'conv-123',
             owner_user_id: 'user-1',
-            source_app: sentRequestBody.source_app,
-            source_context: sentRequestBody.source_context,
+            source_app: sentRequestBody?.source_app,
+            source_context: sentRequestBody?.source_context,
           }),
           { status: 201 }
         );
@@ -120,7 +121,7 @@ describe('ChatWidget and AlfiAvatar Components', () => {
       }
 
       return new Response('{}', { status: 200 });
-    }) as any;
+    }) as typeof fetch;
 
     renderWithLang(
       <ChatWidget
@@ -140,8 +141,8 @@ describe('ChatWidget and AlfiAvatar Components', () => {
     // Verify context was passed to POST /conversations
     await waitFor(() => {
       expect(sentRequestBody).not.toBeNull();
-      expect(sentRequestBody.source_app).toBe('pantry');
-      expect(sentRequestBody.source_context).toEqual({ sourceApp: 'pantry', entityId: 'item-99' });
+      expect(sentRequestBody?.source_app).toBe('pantry');
+      expect(sentRequestBody?.source_context).toEqual({ sourceApp: 'pantry', entityId: 'item-99' });
     });
 
     // Verify streamed response rendered

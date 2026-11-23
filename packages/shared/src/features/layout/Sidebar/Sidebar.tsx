@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AppLogo } from "../../ui/components/AppLogo";
 import { cn } from "../../ui/utils/cn";
 import { useTranslation } from "../../i18n/utils/useTranslation";
 import React from "react";
+import { useStoredFlag } from "./useStoredFlag";
 
 export interface SidebarNavItem {
   href: string;
@@ -47,26 +47,13 @@ export function Sidebar({
   const { t } = useTranslation();
   const defaultStorageKey = `alfheim_${appName}_sidebar_collapsed`;
   const key = storageKey || defaultStorageKey;
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useStoredFlag(key);
   const titleKey = `${appName}.title`;
   const translatedTitle = t(titleKey);
   // t() returns the key itself when it is missing; fall back to the raw app name then.
   const title = translatedTitle === titleKey ? appName.toUpperCase() : translatedTitle;
 
-  useEffect(() => {
-    const saved = localStorage.getItem(key);
-    if (saved !== null) {
-      setIsCollapsed(saved === "true");
-    }
-  }, [key]);
-
-  const toggleCollapse = () => {
-    setIsCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem(key, String(next));
-      return next;
-    });
-  };
+  const toggleCollapse = () => setIsCollapsed(!isCollapsed);
 
   return (
     <aside
@@ -79,7 +66,7 @@ export function Sidebar({
     >
       {/* Header */}
       <div className="flex h-16 items-center gap-3 border-b border-[var(--border-subtle)] px-4">
-        <AppLogo appName={appName as any} size={32} />
+        <AppLogo appName={appName} size={32} />
         {!isCollapsed && (
           <span className="truncate font-heading text-sm font-bold uppercase tracking-wide">
             {title}

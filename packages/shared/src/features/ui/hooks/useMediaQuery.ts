@@ -1,33 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
+
+function supportsMatchMedia(): boolean {
+  return typeof window !== "undefined" && typeof window.matchMedia === "function";
+}
+
+function getServerSnapshot(): boolean {
+  return false;
+}
 
 /**
  * Subscribe to a CSS media query.
  *
- * Returns `false` during SSR and on the first client render, then settles to
- * the real value in an effect. That deliberate false-on-first-render keeps
- * server and client markup identical, so layout that depends on this must
- * degrade gracefully rather than flash — prefer Tailwind breakpoint classes
- * for pure styling and reserve this hook for behavior that CSS cannot express.
+ * Returns `false` during SSR and hydration, then the real value. Keeping the server snapshot
+ * `false` keeps server and client markup identical, so layout that depends on this must degrade
+ * gracefully rather than flash. Prefer Tailwind breakpoint classes for pure styling and reserve
+ * this hook for behavior that CSS cannot express.
  */
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-      return;
-    }
-
-    const mediaQueryList = window.matchMedia(query);
-    setMatches(mediaQueryList.matches);
-
-    const handleChange = (event: MediaQueryListEvent) => setMatches(event.matches);
-    mediaQueryList.addEventListener("change", handleChange);
-    return () => mediaQueryList.removeEventListener("change", handleChange);
-  }, [query]);
-
-  return matches;
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      if (!supportsMatchMedia()) return () => {};
+      const mediaQueryList = window.matchMedia(query);
+      mediaQueryList.addEventListener("change", onChange);
+      return () => mediaQueryList.removeEventListener("change", onChange);
+    },
+    [query],
+  );
+  const getSnapshot = useCallback(
+    () => supportsMatchMedia() && window.matchMedia(query).matches,
+    [query],
+  );
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
 /** Tailwind's `md` breakpoint. True from 768px up. */

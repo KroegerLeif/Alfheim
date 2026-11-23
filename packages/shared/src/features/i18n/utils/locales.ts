@@ -36,25 +36,47 @@ import plWorkout from '../locales/pl/workout.json';
 
 import { Language } from './types';
 
-function deepMerge(target: any, source: any): any {
-  const output = { ...target };
-  if (target && typeof target === 'object' && source && typeof source === 'object') {
-    Object.keys(source).forEach((key) => {
-      if (source[key] && typeof source[key] === 'object') {
-        if (!(key in target)) {
-          Object.assign(output, { [key]: source[key] });
-        } else {
-          output[key] = deepMerge(target[key], source[key]);
-        }
-      } else {
-        Object.assign(output, { [key]: source[key] });
-      }
-    });
-  }
+/** A nested translation catalogue as loaded from the JSON locale files. */
+type MessageTree = Record<string, unknown>;
+
+function isMessageTree(value: unknown): value is MessageTree {
+  return Boolean(value) && typeof value === 'object';
+}
+
+function deepMerge(target: MessageTree, source: MessageTree): MessageTree {
+  const output: MessageTree = { ...target };
+  Object.keys(source).forEach((key) => {
+    const sourceValue = source[key];
+    const targetValue = target[key];
+    output[key] =
+      isMessageTree(sourceValue) && isMessageTree(targetValue)
+        ? deepMerge(targetValue, sourceValue)
+        : sourceValue;
+  });
   return output;
 }
 
-export const deMessages = [
+/**
+ * Shape of the merged catalogue. German is the master language, so its files define the keys;
+ * the key-parity tests keep English and Polish in line with it.
+ */
+export type SharedMessages = typeof deCommon &
+  typeof deDashboard &
+  typeof deShopping &
+  typeof dePantry &
+  typeof deMaintenance &
+  typeof deChores &
+  typeof deDocs &
+  typeof deLibrary &
+  typeof deBudget &
+  typeof deChat &
+  typeof deWorkout;
+
+function mergeMessages(parts: MessageTree[]): SharedMessages {
+  return parts.reduce<MessageTree>((acc, curr) => deepMerge(acc, curr), {}) as SharedMessages;
+}
+
+export const deMessages = mergeMessages([
   deCommon,
   deDashboard,
   deShopping,
@@ -66,9 +88,9 @@ export const deMessages = [
   deBudget,
   deChat,
   deWorkout,
-].reduce((acc, curr) => deepMerge(acc, curr), {});
+]);
 
-export const enMessages = [
+export const enMessages = mergeMessages([
   enCommon,
   enDashboard,
   enShopping,
@@ -80,9 +102,9 @@ export const enMessages = [
   enBudget,
   enChat,
   enWorkout,
-].reduce((acc, curr) => deepMerge(acc, curr), {});
+]);
 
-export const plMessages = [
+export const plMessages = mergeMessages([
   plCommon,
   plDashboard,
   plShopping,
@@ -94,9 +116,9 @@ export const plMessages = [
   plBudget,
   plChat,
   plWorkout,
-].reduce((acc, curr) => deepMerge(acc, curr), {});
+]);
 
-export const messages: Record<Language, any> = {
+export const messages: Record<Language, SharedMessages> = {
   de: deMessages,
   en: enMessages,
   pl: plMessages,

@@ -6,12 +6,12 @@ import { interpolate } from './interpolate';
 import { messages } from './locales';
 import { Dictionary, Language, TranslationParams } from './types';
 
-function getNestedValue(obj: any, path: string): string | undefined {
+function getNestedValue(obj: unknown, path: string): string | undefined {
   const keys = path.split('.');
-  let current = obj;
+  let current: unknown = obj;
   for (const key of keys) {
     if (current && typeof current === 'object' && key in current) {
-      current = current[key];
+      current = (current as Record<string, unknown>)[key];
     } else {
       return undefined;
     }

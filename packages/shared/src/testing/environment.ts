@@ -1,5 +1,6 @@
-/// <reference path="./jest-dom.d.ts" />
-/// <reference path="./vitest-axe.d.ts" />
+// Type-only imports pull the matcher augmentations into every app that loads this setup.
+import type {} from './jest-dom';
+import type {} from './vitest-axe';
 import '@testing-library/jest-dom';
 import { configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, expect, vi } from 'vitest';

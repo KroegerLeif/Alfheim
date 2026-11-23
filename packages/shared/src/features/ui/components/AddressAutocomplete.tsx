@@ -41,6 +41,8 @@ interface AddressAutocompleteProps {
 	className?: string;
 }
 
+const MIN_QUERY_LENGTH = 3;
+
 export function AddressAutocomplete({
 	placeholder,
 	initialValue = '',
@@ -54,10 +56,18 @@ export function AddressAutocomplete({
 	const [isOpen, setIsOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
 
-	// Sync query state if initial value changes from external components
-	useEffect(() => {
-		setQuery(initialValue);
-	}, [initialValue]);
+	// Queries shorter than the search minimum drop stale suggestions right away.
+	function updateQuery(next: string) {
+		setQuery(next);
+		if (next.length < MIN_QUERY_LENGTH) setResults([]);
+	}
+
+	// Follow a new initial value from the parent; adjusting state during render avoids an extra pass.
+	const [syncedInitialValue, setSyncedInitialValue] = useState(initialValue);
+	if (syncedInitialValue !== initialValue) {
+		setSyncedInitialValue(initialValue);
+		updateQuery(initialValue);
+	}
 
 	// Close dropdown search panel if clicking outside the component context
 	useEffect(() => {
@@ -72,10 +82,7 @@ export function AddressAutocomplete({
 
 	// Query Nominatim API with debounce delays
 	useEffect(() => {
-		if (query.length < 3) {
-			setResults([]);
-			return;
-		}
+		if (query.length < MIN_QUERY_LENGTH) return;
 
 		// Avoid geocoding checks if query exactly matches a display name that was just clicked
 		const matchesAnyResult = results.some((r) => r.display_name === query);
@@ -134,7 +141,7 @@ export function AddressAutocomplete({
 					type="text"
 					value={query}
 					onChange={(e) => {
-						setQuery(e.target.value);
+						updateQuery(e.target.value);
 						setIsOpen(true);
 					}}
 					placeholder={placeholder ?? t('common.search_address')}
@@ -151,7 +158,7 @@ export function AddressAutocomplete({
 						<li
 							key={idx}
 							onClick={() => {
-								setQuery(r.display_name);
+								updateQuery(r.display_name);
 								setIsOpen(false);
 								onSelect(r);
 							}}
