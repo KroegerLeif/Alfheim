@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - ADR 0010 records the integration architecture: launchers stay UI-only links, typed plugins live in the dashboard backend with encrypted household-scoped credentials, `netguard` with `INTEGRATIONS_ALLOWED_HOSTS`, an MCP proxy for ALFI, HMAC-signed webhooks and a household-bound service principal (#953).
 - ADR 0011 records the headless API contract for native clients: committed OpenAPI 3.1 specs with a CI drift gate, one error envelope and page shape, canonical `/api/v1/<app>` paths, additive versioning with a deprecation window, PKCE through the system browser with a native Zitadel application, clients under `clients/` and LAN TLS through DNS-01 (#891).
+- Add household-managed external app launchers: owners and admins add Home Assistant, Jellyfin, Navidrome, YouTube or any http(s) link to the dashboard, every household member sees them (`/api/v1/launchers`) (#955).
+
+### Changed
+- Move the household middleware, API key encryption and outbound host guard from the chat backend into `packages/go-shared` (`household`, `crypto`, `netguard`) and add `RequireHouseholdRole` for write endpoints (#954).
 
 ---
 
