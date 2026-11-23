@@ -24,7 +24,7 @@ export const HeroSection: React.FC = () => {
           <AlfheimLogo className="w-4 h-4" size={16} />
           <span>{t('docs.hero.badge')}</span>
           <span className="w-1.5 h-1.5 rounded-full bg-[#3eb1ff]" />
-          <span className="text-[#8b949e]">v2.4 LTS</span>
+          <span className="text-[#8b949e]">{__ALFHEIM_RELEASE__}</span>
         </div>
 
         {/* Hero Title */}

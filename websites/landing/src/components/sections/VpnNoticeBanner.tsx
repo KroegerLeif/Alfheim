@@ -36,7 +36,12 @@ export const VpnNoticeBanner: React.FC = () => {
               <Network className="w-3.5 h-3.5 text-[#3eb1ff]" />
               Caddy Ingress Gateway
             </span>
-            <span className="text-xs font-mono text-[#3eb1ff]">api.alfheim.loegien.de</span>
+            <a
+              href="/docs/en/reference/ingress-matrix/"
+              className="text-xs font-mono text-[#3eb1ff] underline-offset-2 hover:underline"
+            >
+              https://&lt;your-domain&gt;/api/v1/&lt;app&gt;
+            </a>
           </div>
         </div>
       </div>

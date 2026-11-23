@@ -9,7 +9,7 @@ The `websites/` directory contains public-facing web applications, documentation
 While `apps/` and `core/` contain platform micro-applications requiring authentication and backend microservices, `websites/` hosts standalone client-side applications, such as public documentation portals and project landing pages.
 
 The projects in `websites/` are:
-* **`landing/`**: Public marketing landing page served at the site root (`https://alfheim.loegien.de/`), presenting architectural overviews, interactive application grids, and technology stack summaries.
+* **`landing/`**: Public marketing landing page served at the site root (`https://docs.alfheim.loegien.de/`), presenting architectural overviews, interactive application grids, and technology stack summaries.
 * **`portal/`**: Astro Starlight documentation portal served under `/docs`, rendering the Diataxis corpus from the repository-root `docs/` directory.
 
 ---
@@ -34,7 +34,7 @@ websites/
 * **Framework**: React 19 + Vite for fast build and Static Site Generation (SSG) / Single Page Application (SPA) delivery.
 * **Styling**: Tailwind CSS for responsive, modern UI design.
 * **Internationalization**: The landing page uses lightweight client-side i18n supporting English (`en`), German (`de`), and Polish (`pl`). The documentation portal ships English and German.
-* **Deployment Workflow**: A single GitHub Actions workflow (`.github/workflows/deploy-docs.yml`) builds both projects, merges the portal into the landing artifact under `/docs`, and deploys to GitHub Pages on pushes to `main`. The Pages site uses the custom domain `alfheim.loegien.de`.
+* **Deployment Workflow**: A single GitHub Actions workflow (`.github/workflows/deploy-docs.yml`) builds both projects, merges the portal into the landing artifact under `/docs`, and deploys to GitHub Pages on pushes to `main`. The Pages site uses the custom domain `docs.alfheim.loegien.de` (set in the repository's Pages settings), and the portal's `site` in `astro.config.mjs` must match it.
 
 ---
 

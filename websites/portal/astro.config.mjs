@@ -5,11 +5,13 @@ import { fileURLToPath } from 'node:url';
 import { satteri } from '@astrojs/markdown-satteri';
 import createRewriteDocLinksPlugin from './src/plugins/rewrite-doc-links.mjs';
 
-// The portal is merged into the landing page artifact under /docs.
-// To serve it from a dedicated domain later (for example docs.loegien.de),
-// remove `base` and drop the merge step in .github/workflows/deploy-docs.yml.
+// The portal is merged into the landing page artifact under /docs, and GitHub
+// Pages serves that artifact from the custom domain docs.alfheim.loegien.de
+// (configured in the repository's Pages settings; the Actions deployment needs
+// no CNAME file). `site` must be that origin so canonical URLs, the sitemap and
+// Open Graph tags resolve to https://docs.alfheim.loegien.de/docs/...
 export default defineConfig({
-  site: 'https://alfheim.loegien.de',
+  site: 'https://docs.alfheim.loegien.de',
   base: '/docs',
   // Both locales are URL-prefixed, so Starlight generates no root page and
   // /docs/ would 404 -- which is exactly where the landing page links.

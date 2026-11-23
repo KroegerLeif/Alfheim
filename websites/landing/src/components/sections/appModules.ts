@@ -25,6 +25,10 @@ export interface AppModule {
   tech: string;
   db: string;
   route: string;
+  /**
+   * API path on the operator's own domain (`https://<your-domain>/api/v1/<app>`), as routed by
+   * Caddy; see docs/en/reference/ingress-matrix.md.
+   */
   api: string;
 }
 
@@ -38,7 +42,7 @@ export const APP_MODULES: readonly AppModule[] = [
     tech: 'FastAPI + Next.js',
     db: 'PostgreSQL (pantry-db)',
     route: '/pantry',
-    api: 'api.alfheim.loegien.de/pantry/api/v1',
+    api: '/api/v1/pantry',
   },
   {
     id: 'shopping',
@@ -48,7 +52,7 @@ export const APP_MODULES: readonly AppModule[] = [
     tech: 'FastAPI + Next.js',
     db: 'PostgreSQL (shopping-db)',
     route: '/shopping',
-    api: 'api.alfheim.loegien.de/shopping/api/v1',
+    api: '/api/v1/shopping',
   },
   {
     id: 'maintenance',
@@ -58,7 +62,7 @@ export const APP_MODULES: readonly AppModule[] = [
     tech: 'FastAPI + Next.js',
     db: 'PostgreSQL (maintenance-db)',
     route: '/maintenance',
-    api: 'api.alfheim.loegien.de/maintenance/api/v1',
+    api: '/api/v1/maintenance',
   },
   {
     id: 'chores',
@@ -68,7 +72,7 @@ export const APP_MODULES: readonly AppModule[] = [
     tech: 'FastAPI + Next.js',
     db: 'PostgreSQL (chores-db)',
     route: '/chores',
-    api: 'api.alfheim.loegien.de/chores/api/v1',
+    api: '/api/v1/chores',
   },
   {
     id: 'budget',
@@ -78,7 +82,7 @@ export const APP_MODULES: readonly AppModule[] = [
     tech: 'FastAPI + Next.js',
     db: 'PostgreSQL (budget-db)',
     route: '/budget',
-    api: 'api.alfheim.loegien.de/budget/api/v1',
+    api: '/api/v1/budget',
   },
   {
     id: 'library',
@@ -88,7 +92,7 @@ export const APP_MODULES: readonly AppModule[] = [
     tech: 'FastAPI + Next.js',
     db: 'PostgreSQL (library-db)',
     route: '/library',
-    api: 'api.alfheim.loegien.de/library/api/v1',
+    api: '/api/v1/library',
   },
   {
     id: 'workout',
@@ -98,7 +102,7 @@ export const APP_MODULES: readonly AppModule[] = [
     tech: 'FastAPI + Next.js',
     db: 'PostgreSQL (workout-db)',
     route: '/workout',
-    api: 'api.alfheim.loegien.de/workout/api/v1',
+    api: '/api/v1/workout',
   },
   {
     id: 'chat',
@@ -108,7 +112,7 @@ export const APP_MODULES: readonly AppModule[] = [
     tech: 'Go 1.27 + Next.js',
     db: 'PostgreSQL (chat-db)',
     route: '/chat',
-    api: 'api.alfheim.loegien.de/chat/api/v1',
+    api: '/api/v1/chat',
   },
   {
     id: 'dashboard',
@@ -118,6 +122,6 @@ export const APP_MODULES: readonly AppModule[] = [
     tech: 'Go 1.27 + Next.js',
     db: 'PostgreSQL (dashboard-db)',
     route: '/',
-    api: 'api.alfheim.loegien.de/api/v1/apps',
+    api: '/api/v1/apps',
   },
 ];

@@ -67,5 +67,8 @@ single GitHub Pages artifact.
 Search is provided by [Pagefind](https://pagefind.app/), generated at build time
 and fully static — no API, no rate limits.
 
-**Moving to a dedicated domain** (for example `docs.loegien.de`) means removing
-`base: '/docs'` from `astro.config.mjs` and dropping the merge step in the workflow.
+The combined artifact is served from the custom domain `docs.alfheim.loegien.de`,
+so `site` in `astro.config.mjs` is `https://docs.alfheim.loegien.de` and every page
+lives under `https://docs.alfheim.loegien.de/docs/`. Change both together: a
+different custom domain in the Pages settings needs the same `site` here, or
+canonical URLs and the sitemap point at the wrong host.
