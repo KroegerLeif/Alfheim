@@ -66,6 +66,17 @@ carry no signatures.
 | `SHA256SUMS` | cosign bundle `SHA256SUMS.sigstore.json` (release asset) | – |
 | Installer binaries and stack files listed in `SHA256SUMS` | through the signed `SHA256SUMS` | SLSA build provenance |
 
+The workflow creates every attestation with
+[`actions/attest`](https://github.com/actions/attest), which picks the
+predicate type from its inputs: SLSA build provenance
+(`https://slsa.dev/provenance/v1`) when it gets only a subject, and an SBOM
+attestation with the SBOM's own type (`https://spdx.dev/Document/v2.3` for the
+SPDX images) when it also gets `sbom-path`. Pass that type to
+`--predicate-type` to check one attestation in particular. Each attest step
+runs up to three times, because the Sigstore transparency log can answer a
+short-lived error right after an entry is written; a step that still fails
+after the third attempt fails the release job.
+
 Check them on the candidate before the install below. You need
 [cosign](https://docs.sigstore.dev/cosign/system_config/installation/) and the
 GitHub CLI.
