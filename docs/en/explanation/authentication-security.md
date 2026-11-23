@@ -154,7 +154,7 @@ The Go backends read the role from the validated access token. Zitadel puts it i
 4. **Role check**: routes that need a role (for example chat's MCP registry toggle, OWNER or ADMIN) use the role from the membership answer, never a token claim. A member without the role gets `403 household_role_forbidden`.
 5. **Query filtering**: repository queries filter every read, write, update and delete by the verified household id.
 
-Python backends implement steps 1–4 with `backend_shared.household.require_household` / `require_role`. The chat backend (Go) uses `middleware.RequireHousehold` with `internal/shared/householdclient`. Both behave the same:
+Python backends implement steps 1–4 with `backend_shared.household.require_household` / `require_role`. The Go backends (chat, and the dashboard's household launchers) use `household.RequireHousehold` from `packages/go-shared` (`alfheim/go-shared/household`), with `household.RequireHouseholdRole` for writes that need `OWNER` or `ADMIN`. Both behave the same:
 
 | Status | `detail.code` | Meaning |
 | :--- | :--- | :--- |

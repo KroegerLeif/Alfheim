@@ -24,7 +24,7 @@ internal/features/<domain>/
 ├── handler.go            # HTTP handlers and route registration
 ├── repository.go         # database access behind an interface
 └── errors.go             # sentinel errors such as ErrNotFound
-internal/shared/          # app-specific, domain-agnostic code (for example chat's householdclient)
+internal/shared/          # app-specific, domain-agnostic code (for example chat's llm and mcp clients)
 ```
 
 ## Shared module
@@ -38,12 +38,16 @@ internal/shared/          # app-specific, domain-agnostic code (for example chat
 | `db` | `Config`, the pgx pool `Client`, golang-migrate `RunMigrations` and `ReadinessCheck` (pool answers, schema at the newest migration) |
 | `health` | `Register`: `GET /healthz` (liveness, never touches the database) and `GET /readyz` (database-aware readiness, `503` when not ready) |
 | `logger` | JSON `slog` logger with OpenTelemetry trace and span ids |
+| `household` | Membership client for `core/household` (`New`, `Checker`, roles `OWNER`/`ADMIN`/`MEMBER`/`GUEST`), `RequireHousehold`, `RequireHouseholdRole`, `GetHousehold` |
+| `crypto` | AES-256-GCM `Encrypt`/`Decrypt` and `DecodeKey` for third-party secrets at rest |
+| `netguard` | Outbound destination guard: rejects private, loopback, link-local and metadata hosts unless allow-listed, and re-checks the resolved address at dial time |
 
 - `auth.NewAuthenticator(ctx, auth.Config{IssuerURL, Audience, HTTPClient, Logger})` discovers the JWKS from `{IssuerURL}/.well-known/openid-configuration`. Issuer and audience are required and always checked, tokens need an expiry and a subject, and only RS256 is accepted. The request host plays no part. Tests inject `HTTPClient`; production leaves it nil to get a client that trusts `ALFHEIM_EXTRA_CA_FILE`.
 - `UserClaims` carries identity only. Household membership and role never come from the token: see [Household authorization](#household-authorization).
 - Each backend aliases its database settings to the shared type (`type DatabaseConfig = db.Config`) and passes its own allowed CORS methods and headers. Origins come from `httpmw.ResolveAllowedOrigins`: development hosts only outside production, and a malformed entry fails `config.Load`.
 - Every backend mounts `health.Register(r, "<name>-backend", dbClient.ReadinessCheck(migrationsDir), log)`; compose healthchecks and Caddy probe `/readyz`.
 - Backends require `alfheim/go-shared v0.0.0` with `replace alfheim/go-shared => ../../../packages/go-shared`, so a module builds outside `go.work`. Their Dockerfiles therefore build from the repository root (`docker build -f core/dashboard/backend/Dockerfile .`), as the compose files and the release workflow do.
+- `packages/go-shared` reads no environment variables. A backend reads its own settings in `config` (for example `HOUSEHOLD_INTERNAL_URL`, `CHAT_ALLOWED_LLM_HOSTS`, `CHAT_ENCRYPTION_KEY`) and passes them to the constructors in `cmd/server/main.go`.
 - A change to `packages/go-shared` affects every Go backend: run the whole `./scripts/verify.sh --go` gate.
 
 ## Conventions
@@ -58,7 +62,9 @@ internal/shared/          # app-specific, domain-agnostic code (for example chat
 
 Authorization rules are in [Authentication and security](../../explanation/authentication-security.md) and [ADR 0006](../../explanation/decisions/0006-household-authorization-via-membership-api.md). In code:
 
-- `middleware.RequireHousehold` runs after JWT validation. Use the chat backend as the reference: `apps/chat/backend/internal/shared/middleware/household.go` with `internal/shared/householdclient`.
+- `household.RequireHousehold(checker, log)` from `alfheim/go-shared/household` runs after JWT validation. It requires a UUID `X-Household-ID`, confirms the membership and stores a `HouseholdContext` (household id, role, subject) that handlers read with `household.GetHousehold`. Never copy it into `internal/shared`.
+- Write endpoints that need an elevated role add `household.RequireHouseholdRole(log, household.RoleOwner, household.RoleAdmin)` after `RequireHousehold`. Other roles get `403 household_role_forbidden`; a route without household context fails with `500` instead of passing.
+- `main` builds the checker with `household.New(cfg.Household.InternalURL, cfg.Household.InternalToken)` and injects it; tests inject a fake `household.Checker`. The chat backend and the dashboard's launchers are the reference consumers.
 - The client asks `GET {HOUSEHOLD_INTERNAL_URL}/internal/v1/memberships/{householdId}/{userSub}` with `Authorization: Bearer $ALFHEIM_INTERNAL_TOKEN`, caches members for 30 s and non-members for 5 s, never caches errors, and fails closed with `503 household_service_unavailable`.
 - Errors use the shared body `{"detail": {"code", "message"}}`. Roles come from the membership response, never from the JWT.
 - Outbound calls to MCP servers or other apps forward the caller's bearer token and `X-Household-ID`, set per request.

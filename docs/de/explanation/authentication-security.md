@@ -154,7 +154,7 @@ Die Go-Backends lesen die Rolle aus dem validierten Access-Token. Zitadel legt s
 4. **Rollenprüfung**: Routen, die eine Rolle verlangen (etwa das Umschalten der MCP-Registry im Chat, OWNER oder ADMIN), nutzen die Rolle aus der Mitgliedschafts-Antwort, nie einen Token-Claim. Ein Mitglied ohne passende Rolle erhält `403 household_role_forbidden`.
 5. **Query-Filterung**: Repository-Queries filtern alle Lese-, Schreib-, Update- und Löschoperationen nach der bestätigten Haushalts-ID.
 
-Python-Backends setzen die Schritte 1–4 mit `backend_shared.household.require_household` / `require_role` um. Das Chat-Backend (Go) nutzt `middleware.RequireHousehold` mit `internal/shared/householdclient`. Beide verhalten sich gleich:
+Python-Backends setzen die Schritte 1–4 mit `backend_shared.household.require_household` / `require_role` um. Die Go-Backends (Chat und die Haushalts-Launcher des Dashboards) nutzen `household.RequireHousehold` aus `packages/go-shared` (`alfheim/go-shared/household`), für Schreibzugriffe, die `OWNER` oder `ADMIN` verlangen, zusätzlich `household.RequireHouseholdRole`. Beide verhalten sich gleich:
 
 | Status | `detail.code` | Bedeutung |
 | :--- | :--- | :--- |
