@@ -1,7 +1,8 @@
 # AGENTS.md — packages/go-shared (`alfheim/go-shared`)
 
 Go module shared by every Go backend: OIDC JWT validation (`auth`), HTTP middleware (`httpmw`),
-the PostgreSQL client (`db`) and the logger (`logger`). Adds to the [root rules](../../AGENTS.md).
+the PostgreSQL client (`db`), the logger (`logger`), household authorization (`household`),
+AES-256-GCM secret encryption (`crypto`) and the outbound destination guard (`netguard`). Adds to the [root rules](../../AGENTS.md).
 Conventions: [Go](../../docs/en/reference/conventions/go.md#shared-module).
 
 ## Commands
@@ -16,5 +17,7 @@ gofmt -l .                  # must print nothing
 
 - A change here affects every Go backend: run the full Go gate, not only this module's tests.
 - `auth` stays strict: JWKS from the issuer's discovery document, issuer and audience required, RS256 only, expiry and subject required, no dependence on the request host. Do not widen the accepted algorithms.
-- Never read household or role claims from the JWT. Household membership is confirmed per request against core/household.
+- Never read household or role claims from the JWT. Household membership is confirmed per request against core/household (`household.RequireHousehold`); write endpoints add `household.RequireHouseholdRole`.
+- Read no environment variables here. Backends read their own settings (`HOUSEHOLD_INTERNAL_URL`, `CHAT_ALLOWED_LLM_HOSTS`, encryption keys) in `config` and pass them to the constructors in `cmd/server/main.go`.
+- `household`, `crypto` and `netguard` are security boundaries: they fail closed, and their coverage must not drop.
 - No backend-specific code: anything that knows about one app's config or features stays in that app's `internal/shared`.

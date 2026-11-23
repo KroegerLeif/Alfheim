@@ -14,8 +14,8 @@ import (
 	"github.com/google/uuid"
 
 	"alfheim/chat/internal/shared/attachmenturl"
-	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/chat/internal/shared/storage"
+	"alfheim/go-shared/household"
 )
 
 // MaxAttachmentSizeBytes defines the maximum allowed attachment file size (10 MB).
@@ -56,13 +56,13 @@ type service struct {
 	repo       Repository
 	storage    storage.Client
 	signer     *attachmenturl.Signer
-	membership householdclient.Checker
+	membership household.Checker
 	log        *slog.Logger
 }
 
 // NewService creates a new attachments service instance. signer issues and verifies
 // download URLs; membership re-checks household membership for token downloads.
-func NewService(repo Repository, storageClient storage.Client, signer *attachmenturl.Signer, membership householdclient.Checker, log *slog.Logger) Service {
+func NewService(repo Repository, storageClient storage.Client, signer *attachmenturl.Signer, membership household.Checker, log *slog.Logger) Service {
 	return &service{
 		repo:       repo,
 		storage:    storageClient,
@@ -230,7 +230,7 @@ func (s *service) OpenContentWithToken(ctx context.Context, id, token string) (*
 	// The token outlives a membership change by up to its TTL; the membership
 	// check closes that window. It fails closed when core/household is unreachable.
 	if _, err := s.membership.CheckMembership(ctx, householdUUID, claims.UserID); err != nil {
-		if errors.Is(err, householdclient.ErrNotMember) {
+		if errors.Is(err, household.ErrNotMember) {
 			return nil, ErrForbidden
 		}
 		s.log.Error("household membership check failed for attachment download", slog.String("error", err.Error()))

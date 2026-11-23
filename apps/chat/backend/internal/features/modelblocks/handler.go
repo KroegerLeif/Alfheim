@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"alfheim/chat/internal/shared/middleware"
 	"alfheim/go-shared/auth"
+	"alfheim/go-shared/household"
 )
 
 // Handler manages model block HTTP endpoints.
@@ -217,11 +217,11 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 	writeJSON(w, status, map[string]string{"error": code, "message": message})
 }
 
-// householdOf returns the verified household id set by middleware.RequireHousehold,
+// householdOf returns the verified household id set by household.RequireHousehold,
 // or "" when the request carries no household scope (the service then refuses any
 // household-shared operation).
 func householdOf(r *http.Request) string {
-	hc, err := middleware.GetHousehold(r.Context())
+	hc, err := household.GetHousehold(r.Context())
 	if err != nil {
 		return ""
 	}

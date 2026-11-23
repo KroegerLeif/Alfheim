@@ -1,7 +1,4 @@
-// Package householdclient checks household membership against the internal API of
-// core/household, which owns households, memberships and roles. Zitadel only
-// authenticates users; it never issues household claims.
-package householdclient
+package household
 
 import (
 	"context"
@@ -39,7 +36,7 @@ func (r Role) Valid() bool {
 }
 
 const (
-	// DefaultBaseURL is used when HOUSEHOLD_INTERNAL_URL is unset.
+	// DefaultBaseURL is used when New gets an empty base URL (HOUSEHOLD_INTERNAL_URL unset in the caller).
 	DefaultBaseURL = "http://household-backend:8080"
 
 	// PositiveTTL bounds how long a confirmed membership is reused.

@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"alfheim/chat/internal/features/modelblocks"
-	"alfheim/chat/internal/shared/crypto"
 	"alfheim/go-shared/auth"
+	"alfheim/go-shared/crypto"
 )
 
 func seedBootstrapBlock(t *testing.T, repo *fakeRepository, baseURL string) *modelblocks.ModelBlock {

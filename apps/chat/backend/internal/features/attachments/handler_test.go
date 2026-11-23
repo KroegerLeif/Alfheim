@@ -19,10 +19,9 @@ import (
 	"github.com/google/uuid"
 
 	"alfheim/chat/internal/shared/attachmenturl"
-	"alfheim/chat/internal/shared/householdclient"
-	"alfheim/chat/internal/shared/middleware"
 	"alfheim/chat/internal/shared/storage"
 	"alfheim/go-shared/auth"
+	"alfheim/go-shared/household"
 )
 
 type mockAttachmentsService struct {
@@ -66,7 +65,7 @@ func mockAuthMiddleware(userID, householdID string) func(http.Handler) http.Hand
 			claims := &auth.UserClaims{Subject: userID}
 			ctx := context.WithValue(r.Context(), auth.UserContextKey, claims)
 			if hh, err := uuid.Parse(householdID); err == nil {
-				ctx = middleware.ContextWithHousehold(ctx, &middleware.HouseholdContext{HouseholdID: hh, Role: householdclient.RoleMember, Subject: userID})
+				ctx = household.ContextWithHousehold(ctx, &household.HouseholdContext{HouseholdID: hh, Role: household.RoleMember, Subject: userID})
 			}
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -435,7 +434,7 @@ func TestContentEndpoint(t *testing.T) {
 
 	t.Run("a removed household member is 403", func(t *testing.T) {
 		f := newContentFixture(t, "user-1", "image/png", "png-bytes")
-		f.membership.err = householdclient.ErrNotMember
+		f.membership.err = household.ErrNotMember
 		token, _ := f.signer.Sign("att-1", "user-1", testHouseholdID)
 		if rec := serve(f.router, path+"?token="+url.QueryEscape(token), nil); rec.Code != http.StatusForbidden {
 			t.Fatalf("status = %d, want 403", rec.Code)
@@ -444,7 +443,7 @@ func TestContentEndpoint(t *testing.T) {
 
 	t.Run("an unreachable household service is 503", func(t *testing.T) {
 		f := newContentFixture(t, "user-1", "image/png", "png-bytes")
-		f.membership.err = householdclient.ErrUnavailable
+		f.membership.err = household.ErrUnavailable
 		token, _ := f.signer.Sign("att-1", "user-1", testHouseholdID)
 		if rec := serve(f.router, path+"?token="+url.QueryEscape(token), nil); rec.Code != http.StatusServiceUnavailable {
 			t.Fatalf("status = %d, want 503", rec.Code)

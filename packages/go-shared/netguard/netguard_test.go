@@ -7,13 +7,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 
-	"alfheim/chat/internal/shared/netguard"
+	"alfheim/go-shared/netguard"
 )
 
 // fakeResolver returns configured addresses per host; hosts can be re-pointed at
@@ -154,44 +153,6 @@ func TestNew_RejectsInvalidAllowlistEntries(t *testing.T) {
 	}
 }
 
-func TestFromEnv(t *testing.T) {
-	ctx := context.Background()
-
-	t.Run("defaults to host.docker.internal when unset", func(t *testing.T) {
-		// t.Setenv registers restoration; Unsetenv then makes the variable absent.
-		t.Setenv(netguard.EnvAllowedHosts, "")
-		_ = os.Unsetenv(netguard.EnvAllowedHosts)
-		g := netguard.FromEnv()
-		if err := g.ValidateURL(ctx, "http://10.0.0.1"); err == nil {
-			t.Error("private ip must stay blocked by default")
-		}
-	})
-
-	t.Run("an explicitly empty value allows nothing private", func(t *testing.T) {
-		t.Setenv(netguard.EnvAllowedHosts, "")
-		g := netguard.FromEnv()
-		if err := g.ValidateURL(ctx, "http://10.0.0.1"); err == nil {
-			t.Error("private ip must stay blocked")
-		}
-	})
-
-	t.Run("an invalid value falls back to the strictest setting", func(t *testing.T) {
-		t.Setenv(netguard.EnvAllowedHosts, "10.0.0.0/99,10.0.0.1")
-		g := netguard.FromEnv()
-		if err := g.ValidateURL(ctx, "http://10.0.0.1"); err == nil {
-			t.Error("a broken allowlist must not widen access")
-		}
-	})
-
-	t.Run("a configured value is honoured", func(t *testing.T) {
-		t.Setenv(netguard.EnvAllowedHosts, "10.0.0.0/8")
-		g := netguard.FromEnv()
-		if err := g.ValidateURL(ctx, "http://10.0.0.1"); err != nil {
-			t.Errorf("allow-listed ip must be accepted: %v", err)
-		}
-	})
-}
-
 func TestGuard_DialRechecksResolvedAddress(t *testing.T) {
 	var hits atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -303,5 +264,44 @@ func TestGuard_ClientIgnoresProxyEnvironment(t *testing.T) {
 	resp.Body.Close()
 	if proxied.Load() != 0 {
 		t.Error("requests must not be routed through an environment proxy")
+	}
+}
+
+func TestGuard_DialRejectsInvalidAndEmptyAddresses(t *testing.T) {
+	resolver := newResolver()
+	resolver.set("empty.example.com")
+	g, err := netguard.NewWithResolver("", resolver)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	if _, err := g.DialContext(ctx, "tcp", "no-port"); !errors.Is(err, netguard.ErrBlocked) {
+		t.Errorf("an address without a port must be blocked, got %v", err)
+	}
+	if _, err := g.DialContext(ctx, "tcp", "empty.example.com:80"); !errors.Is(err, netguard.ErrBlocked) {
+		t.Errorf("a host without addresses must be blocked, got %v", err)
+	}
+}
+
+func TestGuard_DialReturnsTheLastDialError(t *testing.T) {
+	// Grab a free port and close it again, so nothing listens there.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, port, _ := net.SplitHostPort(ln.Addr().String())
+	_ = ln.Close()
+
+	g, err := netguard.New("127.0.0.0/8")
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn, err := g.DialContext(context.Background(), "tcp", net.JoinHostPort("127.0.0.1", port))
+	if err == nil {
+		_ = conn.Close()
+		t.Fatal("expected the dial to a closed port to fail")
+	}
+	if errors.Is(err, netguard.ErrBlocked) {
+		t.Errorf("a refused connection is not a guard rejection: %v", err)
 	}
 }

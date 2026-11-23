@@ -238,3 +238,36 @@ func TestLoad_CORSOrigins(t *testing.T) {
 		t.Error("a wildcard origin must fail Load()")
 	}
 }
+
+// TestLoad_AllowedLLMHosts keeps the CHAT_ALLOWED_LLM_HOSTS semantics netguard.FromEnv
+// had before the package moved to go-shared: unset means the default, empty means none.
+func TestLoad_AllowedLLMHosts(t *testing.T) {
+	t.Setenv("ALFHEIM_INTERNAL_TOKEN", "internal-token")
+
+	t.Setenv("CHAT_ALLOWED_LLM_HOSTS", "10.0.0.0/8")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.AllowedLLMHosts != "10.0.0.0/8" {
+		t.Errorf("configured value: got %q", cfg.AllowedLLMHosts)
+	}
+
+	t.Setenv("CHAT_ALLOWED_LLM_HOSTS", "")
+	if cfg, err = Load(); err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.AllowedLLMHosts != "" {
+		t.Errorf("explicitly empty value must stay empty, got %q", cfg.AllowedLLMHosts)
+	}
+
+	if err := os.Unsetenv("CHAT_ALLOWED_LLM_HOSTS"); err != nil {
+		t.Fatal(err)
+	}
+	if cfg, err = Load(); err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.AllowedLLMHosts != DefaultAllowedLLMHosts {
+		t.Errorf("unset value: got %q, want %q", cfg.AllowedLLMHosts, DefaultAllowedLLMHosts)
+	}
+}
