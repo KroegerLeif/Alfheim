@@ -156,6 +156,7 @@ export function useOidcAuth(options: UseOidcAuthOptions = {}): OidcAuthState {
     } catch (err) {
       if (err instanceof OidcConfigError) {
         // Misconfigured: there is nothing to initialize. AuthGuard renders the error page.
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- the config is read from window, which only exists after mount.
         setConfigError(err);
         setIsLoading(false);
         return;

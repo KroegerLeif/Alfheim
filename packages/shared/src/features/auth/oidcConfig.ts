@@ -1,7 +1,7 @@
 import { OidcConfig, OidcConfigError } from './oidcTypes';
 import type { AlfheimRuntimeEnv, AlfheimRuntimeWindow } from '../config/runtimeConfig';
 
-declare var process: any;
+declare const process: { env: Record<string, string | undefined> };
 
 function readRuntimeEnv(): AlfheimRuntimeEnv | undefined {
   if (typeof window === 'undefined') return undefined;

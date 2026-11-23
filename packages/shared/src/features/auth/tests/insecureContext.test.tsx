@@ -39,7 +39,7 @@ describe('insecure context guard', () => {
 
   beforeEach(() => {
     sessionStorage.clear();
-    delete (window as any).__ALFHEIM_ENV__;
+    delete (window as { __ALFHEIM_ENV__?: unknown }).__ALFHEIM_ENV__;
     resetDiscoveryCacheForTests();
   });
 
@@ -48,7 +48,7 @@ describe('insecure context guard', () => {
     if (originalSecureContext) {
       Object.defineProperty(window, 'isSecureContext', originalSecureContext);
     } else {
-      delete (window as any).isSecureContext;
+      delete (window as { isSecureContext?: boolean }).isSecureContext;
     }
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
@@ -125,7 +125,7 @@ describe('insecure context guard', () => {
 
   describe('AuthGuard', () => {
     beforeEach(() => {
-      (window as any).__ALFHEIM_ENV__ = {
+      (window as { __ALFHEIM_ENV__?: unknown }).__ALFHEIM_ENV__ = {
         OIDC_ISSUER: OIDC_CONFIG.issuer,
         OIDC_CLIENT_ID: OIDC_CONFIG.clientId,
       };
