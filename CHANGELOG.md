@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ADR 0010 records the integration architecture: launchers stay UI-only links, typed plugins live in the dashboard backend with encrypted household-scoped credentials, `netguard` with `INTEGRATIONS_ALLOWED_HOSTS`, an MCP proxy for ALFI, HMAC-signed webhooks and a household-bound service principal (#953).
 - ADR 0011 records the headless API contract for native clients: committed OpenAPI 3.1 specs with a CI drift gate, one error envelope and page shape, canonical `/api/v1/<app>` paths, additive versioning with a deprecation window, PKCE through the system browser with a native Zitadel application, clients under `clients/` and LAN TLS through DNS-01 (#891).
 
+### Changed
+- Redesign the landing page around the Lean Core and its hardware tiers, Core and Optional modules with their `alfheim-setup apps enable` command, the planned launchers and typed plugins, and a roadmap linking the v0.6.0 and v0.7.0 milestones (#952).
+
+### Fixed
+- Serve canonical URLs and the sitemap of the docs portal from `https://docs.alfheim.loegien.de/docs/`, read the landing page release badge from `CHANGELOG.md` instead of a made-up `v2.4 LTS`, and replace the invented `api.alfheim.loegien.de` host with `https://<your-domain>/api/v1/<app>` (#951).
+
 ---
 
 ## [v0.5.0] - 2026-11-18
