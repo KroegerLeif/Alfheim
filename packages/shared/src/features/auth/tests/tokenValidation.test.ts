@@ -29,6 +29,11 @@ describe('isTokenSetValid', () => {
     expect(isTokenSetValid(tokens, ISSUER)).toBe(false);
   });
 
+  it('rejects an access token that is not a decodable JWT', () => {
+    const tokens = tokenSet({ accessToken: 'opaque-token' });
+    expect(isTokenSetValid(tokens, ISSUER)).toBe(false);
+  });
+
   it('rejects when the access token exp claim has passed', () => {
     const tokens = tokenSet({ accessClaims: { exp: Math.floor(Date.now() / 1000) - 60 } });
     expect(isTokenSetValid(tokens, ISSUER)).toBe(false);
