@@ -198,7 +198,7 @@ Führt automatisierte Linting-, Formatierungs-, Typprüf- und Unit-Test-Suites i
 | :--- | :--- |
 | `--python` | Führt Ruff-Check/Format, `uv run ty check` und `pytest` in Python-Backends aus |
 | `--go` | Führt `go vet`, `gofmt` und `go test -race -cover ./...` in Go-Backends aus |
-| `--frontend` | Führt `pnpm check-types` (`tsc --noEmit`) und Vitest in Frontends aus |
+| `--frontend` | Führt `pnpm check-types` (`tsc --noEmit`), ESLint und Vitest mit Coverage-Untergrenzen in Frontends und `packages/shared` aus |
 | `--security` | Führt gitleaks, die Prüfungen auf private Schlüssel, `.env` und `TODO` sowie die nicht verändernden pre-commit-Hooks aus; schlägt fehl, wenn gitleaks nicht installiert ist |
 | `--allow-missing-gitleaks` | Mit `--security`: warnen statt fehlschlagen, wenn gitleaks nicht installiert ist |
 

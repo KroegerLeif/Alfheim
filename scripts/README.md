@@ -80,7 +80,7 @@ Executes comprehensive linting, type-checking, formatting, and test suites acros
 * **Flags**:
   * `--python`: Runs Ruff linter/formatter, `uv run ty check`, and `pytest` across Python microservices.
   * `--go`: Runs `go vet`, `golangci-lint`, and `go test -race -cover ./...` across Go backends.
-  * `--frontend`: Runs `pnpm check-types` (`tsc --noEmit`) and Vitest test suites across frontend applications.
+  * `--frontend`: Runs `pnpm check-types` (`tsc --noEmit`), ESLint and Vitest with coverage floors across frontend applications and `packages/shared`.
   * `--security`: Executes security scanners (e.g., bandit, trivy).
 
 #### 7. `verify-stack.sh` — Running-Stack Verification
