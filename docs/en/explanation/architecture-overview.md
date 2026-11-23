@@ -13,6 +13,7 @@ description: "Architectural explanation of the Alfheim Sovereign OS monorepo, it
 - [Control Plane vs. Microservice Applications](#control-plane-vs-microservice-applications)
 - [Network Topology & Multi-Zone Segmentation](#network-topology--multi-zone-segmentation)
 - [Database-per-Service Isolation Pattern](#database-per-service-isolation-pattern)
+- [Integrations](#integrations)
 
 ---
 
@@ -72,3 +73,12 @@ The platform enforces multi-zone network isolation across dedicated Docker bridg
 ## Database-per-Service Isolation Pattern
 
 To guarantee loose coupling and prevent data contamination, every backend microservice owns an isolated database (`alfheim_<app>`) on the shared `postgres-core` cluster, owned by a dedicated user (`<app>_user`). Isolation is enforced through ownership and grants rather than through separate database servers, which keeps the memory footprint viable on homelab hardware. Shared database state between applications is explicitly disallowed; inter-service data sharing occurs via REST API integration (for example Pantry exporting low-stock items to Shopping).
+
+---
+
+## Integrations
+
+Alfheim connects to services it does not run in two separate ways, recorded in [ADR 0010](./decisions/0010-integration-architecture.md):
+
+* **External app launchers** are household-managed links (Home Assistant, Jellyfin, YouTube or any URL). They are UI only: the backend never calls the target, stores no secret and embeds nothing.
+* **Typed plugins** are backend integrations in `core/dashboard/backend` with household-scoped configuration, AES-256-GCM encrypted credentials, a health check and an enable toggle. Their outbound requests pass `netguard` and the operator allowlist `INTEGRATIONS_ALLOWED_HOSTS`; secrets never leave the dashboard backend. Inbound webhooks are HMAC-signed, and actions on other apps run as a household-bound service principal that the membership API confirms like any user.
