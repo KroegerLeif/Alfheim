@@ -38,7 +38,7 @@ services:
 
   # Host metrics scraped by VictoriaMetrics (same setup as compose.prod.yaml).
   node-exporter:
-    image: prom/node-exporter:v1.12.1
+    image: prom/node-exporter:v1.13.1
     container_name: node-exporter
     profiles: ["telemetry"]
     restart: unless-stopped
@@ -106,7 +106,7 @@ services:
           cpus: 0.10
 
   victorialogs:
-    image: victoriametrics/victoria-logs:v1.53.0
+    image: victoriametrics/victoria-logs:v1.54.0
     container_name: victorialogs
     profiles: ["telemetry"]
     restart: unless-stopped
@@ -224,7 +224,7 @@ services:
       - docker-proxy-net
 
   vector:
-    image: timberio/vector:0.61.0-alpine
+    image: timberio/vector:0.62.0-alpine
     container_name: vector-shipper
     profiles: ["telemetry"]
     restart: unless-stopped

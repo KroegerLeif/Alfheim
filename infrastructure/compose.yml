@@ -85,7 +85,7 @@ services:
     stop_grace_period: 10s
 
   zitadel:
-    image: ghcr.io/zitadel/zitadel:v4.20.3
+    image: ghcr.io/zitadel/zitadel:v4.20.5
     container_name: alfheim_zitadel
     init: true
     restart: unless-stopped
@@ -183,7 +183,7 @@ services:
     network_mode: none
 
   mailpit:
-    image: axllent/mailpit:v1.33.1
+    image: axllent/mailpit:v1.34.0
     container_name: alfheim_mailpit
     restart: unless-stopped
     logging: *default-logging
