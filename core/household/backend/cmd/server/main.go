@@ -26,6 +26,7 @@ import (
 	"alfheim/household/internal/features/household"
 	"alfheim/household/internal/features/membership"
 	"alfheim/household/internal/features/profile"
+	"alfheim/household/internal/features/servicebindings"
 	"alfheim/household/internal/features/signup"
 )
 
@@ -83,7 +84,12 @@ func run(parentCtx context.Context) error {
 	if err != nil {
 		return err
 	}
-	r := buildRouter(log, dbClient, ready, authenticator.AuthenticateMiddleware, cfg.InternalToken, cfg.CORS.AllowedOrigins, householdOpts...)
+	r := buildRouter(log, dbClient, ready, routerConfig{
+		authMw:         authenticator.AuthenticateMiddleware,
+		internalToken:  cfg.InternalToken,
+		allowedOrigins: cfg.CORS.AllowedOrigins,
+		principals:     servicebindings.NewPrincipals(cfg.ServicePrincipalIDs),
+	}, householdOpts...)
 
 	// HTTP Server & Graceful Shutdown
 	srv := &http.Server{
@@ -147,35 +153,50 @@ func setupAuthenticator(ctx context.Context, cfg *config.Config, log *slog.Logge
 	})
 }
 
+// routerConfig carries the request-path settings buildRouter wires in.
+type routerConfig struct {
+	authMw         func(http.Handler) http.Handler
+	internalToken  string
+	allowedOrigins []string
+	// principals are the configured service principals (#958); they are
+	// rejected on every public route and resolved by the membership API.
+	principals servicebindings.Principals
+}
+
 // buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
-func buildRouter(log *slog.Logger, dbClient *db.Client, ready health.Check, authMw func(http.Handler) http.Handler, internalToken string, allowedOrigins []string, householdOpts ...household.Option) http.Handler {
+func buildRouter(log *slog.Logger, dbClient *db.Client, ready health.Check, rc routerConfig, householdOpts ...household.Option) http.Handler {
 	// An unauthenticated API must never be served: refuse to build the router.
-	if authMw == nil {
+	if rc.authMw == nil {
 		panic("household-backend: auth middleware is required to build the router")
 	}
+	// A service principal is never a member: no public route admits it.
+	authMw := rc.principals.Guard(rc.authMw)
 
 	// Initialize Repositories
 	var pool = dbClient.Pool
 	profileRepo := profile.NewRepository(pool)
 	householdRepo := household.NewRepository(pool)
 	contactRepo := contact.NewRepository(pool)
+	bindingRepo := servicebindings.NewRepository(pool)
 
 	// Initialize Services
 	profileService := profile.NewService(profileRepo, log)
 	householdService := household.NewService(householdRepo, log, householdOpts...)
 	contactService := contact.NewService(contactRepo, householdRepo, log)
+	bindingService := servicebindings.NewService(bindingRepo, householdRepo, rc.principals, log)
 
 	// Initialize Handlers
 	profileHandler := profile.NewHandler(profileService)
 	householdHandler := household.NewHandler(householdService)
 	contactHandler := contact.NewHandler(contactService)
-	membershipHandler := membership.NewHandler(householdRepo, internalToken, log)
+	bindingHandler := servicebindings.NewHandler(bindingService, log)
+	membershipHandler := membership.NewHandler(householdRepo, rc.internalToken, log, membership.WithServiceBindings(bindingService))
 
 	// Router Setup
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Recoverer)
 	r.Use(httpmw.CORSWithOrigins(httpmw.CORSConfig{
-		AllowedOrigins: allowedOrigins,
+		AllowedOrigins: rc.allowedOrigins,
 		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-Household-ID", "X-Household-Role"},
 	}))
@@ -192,6 +213,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, ready health.Check, auth
 	profileHandler.RegisterRoutes(r, authMw)
 	householdHandler.RegisterRoutes(r, authMw)
 	contactHandler.RegisterRoutes(r, authMw)
+	bindingHandler.RegisterRoutes(r, authMw)
 
 	// Internal service-to-service API: shared bearer token, no JWT, never routed by Caddy.
 	membershipHandler.RegisterRoutes(r)

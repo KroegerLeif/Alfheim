@@ -19,6 +19,7 @@ import (
 	"github.com/google/uuid"
 
 	"alfheim/household/internal/features/household"
+	"alfheim/household/internal/features/servicebindings"
 )
 
 // Reader resolves memberships of a household (satisfied by household.Repository).
@@ -27,11 +28,24 @@ type Reader interface {
 	GetMembers(ctx context.Context, householdID string) ([]*household.Member, error)
 }
 
-// Response is the body of a successful membership lookup.
+// ServiceResolver resolves household-bound service principals (#958);
+// satisfied by *servicebindings.Service. It returns servicebindings.ErrNotFound
+// when the subject has no binding to the household.
+type ServiceResolver interface {
+	Resolve(ctx context.Context, householdID, principalID string) (servicebindings.Binding, error)
+}
+
+// RoleService is the role reported for a bound service principal. It is never
+// stored in household_members.
+const RoleService = "SERVICE"
+
+// Response is the body of a successful membership lookup. Scopes is set only
+// for role SERVICE.
 type Response struct {
-	HouseholdID string `json:"household_id"`
-	UserID      string `json:"user_id"`
-	Role        string `json:"role"`
+	HouseholdID string   `json:"household_id"`
+	UserID      string   `json:"user_id"`
+	Role        string   `json:"role"`
+	Scopes      []string `json:"scopes,omitempty"`
 }
 
 // Handler serves the internal membership API:
@@ -40,15 +54,28 @@ type Response struct {
 //	GET /internal/v1/households/{householdId}/members
 type Handler struct {
 	reader    Reader
+	services  ServiceResolver
 	tokenHash [32]byte
 	enabled   bool
 	log       *slog.Logger
 }
 
+// Option customizes the Handler.
+type Option func(*Handler)
+
+// WithServiceBindings lets GetMembership answer for bound service principals
+// with role SERVICE and their scopes. Without it only members are resolved.
+func WithServiceBindings(resolver ServiceResolver) Option {
+	return func(h *Handler) { h.services = resolver }
+}
+
 // NewHandler builds the internal API handler. An empty token disables the API:
 // every request is answered with 503 and a warning is logged once at startup.
-func NewHandler(reader Reader, internalToken string, log *slog.Logger) *Handler {
+func NewHandler(reader Reader, internalToken string, log *slog.Logger, opts ...Option) *Handler {
 	h := &Handler{reader: reader, log: log, enabled: internalToken != ""}
+	for _, opt := range opts {
+		opt(h)
+	}
 	if h.enabled {
 		h.tokenHash = sha256.Sum256([]byte(internalToken))
 	} else {
@@ -116,7 +143,7 @@ func (h *Handler) GetMembership(w http.ResponseWriter, r *http.Request) {
 	role, err := h.reader.GetMemberRole(r.Context(), householdID, userSub)
 	if err != nil {
 		if errors.Is(err, household.ErrUnauthorizedHouseholdAccess) {
-			writeError(w, http.StatusNotFound, "not_found", "user is not a member of this household")
+			h.answerService(w, r, householdID, userSub)
 			return
 		}
 		h.log.Error("internal membership lookup failed", slog.String("household_id", householdID), slog.String("error", err.Error()))
@@ -126,4 +153,26 @@ func (h *Handler) GetMembership(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(Response{HouseholdID: householdID, UserID: userSub, Role: string(role)})
+}
+
+// answerService answers a lookup for a subject that is not a member: role
+// SERVICE when it is a service principal bound to the household, else 404.
+// Nothing is cached here, so a revoked binding is gone on the next lookup.
+func (h *Handler) answerService(w http.ResponseWriter, r *http.Request, householdID, userSub string) {
+	if h.services == nil {
+		writeError(w, http.StatusNotFound, "not_found", "user is not a member of this household")
+		return
+	}
+	binding, err := h.services.Resolve(r.Context(), householdID, userSub)
+	if errors.Is(err, servicebindings.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "not_found", "user is not a member of this household")
+		return
+	}
+	if err != nil {
+		h.log.Error("internal service binding lookup failed", slog.String("household_id", householdID), slog.String("error", err.Error()))
+		writeError(w, http.StatusInternalServerError, "internal_server_error", "membership lookup failed")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(Response{HouseholdID: householdID, UserID: userSub, Role: RoleService, Scopes: binding.Scopes})
 }

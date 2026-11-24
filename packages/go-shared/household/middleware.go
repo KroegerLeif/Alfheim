@@ -33,18 +33,29 @@ const (
 
 // HouseholdContext is the verified household scope of a request: the caller
 // (Subject) is a member of HouseholdID with Role, as confirmed by core/household.
+// On a route that opted in with AllowServiceScopes the caller may instead be a
+// service principal bound to HouseholdID: Role is RoleService and Scopes lists
+// what the binding grants.
 type HouseholdContext struct {
 	HouseholdID uuid.UUID
 	Role        Role
 	Subject     string
+	Scopes      []string
+}
+
+// IsService reports whether the caller is a household-bound service principal.
+func (hc *HouseholdContext) IsService() bool {
+	return hc.Role == RoleService
 }
 
 // RequireHousehold returns a middleware for household-scoped routes. It must run
 // after AuthenticateMiddleware. It requires a UUID X-Household-ID header, checks
 // the caller's membership against core/household and stores a HouseholdContext in
 // the request context. It never fails open: if membership cannot be determined the
-// request is rejected with 503.
-func RequireHousehold(checker Checker, log *slog.Logger) func(http.Handler) http.Handler {
+// request is rejected with 503. A service principal is rejected with 403 unless
+// opts contain AllowServiceScopes and the binding grants every listed scope.
+func RequireHousehold(checker Checker, log *slog.Logger, opts ...RequireOption) func(http.Handler) http.Handler {
+	cfg := newRequireConfig(opts)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			claims, err := auth.GetUserClaims(r.Context())
@@ -81,7 +92,15 @@ func RequireHousehold(checker Checker, log *slog.Logger) func(http.Handler) http
 				return
 			}
 
-			hc := &HouseholdContext{HouseholdID: householdID, Role: membership.Role, Subject: claims.Subject}
+			if membership.Role == RoleService && !cfg.admitsService(membership.Scopes) {
+				log.Warn("household access denied: service principal not admitted on this route",
+					slog.String("household_id", householdID.String()),
+					slog.String("user_id", claims.Subject))
+				writeHouseholdError(w, http.StatusForbidden, CodeHouseholdForbidden, "service principals may not call this endpoint")
+				return
+			}
+
+			hc := &HouseholdContext{HouseholdID: householdID, Role: membership.Role, Subject: claims.Subject, Scopes: membership.Scopes}
 			ctx := context.WithValue(r.Context(), HouseholdContextKey, hc)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

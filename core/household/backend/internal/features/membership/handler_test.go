@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -72,7 +73,7 @@ func TestGetMembership(t *testing.T) {
 		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 			t.Fatal(err)
 		}
-		if got != (Response{HouseholdID: hhID, UserID: "user-sub-1", Role: "ADMIN"}) {
+		if !reflect.DeepEqual(got, Response{HouseholdID: hhID, UserID: "user-sub-1", Role: "ADMIN"}) {
 			t.Errorf("unexpected body %+v", got)
 		}
 	})

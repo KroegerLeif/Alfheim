@@ -24,6 +24,9 @@ type fakeClient struct {
 	idpErr error
 	// smtpErr fails EnsureSMTP.
 	smtpErr error
+	// machineErr fails EnsureMachineUser; machineSpecs records its calls.
+	machineErr   error
+	machineSpecs []MachineUserSpec
 }
 
 func newFakeClient() *fakeClient {
@@ -99,6 +102,18 @@ func (f *fakeClient) EnsureSMTP(_ context.Context, spec SMTPSpec) (SMTPOutcome, 
 		return SMTPOutcome{Action: SMTPAbsent, PasswordResetHidden: true}, nil
 	}
 	return SMTPOutcome{Action: SMTPCreated, ID: "smtp-1", Fingerprint: spec.Fingerprint()}, nil
+}
+
+func (f *fakeClient) EnsureMachineUser(_ context.Context, spec MachineUserSpec) (MachineCredentials, error) {
+	f.machineSpecs = append(f.machineSpecs, spec)
+	if f.machineErr != nil {
+		return MachineCredentials{}, f.machineErr
+	}
+	secret := spec.ExistingClientSecret
+	if secret == "" {
+		secret = "generated-secret"
+	}
+	return MachineCredentials{UserID: "u-" + spec.UserName, ClientID: spec.UserName, ClientSecret: secret}, nil
 }
 
 func (f *fakeClient) GrantProjectRole(_ context.Context, projectID, userName, roleKey string) error {

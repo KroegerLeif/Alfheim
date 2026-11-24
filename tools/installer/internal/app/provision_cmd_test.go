@@ -66,7 +66,8 @@ func (l *loginPolicyStub) handle(w http.ResponseWriter, r *http.Request) bool {
 
 // handleOperatorAccess answers the project role and grant calls that
 // provisioning makes for the Grafana operator role, with a project that has
-// role assertion on and a user that already holds the role.
+// role assertion on and a user that already holds the role. It also answers
+// the calls that create the alfheim-integrations machine user (#958).
 func handleOperatorAccess(w http.ResponseWriter, r *http.Request) bool {
 	var resp map[string]any
 	switch {
@@ -78,6 +79,12 @@ func handleOperatorAccess(w http.ResponseWriter, r *http.Request) bool {
 		resp = map[string]any{"projectRoles": []map[string]any{{"key": "alfheim_operator"}}}
 	case r.URL.Path == "/zitadel.user.v2.UserService/ListUsers":
 		resp = map[string]any{"result": []map[string]any{{"userId": "user-1", "username": "admin@example.com"}}}
+	case r.URL.Path == "/zitadel.user.v2.UserService/CreateUser":
+		resp = map[string]any{"id": "integrations-user"}
+	case r.URL.Path == "/management/v1/users/integrations-user/machine":
+		resp = map[string]any{}
+	case r.URL.Path == "/zitadel.user.v2.UserService/AddSecret":
+		resp = map[string]any{"clientSecret": "integrations-secret"}
 	case r.URL.Path == "/zitadel.authorization.v2.AuthorizationService/ListAuthorizations":
 		resp = map[string]any{"authorizations": []map[string]any{{
 			"id": "grant-1", "user": map[string]any{"id": "user-1"}, "project": map[string]any{"id": "proj-1"},
