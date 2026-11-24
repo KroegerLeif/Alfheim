@@ -109,7 +109,18 @@ Stoppt und entfernt Docker-Container ordnungsgemäß in allen Workspace-Compose-
 ### Optionen & Flags
 | Flag | Beschreibung |
 | :--- | :--- |
-| `-v`, `--volumes` | Persistente Docker-Volumes löschen (setzt Datenbankzustände zurück) |
+| `-v`, `--volumes` | Die benannten Docker-Volumes, die externen Netzwerke und das `postgres-core`-Datenverzeichnis `infrastructure/postgres/data` löschen (setzt Datenbankzustände zurück) |
+
+`postgres-core` speichert seine Daten im Bind-Mount `infrastructure/postgres/data`,
+den `docker compose down --volumes` nicht anfasst. Mit `-v` löscht `down.sh` ihn,
+sobald die Container gestoppt sind, aus einem kurzlebigen Container des in
+`infrastructure/compose.yml` gepinnten `postgres-core`-Images
+(`--entrypoint rm`), weil die Dateien unter Linux dem postgres-Benutzer des
+Containers gehören und ein `rm` auf dem Host Root bräuchte. Es verweigert die
+Löschung und endet mit einem Fehlercode, wenn der Pfad auf etwas anderes als
+`<Repository-Root>/infrastructure/postgres/data` zeigt (etwa über einen
+Symlink). Ein mit `ALFHEIM_DB_DATA_PATH` gesetztes Datenverzeichnis wird nie
+gelöscht. Ohne `-v` bleibt das Verzeichnis unverändert.
 
 ---
 

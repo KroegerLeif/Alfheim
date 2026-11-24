@@ -54,7 +54,7 @@ Orchestrates platform startup in ordered dependency stages to prevent race condi
 Stops and removes active Docker compose service containers across all stages.
 * **Usage**: `./scripts/down.sh [OPTIONS]`
 * **Key Flags**:
-  * `-v`, `--volumes`: Delete persistent Docker volumes (resets database states).
+  * `-v`, `--volumes`: Delete the named Docker volumes, the external networks and the `postgres-core` bind mount `infrastructure/postgres/data` (resets database states). The bind mount is removed from a short-lived container of the pinned `postgres-core` image, so no host root is needed, and only when it resolves to exactly `<repo root>/infrastructure/postgres/data`. Without `-v` it is kept. `scripts/tests/test-down-postgres-data.sh` (run by `verify.sh --security`) checks both cases.
 
 #### 3. `seed.sh` — Database Seeding
 Populates relational databases with mock households, users, pantry items, shopping lists, chores, and maintenance routines.

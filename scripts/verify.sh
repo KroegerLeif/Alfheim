@@ -346,6 +346,14 @@ if [[ "$RUN_SECURITY" == true ]]; then
         ERRORS=$((ERRORS + 1))
     fi
 
+    log_section "down.sh Removes Postgres Data Only With --volumes"
+    if ./scripts/tests/test-down-postgres-data.sh; then
+        log_success "down.sh -v removes infrastructure/postgres/data, plain down.sh keeps it"
+    else
+        log_fail "down.sh handled infrastructure/postgres/data wrongly"
+        ERRORS=$((ERRORS + 1))
+    fi
+
     # Only the check-type hooks run here. The full pre-commit set also contains
     # fixers (end-of-file-fixer, trailing-whitespace, ruff --fix, gofmt -w) that
     # rewrite files, which a verification run must never do. Formatting is

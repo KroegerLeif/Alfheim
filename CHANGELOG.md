@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Move the household middleware, API key encryption and outbound host guard from the chat backend into `packages/go-shared` (`household`, `crypto`, `netguard`) and add `RequireHouseholdRole` for write endpoints (#954).
 
+### Fixed
+- Remove the `postgres-core` bind mount `infrastructure/postgres/data` on `./scripts/down.sh -v`, through a short-lived container of the pinned Postgres image, so the next `up.sh` starts a fresh cluster without host root; plain `down.sh` keeps it, and the removal refuses any path outside `<repo root>/infrastructure/postgres/data` (#941).
+- Bring `@alfheim/shared` back above its 90 % branch coverage threshold with new tests for the OIDC flow, `useOidcAuth`, `AuthGuard` and `ThemeContext` (#609).
+
+### Security
+- Sign release attestations with `actions/attest` instead of the deprecated `actions/attest-sbom` and `actions/attest-build-provenance`, and retry each attestation up to three times so a transient Sigstore error no longer fails a release half-published (#950).
+
 ---
 
 ## [v0.5.0] - 2026-11-18

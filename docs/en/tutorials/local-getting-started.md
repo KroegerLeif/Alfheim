@@ -115,10 +115,9 @@ Reset to a clean slate (removes containers, Docker volumes including `zitadel_ma
 
 ```bash
 ./scripts/down.sh --volumes
-docker run --rm -v "$PWD/infrastructure/postgres:/pg" alpine:3.20 rm -rf /pg/data
 ```
 
-The data directory is deleted from a throwaway container because on Linux it belongs to the Postgres container user; this needs no `sudo` on either platform. `down.sh --volumes` alone keeps `infrastructure/postgres/data`. Zitadel then stays initialised and never writes a new PAT, so provisioning keeps using the stored machine key. After a full reset Zitadel writes a fresh PAT and provisioning replaces the now-rejected key on its own.
+`down.sh --volumes` deletes `infrastructure/postgres/data` from a throwaway container of the pinned Postgres image, because on Linux it belongs to the Postgres container user; this needs no `sudo` on either platform. Plain `down.sh` keeps it. While the data directory is kept, Zitadel stays initialised and never writes a new PAT, so provisioning keeps using the stored machine key. After a full reset Zitadel writes a fresh PAT and provisioning replaces the now-rejected key on its own.
 
 ---
 

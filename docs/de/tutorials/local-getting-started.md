@@ -115,10 +115,9 @@ Auf einen sauberen Ausgangszustand zurücksetzen (entfernt Container, Docker-Vol
 
 ```bash
 ./scripts/down.sh --volumes
-docker run --rm -v "$PWD/infrastructure/postgres:/pg" alpine:3.20 rm -rf /pg/data
 ```
 
-Das Datenverzeichnis wird aus einem Wegwerf-Container gelöscht, weil es unter Linux dem Postgres-Container-Benutzer gehört; so braucht es auf keiner Plattform `sudo`. `down.sh --volumes` allein behält `infrastructure/postgres/data`. Zitadel bleibt dann initialisiert und schreibt kein neues PAT, daher verwendet das Provisioning weiter den gespeicherten Maschinenschlüssel. Nach einem vollständigen Zurücksetzen schreibt Zitadel ein frisches PAT, und das Provisioning ersetzt den nun abgelehnten Schlüssel von selbst.
+`down.sh --volumes` löscht `infrastructure/postgres/data` aus einem Wegwerf-Container des gepinnten Postgres-Images, weil es unter Linux dem Postgres-Container-Benutzer gehört; so braucht es auf keiner Plattform `sudo`. Ein einfaches `down.sh` behält es. Solange das Datenverzeichnis bleibt, bleibt Zitadel initialisiert und schreibt kein neues PAT, daher verwendet das Provisioning weiter den gespeicherten Maschinenschlüssel. Nach einem vollständigen Zurücksetzen schreibt Zitadel ein frisches PAT, und das Provisioning ersetzt den nun abgelehnten Schlüssel von selbst.
 
 ---
 

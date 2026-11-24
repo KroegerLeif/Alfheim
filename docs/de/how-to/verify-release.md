@@ -67,6 +67,17 @@ Releases vor `v0.5.0` tragen keine Signaturen.
 | `SHA256SUMS` | cosign-Bundle `SHA256SUMS.sigstore.json` (Release-Asset) | – |
 | Installer-Binaries und Stack-Dateien aus `SHA256SUMS` | über die signierte `SHA256SUMS` | SLSA-Build-Provenance |
 
+Der Workflow erstellt jede Attestierung mit
+[`actions/attest`](https://github.com/actions/attest), das den Prädikattyp aus
+seinen Eingaben wählt: SLSA-Build-Provenance
+(`https://slsa.dev/provenance/v1`), wenn es nur ein Subjekt erhält, und eine
+SBOM-Attestierung mit dem Typ der SBOM (`https://spdx.dev/Document/v2.3` für
+die SPDX-Images), wenn es zusätzlich `sbom-path` erhält. Übergib diesen Typ an
+`--predicate-type`, um gezielt eine Attestierung zu prüfen. Jeder
+Attestierungsschritt läuft bis zu dreimal, weil das Sigstore-Transparenzlog
+direkt nach dem Schreiben eines Eintrags kurzzeitig mit einem Fehler antworten
+kann; scheitert auch der dritte Versuch, schlägt der Release-Job fehl.
+
 Prüfe sie am Kandidaten vor der Installation unten. Du brauchst
 [cosign](https://docs.sigstore.dev/cosign/system_config/installation/) und die
 GitHub CLI.
