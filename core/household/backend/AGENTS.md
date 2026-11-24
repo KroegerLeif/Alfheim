@@ -17,6 +17,6 @@ gofmt -l .                  # must print nothing
 - Migrations: `migrations/`. Schema changes are new numbered migration files, never edits to old ones.
 - The internal membership API (`/internal/v1/memberships/...`, `/internal/v1/households/{id}/members`) is called by every other backend with `ALFHEIM_INTERNAL_TOKEN`; keep its contract stable.
 - The public API authorizes only from `household_members`, keyed by the household id in the URL path.
-- Roles are `OWNER`, `ADMIN`, `MEMBER`, `GUEST`.
+- Roles are `OWNER`, `ADMIN`, `MEMBER`, `GUEST`. `SERVICE` is never stored in `household_members`: the membership API reports it only for a service principal bound in `service_bindings` (#958), and such a principal is refused on every public route.
 
 Reference page: [docs/en/reference/apps/household.md](../../../docs/en/reference/apps/household.md).

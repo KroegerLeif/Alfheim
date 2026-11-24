@@ -10,7 +10,9 @@ household app. Every household-scoped request therefore:
 4. yields a :class:`HouseholdContext`.
 
 HTTP routes use the :func:`require_household` FastAPI dependency (plus
-:func:`require_role` for role checks); the MCP endpoint uses
+:func:`require_role` for role checks). A household-bound service principal (role ``SERVICE``,
+#958) is rejected by both; a route admits it only with :func:`require_household_access` and
+``allow_service_scopes``. The MCP endpoint uses
 :class:`backend_shared.mcp_middleware.MCPAuthenticationMiddleware`, which runs the
 exact same resolution (:func:`resolve_household_context`).
 
@@ -27,7 +29,7 @@ import logging
 import os
 import time
 import uuid
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, Literal, Protocol, get_args
@@ -43,6 +45,17 @@ from backend_shared.dependencies import (
     decode_oidc_token,
     is_explicit_dev_or_test_environment,
     is_mock_auth_allowed,
+)
+from backend_shared.household.service_access import (
+    require_household_access,
+    service_context,
+    service_grant_from_answer,
+)
+from backend_shared.household.service_principals import (
+    SERVICE_ROLE,
+    ServiceGrant,
+    ServiceRole,
+    normalize_service_scopes,
 )
 from backend_shared.tls import ExtraCAError, get_oidc_ssl_context
 
@@ -76,16 +89,31 @@ CODE_HOUSEHOLD_SERVICE_UNAVAILABLE = "household_service_unavailable"
 
 @dataclass(frozen=True, slots=True)
 class HouseholdContext:
-    """Authenticated user plus the household they are acting in, as confirmed by the household app."""
+    """Authenticated user plus the household they are acting in, as confirmed by the household app.
+
+    On a route that opted in with ``allow_service_scopes`` the caller may instead be a service
+    principal bound to the household: ``role`` is ``"SERVICE"`` and ``scopes`` lists its grants.
+    """
 
     user_sub: str
     """Raw JWT ``sub`` claim (the Zitadel user id)."""
     user_id: uuid.UUID
     """UUID derived from ``sub`` (see :func:`derive_user_id`); matches existing ``user_id`` columns."""
     household_id: uuid.UUID
-    role: HouseholdRole
+    role: HouseholdRole | ServiceRole
     email: str | None = None
     username: str | None = None
+    scopes: frozenset[str] = frozenset()
+    """Scopes of a service principal's binding; always empty for a member."""
+
+    @property
+    def is_service(self) -> bool:
+        """Whether the caller is a household-bound service principal, not a member."""
+        return self.role == SERVICE_ROLE
+
+    def has_scope(self, scope: str) -> bool:
+        """Whether the caller is a service principal whose binding grants ``scope``."""
+        return self.is_service and scope in self.scopes
 
 
 def derive_user_id(sub: str) -> uuid.UUID:
@@ -135,11 +163,12 @@ class MembershipServiceError(Exception):
 class MembershipLookup(Protocol):
     """Resolves a user's role in a household. Returns ``None`` when the user is not a member.
 
+    A bound service principal resolves to a :class:`ServiceGrant` instead of a role.
     Raises :class:`MembershipServiceError` when no definitive answer is possible.
     """
 
-    async def __call__(self, household_id: uuid.UUID, user_sub: str) -> HouseholdRole | None:
-        """Return the user's role in the household, or ``None`` if not a member."""
+    async def __call__(self, household_id: uuid.UUID, user_sub: str) -> HouseholdRole | ServiceGrant | None:
+        """Return the user's role (or service grant) in the household, or ``None`` if not a member."""
 
 
 @dataclass(frozen=True)
@@ -170,7 +199,8 @@ class HouseholdMembershipClient:
     """Cached client for ``GET /internal/v1/memberships/{householdId}/{userSub}``.
 
     Positive answers are cached for 30 s, "not a member" for 5 s, keyed by
-    ``(household_id, user_sub)``. Errors are never cached. One underlying
+    ``(household_id, user_sub)``. Errors and service principal grants are never cached, so a
+    revoked binding stops working on the next request. One underlying
     ``httpx.AsyncClient`` is kept per event loop.
     """
 
@@ -276,15 +306,17 @@ class HouseholdMembershipClient:
         ttl = self._positive_ttl if role is not None else self._negative_ttl
         self._cache[key] = (now + ttl, role)
 
-    async def __call__(self, household_id: uuid.UUID, user_sub: str) -> HouseholdRole | None:
+    async def __call__(self, household_id: uuid.UUID, user_sub: str) -> HouseholdRole | ServiceGrant | None:
         """Return the user's role in the household from cache or the membership API; errors are not cached."""
         key = (household_id, user_sub)
         hit, role = self._cache_get(key)
         if hit:
             return role
-        role = await self._fetch(household_id, user_sub)
-        self._cache_put(key, role)
-        return role
+        answer = await self._fetch(household_id, user_sub)
+        if isinstance(answer, ServiceGrant):
+            return answer
+        self._cache_put(key, answer)
+        return answer
 
     async def _get(self, path: str) -> httpx.Response:
         """GET ``path`` on the internal API with the internal token; config and network errors raise."""
@@ -312,16 +344,19 @@ class HouseholdMembershipClient:
             logger.error("Household membership API answered HTTP %s", response.status_code)
         return MembershipServiceError(f"membership API answered HTTP {response.status_code}")
 
-    async def _fetch(self, household_id: uuid.UUID, user_sub: str) -> HouseholdRole | None:
+    async def _fetch(self, household_id: uuid.UUID, user_sub: str) -> HouseholdRole | ServiceGrant | None:
         response = await self._get(f"/internal/v1/memberships/{household_id}/{quote(user_sub, safe='')}")
         if response.status_code == status.HTTP_404_NOT_FOUND:
             return None
         if response.status_code == status.HTTP_200_OK:
             try:
-                role = response.json().get("role")
+                body = response.json()
+                role = body.get("role")
             except (ValueError, AttributeError) as e:
                 logger.error("Household membership API returned an unreadable body: %s", e)
                 raise MembershipServiceError("membership API returned an unreadable body") from e
+            if role == SERVICE_ROLE:
+                return service_grant_from_answer(body.get("scopes"))
             if role not in HOUSEHOLD_ROLES:
                 logger.error("Household membership API returned an unknown role: %r", role)
                 raise MembershipServiceError(f"membership API returned an unknown role: {role!r}")
@@ -475,8 +510,14 @@ async def resolve_household_context(
     *,
     settings: Any = None,
     lookup: MembershipLookup | None = None,
+    allow_service_scopes: Collection[str] = (),
 ) -> HouseholdContext:
-    """Authenticate the caller and confirm their membership. Raises :class:`HouseholdAuthError`."""
+    """Authenticate the caller and confirm their membership. Raises :class:`HouseholdAuthError`.
+
+    A service principal passes only when its binding grants every scope in
+    ``allow_service_scopes``; with none listed it is always rejected (403 ``household_forbidden``).
+    """
+    required_scopes = normalize_service_scopes(allow_service_scopes)
     # Token validation can block on OIDC discovery / JWKS fetches, so it must not run on the event loop.
     payload = await anyio.to_thread.run_sync(partial(authenticate, authorization, settings=settings))
     household_id = parse_household_header(household_header)
@@ -496,6 +537,9 @@ async def resolve_household_context(
         raise HouseholdAuthError(
             status.HTTP_403_FORBIDDEN, CODE_HOUSEHOLD_FORBIDDEN, "you are not a member of this household"
         )
+
+    if isinstance(role, ServiceGrant):
+        return service_context(sub, household_id, role, required_scopes)
 
     email = payload.get("email")
     username = payload.get("preferred_username")
@@ -589,6 +633,9 @@ __all__ = [
     "MemberDirectory",
     "MembershipLookup",
     "MembershipServiceError",
+    "SERVICE_ROLE",
+    "ServiceGrant",
+    "ServiceRole",
     "authenticate",
     "close_membership_client",
     "configure_household_auth",
@@ -601,6 +648,7 @@ __all__ = [
     "normalize_memberships",
     "parse_household_header",
     "require_household",
+    "require_household_access",
     "require_role",
     "resolve_household_context",
 ]

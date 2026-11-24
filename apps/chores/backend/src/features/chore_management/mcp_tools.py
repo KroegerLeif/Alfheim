@@ -162,3 +162,7 @@ async def assign_chore(chore_instance_id: str, assignee_user_id: str) -> str:
         return f"Error: Invalid ID format: {e!s}"
     except Exception as e:
         return f"Error: Failed to assign chore: {e!s}"
+
+
+# Registers the one-off instance tool (#959) on the same server; kept in its own module for size.
+from src.features.chore_management import mcp_one_off_tools  # noqa: E402, F401

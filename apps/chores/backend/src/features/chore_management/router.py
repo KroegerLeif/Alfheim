@@ -16,6 +16,7 @@ from backend_shared.household.permissions import require_admin, require_writer
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.database import get_db_session
+from src.features.chore_management import one_off_router
 from src.features.chore_management.schemas import (
     ChoreAssignRequest,
     ChoreInstanceRead,
@@ -29,6 +30,8 @@ from src.features.chore_management.service import ChoreService
 from src.features.chore_management.services.instance_service import InstanceService
 
 router = APIRouter(prefix="/api/v1/chores", tags=["chores"])
+# Imported as a module, not as a router, so main's router discovery includes it only once, here.
+router.include_router(one_off_router.router)
 
 
 @router.post("/templates", response_model=ChoreTemplateRead, status_code=status.HTTP_201_CREATED)

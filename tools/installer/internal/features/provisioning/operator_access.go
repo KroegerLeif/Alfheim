@@ -152,6 +152,19 @@ func (c *HTTPClient) GrantProjectRole(ctx context.Context, projectID, userName, 
 // findUserID resolves an organisation user's id from its user name (for the
 // operator: the admin e-mail address it was bootstrapped with).
 func (c *HTTPClient) findUserID(ctx context.Context, orgID, userName string) (string, error) {
+	userID, err := c.lookupUserID(ctx, orgID, userName)
+	if err != nil {
+		return "", err
+	}
+	if userID == "" {
+		return "", fmt.Errorf("provisioning: no Zitadel user named %q in the organisation", userName)
+	}
+	return userID, nil
+}
+
+// lookupUserID returns the id of the organisation user named userName, or ""
+// when there is none.
+func (c *HTTPClient) lookupUserID(ctx context.Context, orgID, userName string) (string, error) {
 	listBody := map[string]any{
 		"queries": []map[string]any{
 			{"organizationIdQuery": map[string]any{"organizationId": orgID}},
@@ -172,5 +185,5 @@ func (c *HTTPClient) findUserID(ctx context.Context, orgID, userName string) (st
 			return u.UserID, nil
 		}
 	}
-	return "", fmt.Errorf("provisioning: no Zitadel user named %q in the organisation", userName)
+	return "", nil
 }

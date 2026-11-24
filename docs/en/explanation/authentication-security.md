@@ -16,6 +16,7 @@ sidebar:
 - [JWT Token Claims & User Identity](#jwt-token-claims--user-identity)
 - [Installation Operators (`alfheim_operator`)](#installation-operators-alfheim_operator)
 - [Multi-Tenancy Isolation (`X-Household-ID`)](#multi-tenancy-isolation-x-household-id)
+- [Household-Bound Service Principals](#household-bound-service-principals)
 - [FastMCP AI Agent Tenant Safety](#fastmcp-ai-agent-tenant-safety)
 - [Frontend Household Context](#frontend-household-context)
 
@@ -171,9 +172,25 @@ The body is always `{"detail": {"code": "...", "message": "..."}}`.
 
 **Caching:** answers are cached per process, keyed by household and user: members for 30 s, non-members for 5 s. Errors are never cached. Removing a member therefore takes effect within 30 s, without the user signing in again.
 
-**Service-to-service calls:** when one app calls another (for example shopping → pantry, maintenance → budget), it forwards the caller's bearer token and `X-Household-ID`. The target app authorizes the caller itself; there is no service identity that bypasses the membership check.
+**Service-to-service calls:** when one app calls another (for example shopping → pantry, maintenance → budget), it forwards the caller's bearer token and `X-Household-ID`. The target app authorizes the caller itself; there is no service identity that bypasses the membership check. Actions that no user token is available for (a Home Assistant webhook) run as a [household-bound service principal](#household-bound-service-principals), which goes through the same check.
 
 The dashboard backend is not household-scoped: its data (preferences, links) is keyed by the user's `sub`, so it neither validates nor rejects `X-Household-ID`, and it never reads or emits `X-Household-Role`. `core/household` authorizes its own public API from the household id in the URL path and also ignores both headers.
+
+---
+
+## Household-Bound Service Principals
+
+An inbound integration event, such as a Home Assistant webhook, has no user token, yet its action (create a chore) must still go through the target app's public API and its membership check. It runs as a **service principal**: the Zitadel machine user `alfheim-integrations`, which `alfheim-setup` provisions with client credentials and JWT access tokens. The dashboard requests short-lived tokens for it; the decision is recorded in [ADR 0010](decisions/0010-integration-architecture.md) (section 6).
+
+* **Binding.** `core/household` stores which household the principal may act in and with which scopes (`service_bindings`). A household `OWNER` or `ADMIN` creates and revokes bindings through `/api/v1/households/{id}/service-bindings`; the dashboard does this when a plugin that triggers actions is enabled or disabled. Only subjects listed in `ALFHEIM_SERVICE_PRINCIPAL_IDS` can be bound.
+* **Membership answer.** For a bound principal the internal membership API answers `200` with `"role": "SERVICE"` and its `scopes`. An unbound principal, or one asking for another household, gets `404` like any non-member.
+* **Never a member.** `SERVICE` is not a member role. `household-backend` refuses a configured principal with `403` on its whole public API (households, members, invites, profiles), and a member cannot be bound.
+* **Opt-in per endpoint.** `require_household`, `require_role`, `RequireHousehold` and `RequireHouseholdRole` reject `SERVICE` with `403 household_forbidden`. A route admits it only when it opts in with the scope it needs, and the binding must grant every listed scope:
+  * Python: `Depends(require_household_access(roles=WRITE_ROLES, allow_service_scopes=["chores:create_instance"]))`. Members still need one of `roles`.
+  * Go: `household.RequireHousehold(checker, log, household.AllowServiceScopes("chores:create_instance"))`.
+
+  Handlers check `HouseholdContext.is_service` (Python) or `IsService()` (Go) before acting on the caller's own identity. The MCP endpoint never admits a service principal.
+* **Revocation.** Service answers are never cached, neither by the membership clients nor by `household-backend`, so deleting a binding makes the next request fail with `403`, without a restart.
 
 ---
 

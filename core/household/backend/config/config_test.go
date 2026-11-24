@@ -166,3 +166,17 @@ func TestLoad_SignupAllowlist(t *testing.T) {
 		t.Error("a wildcard must fail Load()")
 	}
 }
+
+// TestLoad_ServicePrincipalIDs covers #958: a comma-separated list, blanks dropped.
+func TestLoad_ServicePrincipalIDs(t *testing.T) {
+	t.Setenv("ALFHEIM_SERVICE_PRINCIPAL_IDS", "")
+	cfg, err := Load()
+	if err != nil || len(cfg.ServicePrincipalIDs) != 0 {
+		t.Fatalf("empty: %v %v", cfg.ServicePrincipalIDs, err)
+	}
+	t.Setenv("ALFHEIM_SERVICE_PRINCIPAL_IDS", " 1234 , ,5678")
+	cfg, err = Load()
+	if err != nil || len(cfg.ServicePrincipalIDs) != 2 || cfg.ServicePrincipalIDs[0] != "1234" || cfg.ServicePrincipalIDs[1] != "5678" {
+		t.Fatalf("list: %v %v", cfg.ServicePrincipalIDs, err)
+	}
+}

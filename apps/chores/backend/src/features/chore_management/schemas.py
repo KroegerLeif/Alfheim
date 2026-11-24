@@ -51,8 +51,17 @@ class ChoreInstanceRead(BaseModel):
     due_date: date
     status: str
     points_awarded: int
+    is_one_off: bool = False
     created_at: datetime
     updated_at: datetime
+
+
+class ChoreOneOffCreate(BaseModel):
+    """Request body of ``POST /instances``: one chore instance from a template, outside its schedule (#959)."""
+
+    template_id: uuid.UUID = Field(description="Template of the household to create the instance from.")
+    due_at: date | None = Field(default=None, description="Calendar day the chore is due; defaults to today.")
+    assignee_id: uuid.UUID | None = Field(default=None, description="User id of the member to assign it to.")
 
 
 class HouseholdStreakRead(BaseModel):

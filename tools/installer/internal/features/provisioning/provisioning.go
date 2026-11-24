@@ -86,6 +86,9 @@ type Client interface {
 	// login page's password reset link with it. A disabled spec removes the
 	// provider and hides the link unless another provider is active.
 	EnsureSMTP(ctx context.Context, spec SMTPSpec) (SMTPOutcome, error)
+	// EnsureMachineUser reconciles a machine user with client credentials
+	// (JWT access tokens) and returns its id and credentials.
+	EnsureMachineUser(ctx context.Context, spec MachineUserSpec) (MachineCredentials, error)
 }
 
 // OperatorRoleKey is the Zitadel project role compose.prod.yaml's Grafana
@@ -132,6 +135,9 @@ type Input struct {
 	// SMTP is the e-mail provider to reconcile; a zero spec means e-mail is
 	// off.
 	SMTP SMTPSpec
+	// IntegrationsUser is the machine user the dashboard acts as for plugin
+	// actions (#958). A zero spec skips it.
+	IntegrationsUser MachineUserSpec
 }
 
 // Result carries the ids Provision resolved, in the shape orchestrator/run.go
@@ -153,6 +159,9 @@ type Result struct {
 	// SMTP is the reconciled e-mail configuration, nil when it could not be
 	// reconciled on an existing installation.
 	SMTP *SMTPOutcome
+	// Integrations are the credentials of the integrations machine user;
+	// empty when it could not be reconciled on an existing installation.
+	Integrations MachineCredentials
 }
 
 // knownPlaceholderSecrets are values that must never be treated as a real,
@@ -243,7 +252,17 @@ func Provision(ctx context.Context, c Client, in Input, existing map[string]stri
 		mail = &out
 	}
 
+	// Same policy again: plugin actions are optional and never brick an update.
+	integrations, err := ensureIntegrationsUser(ctx, c, in.IntegrationsUser, existing)
+	if err != nil {
+		if !isExistingInstall(existing) {
+			return Result{}, fmt.Errorf("provisioning: integrations user: %w", err)
+		}
+		warnings = append(warnings, IntegrationsWarning(err))
+	}
+
 	return Result{
+		Integrations:    integrations,
 		SMTP:            mail,
 		IDPs:            idps,
 		Warnings:        warnings,
@@ -291,6 +310,11 @@ func (r Result) EnvUpdates() map[string]string {
 	if r.SMTP != nil {
 		out[SMTPFingerprintEnvKey] = r.SMTP.Fingerprint
 	}
+	if r.Integrations.ClientID != "" {
+		out[IntegrationsPrincipalEnvKey] = r.Integrations.UserID
+		out[IntegrationsClientIDEnvKey] = r.Integrations.ClientID
+		out[IntegrationsClientSecretEnvKey] = r.Integrations.ClientSecret
+	}
 	return out
 }
 
@@ -331,6 +355,11 @@ func BuildInput(projectName, baseURL string, devMode bool, appSlugs []string) In
 			RedirectURIs:           redirects,
 			PostLogoutRedirectURIs: redirects,
 			DevMode:                devMode,
+		},
+		IntegrationsUser: MachineUserSpec{
+			UserName:    IntegrationsUserName,
+			Name:        "Alfheim integrations",
+			Description: "Acts for households on behalf of enabled plugins (service principal)",
 		},
 		GrafanaApp: AppSpec{
 			Name:                   "Grafana",

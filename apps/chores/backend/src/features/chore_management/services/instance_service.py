@@ -124,9 +124,13 @@ class InstanceService:
         templates = (await session.exec(select(ChoreTemplate).where(ChoreTemplate.home_id == home_id))).all()
         template_by_id = {t.id: t for t in templates}
 
-        # Instances that already exist for target_date (from a prior call today, or rolled forward below).
+        # Scheduled instances that already exist for target_date (from a prior call today, or rolled
+        # forward below). One-off instances (#959) neither mark the day as processed nor stand in for
+        # the template's scheduled instance.
         existing_stmt = select(ChoreInstance).where(
-            ChoreInstance.home_id == home_id, ChoreInstance.due_date == target_date
+            ChoreInstance.home_id == home_id,
+            ChoreInstance.due_date == target_date,
+            col(ChoreInstance.is_one_off).is_(False),
         )
         existing_instances = (await session.exec(existing_stmt)).all()
         covered_template_ids = {inst.template_id for inst in existing_instances}
@@ -167,7 +171,8 @@ class InstanceService:
                         # Cumulative: keep it pending and roll it forward so it stacks up.
                         inst.due_date = target_date
                         session.add(inst)
-                        covered_template_ids.add(inst.template_id)
+                        if not inst.is_one_off:
+                            covered_template_ids.add(inst.template_id)
 
                 if non_cumulative_missed or fully_skipped_days:
                     streak.current_streak = 0

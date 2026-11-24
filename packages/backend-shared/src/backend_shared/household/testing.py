@@ -14,7 +14,7 @@ or skip authentication entirely with :func:`override_household`.
 
 import json
 import uuid
-from collections.abc import Generator, Mapping
+from collections.abc import Generator, Iterable, Mapping
 from contextlib import contextmanager
 from typing import Any
 from unittest.mock import patch
@@ -27,6 +27,7 @@ from backend_shared.household import (
     HouseholdContext,
     HouseholdMember,
     HouseholdRole,
+    ServiceGrant,
     derive_user_id,
     get_member_directory,
     get_membership_lookup,
@@ -39,10 +40,14 @@ DEFAULT_TEST_SUB = "test-user"
 
 
 class StaticMembershipLookup:
-    """In-memory :class:`~backend_shared.household.MembershipLookup` built from ``{(household_id, sub): role}``."""
+    """In-memory :class:`~backend_shared.household.MembershipLookup` built from ``{(household_id, sub): role}``.
+
+    Service principal bindings (#958) are added with :meth:`grant_service`.
+    """
 
     def __init__(self, memberships: Mapping[tuple[uuid.UUID | str, str], HouseholdRole] | None = None) -> None:
         self.memberships = normalize_memberships(memberships or {})
+        self.service_grants: dict[tuple[uuid.UUID, str], ServiceGrant] = {}
         self.calls: list[tuple[uuid.UUID, str]] = []
 
     def set(self, household_id: uuid.UUID | str, sub: str, role: HouseholdRole | None) -> None:
@@ -53,10 +58,19 @@ class StaticMembershipLookup:
         else:
             self.memberships.update(normalize_memberships({(hh, sub): role}))
 
-    async def __call__(self, household_id: uuid.UUID, user_sub: str) -> HouseholdRole | None:
-        """Record the call and return the configured role, or ``None`` if not a member."""
+    def grant_service(self, household_id: uuid.UUID | str, sub: str, scopes: Iterable[str] | None) -> None:
+        """Bind service principal ``sub`` to the household with ``scopes``; ``None`` revokes the binding."""
+        hh = household_id if isinstance(household_id, uuid.UUID) else uuid.UUID(household_id)
+        if scopes is None:
+            self.service_grants.pop((hh, sub), None)
+        else:
+            self.service_grants[(hh, sub)] = ServiceGrant.of(scopes)
+
+    async def __call__(self, household_id: uuid.UUID, user_sub: str) -> HouseholdRole | ServiceGrant | None:
+        """Record the call and return the configured role or service grant, or ``None`` if neither."""
         self.calls.append((household_id, user_sub))
-        return self.memberships.get((household_id, user_sub))
+        key = (household_id, user_sub)
+        return self.memberships.get(key) or self.service_grants.get(key)
 
     async def list_members(self, household_id: uuid.UUID) -> list[HouseholdMember]:
         """Return the configured members of ``household_id`` with their derived user ids."""
