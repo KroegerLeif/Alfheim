@@ -24,10 +24,6 @@ const (
 	RoleAdmin  Role = "ADMIN"
 	RoleMember Role = "MEMBER"
 	RoleGuest  Role = "GUEST"
-	// RoleService is the role the membership API reports for a household-bound
-	// service principal (#958). It is never a member role: RequireHousehold
-	// rejects it unless the route opts in with AllowServiceScopes.
-	RoleService Role = "SERVICE"
 )
 
 // Valid reports whether r is one of the member roles defined by the membership
@@ -205,8 +201,8 @@ func (c *Client) fetch(ctx context.Context, householdID uuid.UUID, userSub strin
 		return Membership{}, fmt.Errorf("%w: response does not match the requested membership", ErrUnavailable)
 	}
 	role := Role(strings.ToUpper(strings.TrimSpace(body.Role)))
-	if role == RoleService {
-		return Membership{HouseholdID: householdID, UserID: userSub, Role: role, Scopes: body.Scopes}, nil
+	if m, ok := serviceMembership(householdID, userSub, role, body.Scopes); ok {
+		return m, nil
 	}
 	if !role.Valid() {
 		return Membership{}, fmt.Errorf("%w: unknown role %q", ErrUnavailable, body.Role)

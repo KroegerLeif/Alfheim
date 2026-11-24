@@ -46,11 +46,15 @@ from backend_shared.dependencies import (
     is_explicit_dev_or_test_environment,
     is_mock_auth_allowed,
 )
+from backend_shared.household.service_access import (
+    require_household_access,
+    service_context,
+    service_grant_from_answer,
+)
 from backend_shared.household.service_principals import (
     SERVICE_ROLE,
     ServiceGrant,
     ServiceRole,
-    admits_service,
     normalize_service_scopes,
 )
 from backend_shared.tls import ExtraCAError, get_oidc_ssl_context
@@ -352,19 +356,12 @@ class HouseholdMembershipClient:
                 logger.error("Household membership API returned an unreadable body: %s", e)
                 raise MembershipServiceError("membership API returned an unreadable body") from e
             if role == SERVICE_ROLE:
-                return self._service_grant(body.get("scopes"))
+                return service_grant_from_answer(body.get("scopes"))
             if role not in HOUSEHOLD_ROLES:
                 logger.error("Household membership API returned an unknown role: %r", role)
                 raise MembershipServiceError(f"membership API returned an unknown role: {role!r}")
             return role
         raise self._unexpected_status(response)
-
-    @staticmethod
-    def _service_grant(scopes: Any) -> ServiceGrant:
-        if not isinstance(scopes, list) or not all(isinstance(s, str) for s in scopes):
-            logger.error("Household membership API returned unreadable service scopes: %r", scopes)
-            raise MembershipServiceError("membership API returned unreadable service scopes")
-        return ServiceGrant.of(scopes)
 
     async def list_members(self, household_id: uuid.UUID) -> list[HouseholdMember]:
         """Return the household's members from ``GET /internal/v1/households/{id}/members`` (#583).
@@ -542,20 +539,7 @@ async def resolve_household_context(
         )
 
     if isinstance(role, ServiceGrant):
-        if not admits_service(required_scopes, role.scopes):
-            logger.info(
-                "Household access denied: service principal %s not admitted for household %s", sub, household_id
-            )
-            raise HouseholdAuthError(
-                status.HTTP_403_FORBIDDEN, CODE_HOUSEHOLD_FORBIDDEN, "service principals may not call this endpoint"
-            )
-        return HouseholdContext(
-            user_sub=sub,
-            user_id=derive_user_id(sub),
-            household_id=household_id,
-            role=SERVICE_ROLE,
-            scopes=role.scopes,
-        )
+        return service_context(sub, household_id, role, required_scopes)
 
     email = payload.get("email")
     username = payload.get("preferred_username")
@@ -615,51 +599,6 @@ def require_role(*roles: HouseholdRole) -> Callable[..., Any]:
         return context
 
     return _require_role
-
-
-def require_household_access(
-    *, roles: Collection[HouseholdRole] = (), allow_service_scopes: Collection[str] = ()
-) -> Callable[..., Any]:
-    """Dependency factory for routes that also admit household-bound service principals (#958).
-
-    A member passes when ``roles`` is empty or contains their role (else 403
-    ``household_role_forbidden``). A service principal passes when its binding grants every scope
-    in ``allow_service_scopes`` (else 403 ``household_forbidden``). Handlers must check
-    :attr:`HouseholdContext.is_service` before acting on the caller's own identity.
-
-    Unlike :func:`require_role` this does not build on :func:`require_household`, so tests drive
-    it with :func:`backend_shared.household.testing.override_membership`.
-    """
-    required = normalize_service_scopes(allow_service_scopes)
-    if not required:
-        raise ValueError("require_household_access() needs at least one service scope; use require_role otherwise")
-    unknown = set(roles) - HOUSEHOLD_ROLES
-    if unknown:
-        raise ValueError(f"unknown household role(s): {sorted(unknown)}")
-    allowed = frozenset(roles)
-
-    async def _require_household_access(
-        request: Request, lookup: MembershipLookup = Depends(get_membership_lookup)
-    ) -> HouseholdContext:
-        try:
-            context = await resolve_household_context(
-                request.headers.get("Authorization"),
-                request.headers.get(HOUSEHOLD_HEADER),
-                settings=_auth_settings,
-                lookup=lookup,
-                allow_service_scopes=required,
-            )
-        except HouseholdAuthError as e:
-            raise e.to_http_exception()
-        if not context.is_service and allowed and context.role not in allowed:
-            raise HouseholdAuthError(
-                status.HTTP_403_FORBIDDEN,
-                CODE_HOUSEHOLD_ROLE_FORBIDDEN,
-                f"this action requires one of the roles: {', '.join(sorted(allowed))}",
-            ).to_http_exception()
-        return context
-
-    return _require_household_access
 
 
 def normalize_memberships(

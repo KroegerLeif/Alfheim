@@ -1,6 +1,24 @@
 package household
 
-import "slices"
+import (
+	"slices"
+
+	"github.com/google/uuid"
+)
+
+// RoleService is the role the membership API reports for a household-bound
+// service principal (#958). It is never a member role: RequireHousehold
+// rejects it unless the route opts in with AllowServiceScopes.
+const RoleService Role = "SERVICE"
+
+// serviceMembership builds the answer for a service principal; ok is false for
+// any other role. Its scopes are kept only for RoleService.
+func serviceMembership(householdID uuid.UUID, userSub string, role Role, scopes []string) (Membership, bool) {
+	if role != RoleService {
+		return Membership{}, false
+	}
+	return Membership{HouseholdID: householdID, UserID: userSub, Role: role, Scopes: scopes}, true
+}
 
 // RequireOption customizes RequireHousehold for one route or route group.
 type RequireOption func(*requireConfig)
