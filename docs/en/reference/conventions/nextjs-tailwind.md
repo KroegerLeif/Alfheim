@@ -86,7 +86,8 @@ Frontend configuration comes from `packages/shared`; each app keeps only what di
 | File | Shared source | Per app |
 | --- | --- | --- |
 | `tsconfig.json` | `extends: "../../../packages/shared/tsconfig.base.json"` | `paths` and `include` |
-| `vitest.config.ts` | `defineAlfheimVitestConfig()` from `packages/shared/vitest.preset.ts` | `testTimeout`, `coverageInclude`; no thresholds (#385) |
+| `vitest.config.ts` | `defineAlfheimVitestConfig()` from `packages/shared/vitest.preset.ts` | `testTimeout`, `coverageInclude`, the app's coverage `thresholds` ([floors](../quality-gates.md#frontend)) |
+| `eslint.config.mjs` | `defineAlfheimEslintConfig()` from `@alfheim/shared/eslint-preset` (`packages/shared/eslint.preset.mjs`) | extra flat config objects, passed as the argument |
 | `src/tests/setup.ts` | `setupAlfheimTests()` and the module doubles from `@alfheim/shared/testing` | app-specific mocks only |
 
 `setupAlfheimTests({ server })` registers the jest-dom and vitest-axe matchers (their type augmentation ships with it, so apps keep no `jest-dom.d.ts` or `vitest-axe.d.ts`), a 5 s async-utility timeout, in-memory `localStorage`/`sessionStorage`, the MSW server lifecycle and an optional `matchMedia` double. Mock modules in the app's setup with the shared doubles, loaded inside the factory because `vi.mock` is hoisted:
@@ -101,4 +102,4 @@ vi.mock('@alfheim/shared', async (importOriginal) =>
 
 ## Gates
 
-`./scripts/verify.sh --frontend` runs `tsc --noEmit` and Vitest for every frontend. `pnpm build` verifies the production build. Read the Next.js guide in `node_modules/next/dist/docs/` before using an API you are unsure about; this version differs from older releases.
+`./scripts/verify.sh --frontend` runs `tsc --noEmit`, ESLint and Vitest with coverage for every frontend; an ESLint error or coverage below the app's floor fails it. `pnpm build` verifies the production build. Read the Next.js guide in `node_modules/next/dist/docs/` before using an API you are unsure about; this version differs from older releases.

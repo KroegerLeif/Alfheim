@@ -7,9 +7,13 @@ type ChangeHandler = (event: MediaQueryListEvent) => void
 /** Installs a controllable matchMedia stub and returns a setter to flip the match state. */
 function stubMatchMedia(initialMatches: boolean) {
   const handlers = new Set<ChangeHandler>()
+  // Like the real API, every MediaQueryList reports the current state, not the state at creation.
+  let currentMatches = initialMatches
 
   const matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: initialMatches,
+    get matches() {
+      return currentMatches
+    },
     media: query,
     addEventListener: (_: string, handler: ChangeHandler) => handlers.add(handler),
     removeEventListener: (_: string, handler: ChangeHandler) => handlers.delete(handler),
@@ -19,8 +23,10 @@ function stubMatchMedia(initialMatches: boolean) {
 
   return {
     matchMedia,
-    emit: (matches: boolean) =>
-      handlers.forEach((handler) => handler({ matches } as MediaQueryListEvent)),
+    emit: (matches: boolean) => {
+      currentMatches = matches
+      handlers.forEach((handler) => handler({ matches } as MediaQueryListEvent))
+    },
     handlerCount: () => handlers.size,
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AlfiStatus, AttachmentSummary, ChatWidgetContext, WidgetMessage } from './types';
+import { AlfiStatus, AttachmentSummary, UseChatStreamOptions, WidgetMessage } from './types';
 import { getResolvedToken, readSSEStream, sanitizeApiUrl } from './sseClient';
 import {
   ChatUnavailableError,
@@ -15,14 +15,6 @@ import { householdHeaders } from '../../household/householdStore';
 
 /** Error whose message is already user-facing (translated); never shown raw. */
 class ChatApiError extends Error {}
-
-export interface UseChatStreamOptions {
-  authToken?: string;
-  apiBaseUrl?: string;
-  context?: ChatWidgetContext;
-  householdId?: string;
-  isOpen: boolean;
-}
 
 export function useChatStream({
   authToken,
@@ -52,13 +44,18 @@ export function useChatStream({
     };
   }, [authToken, householdId]);
 
-  useEffect(() => {
+  // Closing drops transient stream state during render; aborting the request is an effect.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
     if (!isOpen) {
-      abortRef.current?.abort();
       setStatus('idle');
       setStreamingText('');
       setCurrentToolCall(null);
     }
+  }
+  useEffect(() => {
+    if (!isOpen) abortRef.current?.abort();
   }, [isOpen]);
 
   const ensureConversation = async (): Promise<string> => {

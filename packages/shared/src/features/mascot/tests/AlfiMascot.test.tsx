@@ -61,7 +61,7 @@ describe('AlfiMascot Component', () => {
   });
 
   it('falls back safely to idle asset when given an unknown state string', () => {
-    render(<AlfiMascot state={"unregistered_state" as any} />);
+    render(<AlfiMascot state={"unregistered_state" as React.ComponentProps<typeof AlfiMascot>['state']} />);
     const mascot = screen.getByTestId('alfi-mascot');
     expect(mascot).toHaveAttribute('data-state', 'unregistered_state');
     expect(mascot).toHaveAttribute('data-asset', 'alfi/alfi-idle.svg');

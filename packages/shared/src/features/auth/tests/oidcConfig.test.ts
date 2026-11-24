@@ -8,7 +8,7 @@ describe('loadOidcConfig', () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv };
-    delete (window as any).__ALFHEIM_ENV__;
+    delete (window as { __ALFHEIM_ENV__?: unknown }).__ALFHEIM_ENV__;
   });
 
   afterEach(() => {
@@ -35,7 +35,7 @@ describe('loadOidcConfig', () => {
 
   it('throws OidcConfigError when the client id is empty', () => {
     setWindowLocation('https://alfheim.loegien.de/pantry');
-    (window as any).__ALFHEIM_ENV__ = { OIDC_ISSUER: 'https://auth.alfheim.loegien.de' };
+    (window as { __ALFHEIM_ENV__?: unknown }).__ALFHEIM_ENV__ = { OIDC_ISSUER: 'https://auth.alfheim.loegien.de' };
 
     expect(() => loadOidcConfig('/pantry')).toThrow(OidcConfigError);
     expect(() => loadOidcConfig('/pantry')).toThrow(/client id/i);
@@ -48,7 +48,7 @@ describe('loadOidcConfig', () => {
 
   it('builds a valid config from runtime env, scoping the redirect URI to basePath', () => {
     setWindowLocation('https://alfheim.loegien.de/pantry/en');
-    (window as any).__ALFHEIM_ENV__ = {
+    (window as { __ALFHEIM_ENV__?: unknown }).__ALFHEIM_ENV__ = {
       OIDC_ISSUER: 'https://auth.alfheim.loegien.de/',
       OIDC_CLIENT_ID: 'alfheim-frontend',
     };
@@ -63,7 +63,7 @@ describe('loadOidcConfig', () => {
 
   it('normalizes a basePath given without a leading slash', () => {
     setWindowLocation('https://alfheim.loegien.de/');
-    (window as any).__ALFHEIM_ENV__ = {
+    (window as { __ALFHEIM_ENV__?: unknown }).__ALFHEIM_ENV__ = {
       OIDC_ISSUER: 'https://auth.alfheim.loegien.de',
       OIDC_CLIENT_ID: 'dashboard-frontend',
     };

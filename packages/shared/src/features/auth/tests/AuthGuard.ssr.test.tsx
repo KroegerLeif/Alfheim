@@ -17,7 +17,7 @@ import { resetDiscoveryCacheForTests } from '../oidcFlow';
 describe('AuthGuard server render', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    delete (window as any).__ALFHEIM_ENV__;
+    delete (window as { __ALFHEIM_ENV__?: unknown }).__ALFHEIM_ENV__;
     resetDiscoveryCacheForTests();
   });
 

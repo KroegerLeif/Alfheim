@@ -14,7 +14,7 @@ sidebar:
 ```bash
 ./scripts/verify.sh --python     # ruff, ruff format, ty, pytest per backend, backend-shared
 ./scripts/verify.sh --go         # go test -race per module (incl. tools/installer), revive doc comments
-./scripts/verify.sh --frontend   # tsc --noEmit, Vitest for every package
+./scripts/verify.sh --frontend   # tsc --noEmit, ESLint, Vitest with coverage floors for every package
 ./scripts/verify.sh --security   # gitleaks, secret scans, TODO check, non-mutating pre-commit hooks
 ./scripts/verify.sh              # all of the above
 ```
@@ -55,7 +55,42 @@ Modules: `apps/chat/backend`, `core/dashboard/backend`, `core/household/backend`
 
 ## Frontend
 
-`pnpm -r exec tsc --noEmit` (the docs portal runs `astro check`) and `pnpm -r test`. `verify.sh` runs two packages at a time with half the CPU count in Vitest workers each, because unbounded parallelism made async tests time out under load. Override with `VERIFY_FRONTEND_CONCURRENCY` and `VITEST_MAX_WORKERS`. TypeScript is `strict`; avoid `any` outside safe cast boundaries.
+`verify.sh --frontend` and `frontend-ci.yml` run the same three checks over every frontend (`core/*/frontend`, `apps/*/frontend`) and `packages/shared`:
+
+| Check | Command | Threshold |
+| --- | --- | --- |
+| Types | `pnpm -r exec tsc --noEmit` (the docs portal runs `astro check`) | exit 0 |
+| Lint | `pnpm -r --filter <frontends> --filter @alfheim/shared run lint` | 0 errors; warnings are reported only |
+| Tests | `vitest run --coverage` per package | the package's coverage floor (below) |
+
+ESLint uses one flat config for every package, `defineAlfheimEslintConfig()` from `packages/shared/eslint.preset.mjs` (see [Next.js and Tailwind](./conventions/nextjs-tailwind.md#testing-setup)). An `eslint-disable` comment names the rule and says why it does not apply.
+
+`verify.sh` runs two packages at a time with half the CPU count in Vitest workers each, because unbounded parallelism made async tests time out under load. Override with `VERIFY_FRONTEND_CONCURRENCY` and `VITEST_MAX_WORKERS`. TypeScript is `strict`; avoid `any` outside safe cast boundaries.
+
+### Coverage floors
+
+Each app passes its floor to `defineAlfheimVitestConfig({ thresholds })` in its `vitest.config.ts`; Vitest fails when any metric is below it. The floors are the coverage measured when the gate was introduced (#385), rounded down. They ratchet: raise a floor in the same pull request that raises coverage, never lower one to make a change pass.
+
+| Package | Statements | Branches | Functions | Lines |
+| :--- | ---: | ---: | ---: | ---: |
+| `packages/shared` | 90 | 90 | 90 | 90 |
+| `core/dashboard/frontend` | 64 | 60 | 55 | 65 |
+| `core/household/frontend` | 59 | 56 | 43 | 61 |
+| `apps/budget/frontend` | 78 | 78 | 62 | 80 |
+| `apps/chat/frontend` | 85 | 80 | 77 | 86 |
+| `apps/chores/frontend` | 86 | 75 | 85 | 88 |
+| `apps/library/frontend` | 92 | 85 | 84 | 93 |
+| `apps/maintenance/frontend` | 94 | 86 | 91 | 95 |
+| `apps/pantry/frontend` | 88 | 84 | 82 | 91 |
+| `apps/shopping/frontend` | 82 | 72 | 76 | 83 |
+| `apps/workout/frontend` | 88 | 83 | 82 | 90 |
+
+The target is 90 % on every metric, as `packages/shared` already enforces. The path there:
+
+1. Every pull request that touches a frontend keeps its coverage at or above the floor and raises the floor to the new value, rounded down.
+2. The two Tier-1 frontends come first: `core/household/frontend` and `core/dashboard/frontend` are the furthest from 90 % and carry identity, membership and household UI. Their next sweeps add tests for the feature hooks and dialogs before new features land.
+3. Branch coverage lags in `apps/shopping`, `apps/chores` and `apps/budget` (functions); their sweeps add error-path and empty-state tests.
+4. An app reaches the target when its floor is 90 on all four metrics; it then keeps 90 like `packages/shared`.
 
 ## MCP tools
 
@@ -79,7 +114,7 @@ Every FastMCP tool has a docstring and type annotations, handles exceptions and 
 | `ci-required.yml` | Path filter, stack gates, aggregated `ci-required` check |
 | `python-ci.yml` | Ruff, ty, per-app pytest with the 95 % gate, `packages/backend-shared` pytest |
 | `go-ci.yml` | gofmt, `go vet`, revive, `go test -race` per module, installer coverage gate and cross-compile |
-| `frontend-ci.yml` | `pnpm check-types`, `pnpm -r test`, `next build` for every frontend (matrix) |
+| `frontend-ci.yml` | `pnpm check-types`, ESLint, Vitest with coverage floors, `next build` for every frontend (matrix) |
 | `security-scan.yml` | gitleaks on every push and pull request; pip-audit, govulncheck, pnpm audit and Trivy when dependencies change; all scans weekly |
 | `smoke-test.yml` | Caddy gateway startup, gateway rate limits and CSP (`scripts/test-gateway-hardening.sh`), production core stack startup |
 | `deploy-docs.yml` | Markdown link check and docs build; deploys from `main` |

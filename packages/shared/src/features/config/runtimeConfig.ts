@@ -4,7 +4,7 @@
  * environments without baking localhost defaults into compiled client bundles.
  */
 
-declare var process: any;
+declare const process: { env: Record<string, string | undefined> };
 
 export interface AlfheimRuntimeEnv {
   OIDC_ISSUER?: string;

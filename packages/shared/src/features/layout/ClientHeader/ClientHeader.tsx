@@ -27,7 +27,7 @@ export function ClientHeader({
 
   return (
     <AppHeader
-      appName={appName as any}
+      appName={appName}
       brandTitle={brandTitle}
       brandSubtitle={brandSubtitle || defaultSubtitle}
       showBackToDashboard={true}

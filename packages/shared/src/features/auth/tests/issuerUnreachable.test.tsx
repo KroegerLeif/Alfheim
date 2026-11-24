@@ -42,7 +42,7 @@ describe('unreachable OIDC issuer', () => {
     resetDiscoveryCacheForTests();
     Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
     setWindowLocation('https://alfheim.example/pantry');
-    (window as any).__ALFHEIM_ENV__ = { OIDC_ISSUER: ISSUER, OIDC_CLIENT_ID: 'alfheim-frontend' };
+    (window as { __ALFHEIM_ENV__?: unknown }).__ALFHEIM_ENV__ = { OIDC_ISSUER: ISSUER, OIDC_CLIENT_ID: 'alfheim-frontend' };
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -51,9 +51,9 @@ describe('unreachable OIDC issuer', () => {
     if (originalSecureContext) {
       Object.defineProperty(window, 'isSecureContext', originalSecureContext);
     } else {
-      delete (window as any).isSecureContext;
+      delete (window as { isSecureContext?: boolean }).isSecureContext;
     }
-    delete (window as any).__ALFHEIM_ENV__;
+    delete (window as { __ALFHEIM_ENV__?: unknown }).__ALFHEIM_ENV__;
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });

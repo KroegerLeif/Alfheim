@@ -126,7 +126,7 @@ export function decodeClaims(token: string): OidcClaims | null {
 }
 
 /** Decodes the raw payload of a JWT without verifying the signature. */
-export function decodeJwtPayload(token: string): Record<string, any> | null {
+export function decodeJwtPayload(token: string): (Partial<OidcClaims> & Record<string, unknown>) | null {
   try {
     const parts = token.split('.');
     if (parts.length < 2) return null;

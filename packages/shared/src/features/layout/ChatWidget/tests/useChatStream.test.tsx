@@ -1,11 +1,12 @@
 import { renderHook, act } from '@testing-library/react'
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { createElement, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { useChatStream } from '../useChatStream'
 import { LanguageProvider } from '../../../i18n/utils/LanguageContext'
 
-const englishWrapper = ({ children }: { children: ReactNode }) =>
-  createElement(LanguageProvider, { defaultLanguage: 'en', children })
+const englishWrapper = ({ children }: { children: ReactNode }) => (
+  <LanguageProvider defaultLanguage="en">{children}</LanguageProvider>
+)
 
 describe('useChatStream hook', () => {
   beforeEach(() => {
@@ -41,7 +42,7 @@ describe('useChatStream hook', () => {
 
     const { result } = renderHook(() => useChatStream({ isOpen: true }))
 
-    let uploaded: any
+    let uploaded: unknown
     await act(async () => {
       uploaded = await result.current.uploadFile(
         new File(['data'], 'doc.pdf', { type: 'application/pdf' })

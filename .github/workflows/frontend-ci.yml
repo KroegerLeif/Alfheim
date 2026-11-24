@@ -32,8 +32,17 @@ jobs:
       - name: Run TypeScript Type Check Across Workspace
         run: pnpm check-types
 
-      - name: Run Vitest Suite Across Workspace
-        run: pnpm -r test
+      - name: Run ESLint Across Frontends and Shared Package
+        run: pnpm -r --no-bail --no-sort --filter './core/*/frontend' --filter './apps/*/frontend' --filter @alfheim/shared run lint
+
+      # Each package fails below the coverage floor in its vitest.config.ts (#385).
+      - name: Run Vitest Suite With Coverage Floors
+        # Report test and coverage results even when the lint step failed.
+        if: success() || failure()
+        run: >-
+          pnpm -r --no-bail --no-sort
+          --filter './core/*/frontend' --filter './apps/*/frontend' --filter @alfheim/shared
+          exec vitest run --coverage --coverage.reporter=text-summary
 
   # `tsc` and Vitest do not catch everything `next build` rejects (for example
   # an import placed above a "use client" directive). Build every Next.js

@@ -36,7 +36,7 @@ membership API confirms.
 pnpm install                        # JS workspace (pnpm 11)
 uv sync --all-packages --all-groups # Python workspace
 ./scripts/up.sh                     # staged local stack boot (-b rebuilds images)
-./scripts/verify.sh --frontend      # tsc --noEmit + Vitest for every frontend
+./scripts/verify.sh --frontend      # tsc --noEmit, ESLint, Vitest with coverage floors
 ./scripts/verify.sh --python        # ruff, ruff format, ty, pytest (95 % per app backend)
 ./scripts/verify.sh --go            # gofmt, go vet, go test -race
 ./scripts/verify.sh --security      # secret scans and non-mutating pre-commit checks

@@ -49,7 +49,7 @@ export function isTokenSetValid(
 }
 
 function isClaimsValid(
-  claims: Record<string, any>,
+  claims: Record<string, unknown>,
   expectedIssuer: string,
   now: number,
   skewMs: number,

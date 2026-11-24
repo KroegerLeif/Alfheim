@@ -90,7 +90,7 @@ function parseFrame(frame: string, handlers: StreamHandlers): void {
       handlers.onDelta(typeof data.text === 'string' ? data.text : '');
       break;
     case 'tool_call':
-      handlers.onToolCall?.(data as any);
+      handlers.onToolCall?.(data);
       break;
     case 'done':
       handlers.onDone(data.usage);

@@ -66,3 +66,12 @@ export interface StreamHandlers {
   onDone: (usage?: unknown) => void;
   onError: (message: string) => void;
 }
+
+/** Options of `useChatStream`. */
+export interface UseChatStreamOptions {
+  authToken?: string;
+  apiBaseUrl?: string;
+  context?: ChatWidgetContext;
+  householdId?: string;
+  isOpen: boolean;
+}

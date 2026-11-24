@@ -5,6 +5,7 @@ import { Language, LanguageContextType } from './types';
 
 const STORAGE_KEY = 'alfheim_language';
 const DEFAULT_LANGUAGE: Language = 'de';
+const SUPPORTED_LANGUAGES: readonly Language[] = ['de', 'en', 'pl'];
 
 export const LanguageContext = createContext<LanguageContextType>({
   language: DEFAULT_LANGUAGE,
@@ -20,20 +21,14 @@ export function LanguageProvider({
   children,
   defaultLanguage = DEFAULT_LANGUAGE,
 }: LanguageProviderProps) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window !== 'undefined') {
-      const match = document.cookie.match(/NEXT_LOCALE=([^;]+)/);
-      const cookieLang = match ? match[1] : null;
-      if (cookieLang && ['de', 'en', 'pl'].includes(cookieLang)) {
-        return cookieLang as Language;
-      }
-      const savedLang = localStorage.getItem(STORAGE_KEY) as Language;
-      if (savedLang && ['de', 'en', 'pl'].includes(savedLang)) {
-        return savedLang;
-      }
-    }
-    return defaultLanguage;
-  });
+  // The route locale (`defaultLanguage`) decides the language on every mount, so server and
+  // client render the same text; switching it in the UI holds until the route locale changes.
+  const [language, setLanguageState] = useState<Language>(defaultLanguage);
+  const [routeLanguage, setRouteLanguage] = useState<Language>(defaultLanguage);
+  if (routeLanguage !== defaultLanguage) {
+    setRouteLanguage(defaultLanguage);
+    setLanguageState(defaultLanguage);
+  }
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
@@ -43,23 +38,13 @@ export function LanguageProvider({
     }
   };
 
+  // Carry a stored choice into the locale cookie, so the next server request picks it up.
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedLang = localStorage.getItem(STORAGE_KEY) as Language;
-      if (savedLang && ['de', 'en', 'pl'].includes(savedLang)) {
-        if (savedLang !== language) {
-          setLanguageState(savedLang);
-        }
-        document.cookie = `NEXT_LOCALE=${savedLang}; path=/; max-age=31536000; SameSite=Lax`;
-      }
+    const savedLang = localStorage.getItem(STORAGE_KEY);
+    if (savedLang && (SUPPORTED_LANGUAGES as readonly string[]).includes(savedLang)) {
+      document.cookie = `NEXT_LOCALE=${savedLang}; path=/; max-age=31536000; SameSite=Lax`;
     }
   }, []);
-
-  useEffect(() => {
-    if (defaultLanguage && defaultLanguage !== language) {
-      setLanguageState(defaultLanguage);
-    }
-  }, [defaultLanguage]);
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage }}>

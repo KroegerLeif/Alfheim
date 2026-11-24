@@ -8,7 +8,7 @@ describe('AuthGuard', () => {
 
   beforeEach(() => {
     sessionStorage.clear();
-    delete (window as any).__ALFHEIM_ENV__;
+    delete (window as { __ALFHEIM_ENV__?: unknown }).__ALFHEIM_ENV__;
     resetDiscoveryCacheForTests();
   });
 
@@ -48,7 +48,7 @@ describe('AuthGuard', () => {
 
   it('renders only a neutral loader, never the children, before a session is established', async () => {
     setWindowLocation('https://alfheim.loegien.de/pantry');
-    (window as any).__ALFHEIM_ENV__ = {
+    (window as { __ALFHEIM_ENV__?: unknown }).__ALFHEIM_ENV__ = {
       OIDC_ISSUER: 'https://auth.alfheim.loegien.de',
       OIDC_CLIENT_ID: 'alfheim-frontend',
     };
@@ -68,7 +68,7 @@ describe('AuthGuard', () => {
 
   it('renders an error page when OIDC discovery fails against a reachable-but-broken issuer', async () => {
     setWindowLocation('https://alfheim.loegien.de/pantry');
-    (window as any).__ALFHEIM_ENV__ = {
+    (window as { __ALFHEIM_ENV__?: unknown }).__ALFHEIM_ENV__ = {
       OIDC_ISSUER: 'https://auth.alfheim.loegien.de',
       OIDC_CLIENT_ID: 'alfheim-frontend',
     };

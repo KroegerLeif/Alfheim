@@ -7,6 +7,9 @@ import {
   applyThemeToDOM,
 } from '../utils/themeDomUtils'
 
+type CustomColors = Parameters<typeof applyThemeToDOM>[2]
+type Variant = Parameters<typeof applyThemeToDOM>[0]
+
 describe('themeDomUtils', () => {
   beforeEach(() => {
     document.documentElement.className = ''
@@ -70,13 +73,13 @@ describe('themeDomUtils', () => {
   })
 
   it('applyThemeToDOM calculates custom colors in dark and light modes with fallbacks', () => {
-    applyThemeToDOM('custom', 'dark', { dark: {} } as any)
+    applyThemeToDOM('custom', 'dark', { dark: {} } as CustomColors)
     expect(document.documentElement.getAttribute('data-theme')).toBe('custom')
 
-    applyThemeToDOM('custom', 'light', { light: {} } as any)
+    applyThemeToDOM('custom', 'light', { light: {} } as CustomColors)
     expect(document.documentElement.getAttribute('data-mode')).toBe('light')
 
-    applyThemeToDOM('unknown' as any, 'dark')
+    applyThemeToDOM('unknown' as Variant, 'dark')
     expect(document.documentElement.getAttribute('data-theme')).toBe('unknown')
   })
 })
