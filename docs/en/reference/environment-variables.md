@@ -157,6 +157,11 @@ Notes:
 | `GRAFANA_ADMIN_PASSWORD` | `admin` | Grafana initial admin password |
 | `GRAFANA_OIDC_CLIENT_ID` | `alfheim-grafana` | Zitadel OIDC client ID for Grafana SSO |
 | `GRAFANA_OIDC_CLIENT_SECRET` | _(auto-provisioned)_ | Zitadel OIDC client secret for Grafana SSO (set by `alfheim-setup provision` / the installer's provisioning step, only while `OTEL_ENABLED=true`) |
+| `INTEGRATIONS_PRINCIPAL_ID` | _(auto-provisioned)_ | Zitadel user id of the `alfheim-integrations` machine user ([service principals](../explanation/authentication-security.md#household-bound-service-principals)). `compose.prod.yaml` passes it to `household-backend` as `ALFHEIM_SERVICE_PRINCIPAL_IDS` |
+| `INTEGRATIONS_CLIENT_ID` | _(auto-provisioned)_ | Client id (`alfheim-integrations`) of its client credentials, passed to `dashboard-backend` |
+| `INTEGRATIONS_CLIENT_SECRET` | _(auto-provisioned)_ | Client secret of `alfheim-integrations`, passed to `dashboard-backend`. Provisioning creates it once and reuses it on later runs |
+
+The integrations machine user issues JWT access tokens; request them with the scope `openid urn:zitadel:iam:org:project:id:${ZITADEL_PROJECT_ID}:aud` so their audience is the project the backends accept.
 
 Grafana SSO is restricted to users holding the Zitadel project role `alfheim_operator`; everyone else is denied. The local `admin` login keeps working. See [Grant Grafana access](../how-to/grafana-access.md).
 
@@ -206,6 +211,7 @@ Tier-1 core service that owns households and member roles. `compose.prod.yaml` r
 | `HOUSEHOLD_POSTGRES_DB` | `alfheim_household` | Database of the household backend, created by `infrastructure/postgres/init-multiple-dbs.sh` |
 | `HOUSEHOLD_DATABASE_URL` | _(constructed)_ | Optional full connection string; when empty, `compose.prod.yaml` builds `postgres://household_user:…@postgres-core:5432/alfheim_household?sslmode=disable` |
 | `ALFHEIM_INTERNAL_TOKEN` | `change-me-internal-token` | Shared secret for service-to-service calls to the household backend's `/internal/*` API. `alfheim-setup` generates 32 random bytes (64 hex characters) and never regenerates an existing value. Caddy never routes `/internal/*` (it answers `404` on both hosts). `household-backend` verifies it; all seven Python app backends (pantry, shopping, chores, maintenance, budget, workout, library), `chat-backend` and `dashboard-backend` receive it and send it as `Authorization: Bearer …` on membership checks. `compose.prod.yaml` requires it; the dev compose files fall back to `dev-internal-token-change-me` (`scripts/init-env.sh` generates a random value) |
+| `ALFHEIM_SERVICE_PRINCIPAL_IDS` | `${INTEGRATIONS_PRINCIPAL_ID}` | Comma-separated Zitadel subjects `household-backend` accepts as service principals: they can be bound to households and are refused on its public API. Empty disables service bindings |
 | `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Base URL the app backends, `chat-backend` and `dashboard-backend` (household launchers) use for `GET /internal/v1/memberships/{householdId}/{userSub}`. Resolved over `gateway-net`, which `household-backend` and every consumer join. Each app consumer waits for `household-backend` to be healthy before it starts; `dashboard-backend` does not wait and answers launcher requests with `503` until the household service is up |
 
 ---

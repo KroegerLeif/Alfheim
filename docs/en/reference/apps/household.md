@@ -44,6 +44,7 @@ Source: [`core/household/`](https://github.com/KroegerLeif/Alfheim/tree/main/cor
 | `DATABASE_URL` | `postgres://household_user:…@postgres-core:5432/alfheim_household?sslmode=disable` | PostgreSQL connection string |
 | `OIDC_ISSUER_URL` / `OIDC_AUDIENCE` | `https://auth.loegien.de` / `alfheim` | JWT validation for the public API |
 | `ALFHEIM_INTERNAL_TOKEN` | *(generated secret)* | Protects the internal API. If unset, the internal API returns `503` and every household-scoped request in other apps fails |
+| `ALFHEIM_SERVICE_PRINCIPAL_IDS` | `${INTEGRATIONS_PRINCIPAL_ID}` | Comma-separated Zitadel subjects that may be bound to households as service principals. They are refused on the whole public API. Empty disables service bindings |
 | `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1` | Browser API base URL of the frontend |
 
 See the [environment variables reference](../environment-variables.md#household--roles-service-corehousehold) for the database variables.
@@ -60,6 +61,19 @@ See the [environment variables reference](../environment-variables.md#household-
 - The first household a user creates or joins becomes their default. Leaving, being removed from or deleting the default household promotes the user's oldest remaining membership to the new default.
 - `GET /api/v1/households/me` returns each household with `role` and `is_default` but no member roster; `GET /api/v1/households/{id}` includes `members`.
 - Errors are `application/json` bodies `{"error": "<code>", "message": "<explanation>"}`.
+- A configured service principal (`ALFHEIM_SERVICE_PRINCIPAL_IDS`) is never a member: every public route answers it with `403`.
+
+### Service bindings
+
+A service binding lets a [household-bound service principal](../../explanation/authentication-security.md#household-bound-service-principals) act in one household with a list of scopes. Every route requires the caller to be an `OWNER` or `ADMIN` of the household in the path (else `403`). The dashboard calls them with the admin's token when a plugin that triggers actions is enabled or disabled.
+
+| Method and path | Body | Answer |
+| :--- | :--- | :--- |
+| `POST /api/v1/households/{id}/service-bindings` | `{"principal_id": "<sub>", "scopes": ["chores:create_instance"]}` | `201` with the new binding; `200` when the binding existed and its scopes were replaced |
+| `GET /api/v1/households/{id}/service-bindings` | | `200` `{"bindings": [<binding>, …]}` |
+| `DELETE /api/v1/households/{id}/service-bindings/{principalId}` | | `204`; `404` when there is no such binding |
+
+A binding is `{"principal_id", "household_id", "scopes", "created_by", "created_at"}`. `principal_id` must be listed in `ALFHEIM_SERVICE_PRINCIPAL_IDS` and must not be a member (`400` and `409`). `scopes` holds 1 to 16 distinct values of the form `<app>:<action>` (`400` otherwise). Revocation takes effect on the principal's next request. Deleting a household deletes its bindings.
 
 ### Internal membership API
 
@@ -70,7 +84,7 @@ Authorization: Bearer <ALFHEIM_INTERNAL_TOKEN>
 
 | Status | Meaning |
 | :--- | :--- |
-| `200` | `{"household_id": "<uuid>", "user_id": "<sub>", "role": "OWNER\|ADMIN\|MEMBER\|GUEST"}` |
+| `200` | `{"household_id": "<uuid>", "user_id": "<sub>", "role": "OWNER\|ADMIN\|MEMBER\|GUEST"}`; for a bound service principal `"role": "SERVICE"` plus `"scopes": [...]` |
 | `400` | `householdId` is not a UUID |
 | `401` | Missing or wrong token |
 | `404` | The household does not exist, or the user is not a member |

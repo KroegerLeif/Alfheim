@@ -18,6 +18,7 @@ uv run ty check apps/chores/backend
 
 - Database: postgres-core, database `alfheim_chores`. Schema changes need an Alembic migration in `alembic/versions/`.
 - The daily reset must stay idempotent and self-healing: `ensure_household_reset` runs on first read of the day and from the nightly scheduler in `src/main.py`.
-- Do not drop the unique indexes `uq_chore_template_name_per_home` and `uq_chore_instance_template_per_date`; invariants are in the app reference.
+- Do not drop the unique indexes `uq_chore_template_name_per_home` and `uq_chore_instance_template_per_date`, or the constraint `uq_chore_instance_idempotency_key`; invariants are in the app reference.
+- One-off instances (`is_one_off`) never count as a template's scheduled instance in the daily reset.
 
 Reference page with the data model invariants: [docs/en/reference/apps/chores.md](../../../docs/en/reference/apps/chores.md).
