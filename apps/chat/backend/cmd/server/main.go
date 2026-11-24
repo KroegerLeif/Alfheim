@@ -22,15 +22,15 @@ import (
 	"alfheim/chat/internal/features/mcpservers"
 	"alfheim/chat/internal/features/modelblocks"
 	"alfheim/chat/internal/shared/attachmenturl"
-	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/chat/internal/shared/mcp"
-	"alfheim/chat/internal/shared/middleware"
 	"alfheim/chat/internal/shared/storage"
 	"alfheim/go-shared/auth"
 	"alfheim/go-shared/db"
 	"alfheim/go-shared/health"
+	"alfheim/go-shared/household"
 	"alfheim/go-shared/httpmw"
 	"alfheim/go-shared/logger"
+	"alfheim/go-shared/netguard"
 )
 
 var (
@@ -95,12 +95,12 @@ func run(parentCtx context.Context) error {
 
 	// Every chat API route is household-scoped: JWT validation first, then the
 	// X-Household-ID membership check against core/household (fail closed).
-	membership := householdclient.New(cfg.Household.InternalURL, cfg.Household.InternalToken)
-	authMw := httpmw.Chain(authenticator.AuthenticateMiddleware, middleware.RequireHousehold(membership, log))
+	membership := household.New(cfg.Household.InternalURL, cfg.Household.InternalToken)
+	authMw := httpmw.Chain(authenticator.AuthenticateMiddleware, household.RequireHousehold(membership, log))
 
 	// Model Blocks Feature (LLM provider configs, encryption, health checks)
 	modelBlocksRepo := modelblocks.NewRepository(dbClient.Pool)
-	modelBlocksService := modelblocks.NewService(modelBlocksRepo, cfg.Encryption.Key, cfg.Encryption.KeyID, log)
+	modelBlocksService := modelblocks.NewServiceWithGuard(modelBlocksRepo, cfg.Encryption.Key, cfg.Encryption.KeyID, log, newLLMGuard(cfg.AllowedLLMHosts, log))
 	modelBlocksHandler := modelblocks.NewHandler(modelBlocksService)
 
 	// Seed the ENV-configured fallback model block on first startup only.
@@ -303,4 +303,18 @@ func readinessCheck(dbClient *db.Client, migrationsDir string, log *slog.Logger)
 		return func(context.Context) error { return err }
 	}
 	return check
+}
+
+// newLLMGuard builds the outbound guard for model block base URLs from the
+// CHAT_ALLOWED_LLM_HOSTS allowlist. An unparsable value is logged and replaced by an
+// empty allowlist, the strictest setting, so a typo can never widen access.
+func newLLMGuard(spec string, log *slog.Logger) *netguard.Guard {
+	g, err := netguard.New(spec)
+	if err == nil {
+		return g
+	}
+	log.Error("invalid CHAT_ALLOWED_LLM_HOSTS; falling back to an empty allowlist", slog.String("error", err.Error()))
+	// An empty spec has no entries to reject, so New cannot fail here.
+	g, _ = netguard.New("")
+	return g
 }

@@ -1,4 +1,7 @@
-// Package crypto provides AES-256-GCM helpers for encrypting model block API keys at rest.
+// Package crypto provides AES-256-GCM helpers for encrypting third-party secrets at
+// rest, such as chat's model block API keys. Callers store the id of the key that
+// encrypted a value next to the ciphertext, so keys can be rotated by re-encrypting
+// rows; the package itself reads no environment variables.
 package crypto
 
 import (
@@ -34,7 +37,7 @@ var (
 	newGCM     = cipher.NewGCM
 )
 
-// Encrypt seals plaintext (e.g. a provider API key) using AES-256-GCM.
+// Encrypt seals plaintext (for example a provider API key) using AES-256-GCM.
 // The returned ciphertext is prefixed with the randomly generated nonce.
 func Encrypt(key []byte, plaintext string) ([]byte, error) {
 	block, err := aes.NewCipher(key)

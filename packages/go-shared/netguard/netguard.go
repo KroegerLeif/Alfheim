@@ -1,34 +1,28 @@
-// Package netguard restricts the outbound HTTP connections the chat service makes on
-// behalf of users (LLM provider base URLs). Model block base URLs are user-supplied, so
-// without a guard they are a server-side request forgery vector: they could point at
-// loopback services, the cloud metadata endpoint or other internal hosts.
+// Package netguard restricts the outbound HTTP connections a backend makes to
+// user-supplied URLs, such as chat's LLM provider base URLs. Without a guard such URLs
+// are a server-side request forgery vector: they could point at loopback services, the
+// cloud metadata endpoint or other internal hosts.
 //
 // A Guard rejects non-http(s) URLs and any host that resolves to a loopback, link-local,
 // unspecified, multicast, private or otherwise non-public address, unless the operator
-// allow-listed the host name, IP or CIDR via CHAT_ALLOWED_LLM_HOSTS. The same check runs
-// again at dial time on the resolved address, which defeats DNS rebinding.
+// allow-listed the host name, IP or CIDR. The same check runs again at dial time on the
+// resolved address, which defeats DNS rebinding.
+//
+// The package reads no environment variables: each backend reads its own allowlist
+// variable (for example chat's CHAT_ALLOWED_LLM_HOSTS) and passes it to New.
 package netguard
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net"
 	"net/http"
 	"net/netip"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 )
-
-// EnvAllowedHosts names the environment variable holding the operator allowlist.
-const EnvAllowedHosts = "CHAT_ALLOWED_LLM_HOSTS"
-
-// DefaultAllowedHosts is used when CHAT_ALLOWED_LLM_HOSTS is unset, so the documented
-// local Ollama setup (Ollama on the Docker host) keeps working out of the box.
-const DefaultAllowedHosts = "host.docker.internal"
 
 // ErrBlocked is returned (wrapped) for every URL or address the guard rejects.
 var ErrBlocked = errors.New("outbound destination is not allowed")
@@ -102,22 +96,6 @@ func NewWithResolver(spec string, resolver Resolver) (*Guard, error) {
 		g.hosts[strings.TrimSuffix(entry, ".")] = struct{}{}
 	}
 	return g, nil
-}
-
-// FromEnv builds a Guard from CHAT_ALLOWED_LLM_HOSTS (DefaultAllowedHosts when unset).
-// An unparsable value is logged and replaced by an empty allowlist, i.e. the strictest
-// setting, so a typo can never widen access.
-func FromEnv() *Guard {
-	spec, ok := os.LookupEnv(EnvAllowedHosts)
-	if !ok {
-		spec = DefaultAllowedHosts
-	}
-	g, err := New(spec)
-	if err != nil {
-		slog.Error("invalid "+EnvAllowedHosts+"; falling back to an empty allowlist", slog.String("error", err.Error()))
-		g, _ = New("")
-	}
-	return g
 }
 
 func (g *Guard) hostAllowed(host string) bool {

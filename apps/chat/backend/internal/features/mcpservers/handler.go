@@ -8,8 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"alfheim/chat/internal/shared/mcp"
-	"alfheim/chat/internal/shared/middleware"
 	"alfheim/go-shared/auth"
+	"alfheim/go-shared/household"
 )
 
 // Handler manages MCP server registry HTTP endpoints (admin/debug visibility).
@@ -59,7 +59,7 @@ func (h *Handler) Diagnostics(w http.ResponseWriter, r *http.Request) {
 	// Probe the MCP servers as the calling user, since they authorize every request.
 	ctx := r.Context()
 	claims, cErr := auth.GetUserClaims(ctx)
-	hc, hErr := middleware.GetHousehold(ctx)
+	hc, hErr := household.GetHousehold(ctx)
 	if cErr == nil && hErr == nil {
 		ctx = mcp.WithCallerCredentials(ctx, mcp.CallerCredentials{AccessToken: claims.AccessToken, HouseholdID: hc.HouseholdID.String(), UserID: claims.Subject})
 	}

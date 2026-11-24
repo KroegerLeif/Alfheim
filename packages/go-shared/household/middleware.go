@@ -1,7 +1,4 @@
-// Package middleware holds the chat backend's household authorization: the
-// X-Household-ID membership check against core/household. JWT validation and
-// the generic HTTP middleware come from alfheim/go-shared.
-package middleware
+package household
 
 import (
 	"context"
@@ -13,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/go-shared/auth"
 )
 
@@ -32,13 +28,14 @@ const (
 	CodeHouseholdForbidden          = "household_forbidden"
 	CodeHouseholdServiceUnavailable = "household_service_unavailable"
 	CodeHouseholdRoleForbidden      = "household_role_forbidden"
+	CodeHouseholdContextMissing     = "household_context_missing"
 )
 
 // HouseholdContext is the verified household scope of a request: the caller
 // (Subject) is a member of HouseholdID with Role, as confirmed by core/household.
 type HouseholdContext struct {
 	HouseholdID uuid.UUID
-	Role        householdclient.Role
+	Role        Role
 	Subject     string
 }
 
@@ -47,7 +44,7 @@ type HouseholdContext struct {
 // the caller's membership against core/household and stores a HouseholdContext in
 // the request context. It never fails open: if membership cannot be determined the
 // request is rejected with 503.
-func RequireHousehold(checker householdclient.Checker, log *slog.Logger) func(http.Handler) http.Handler {
+func RequireHousehold(checker Checker, log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			claims, err := auth.GetUserClaims(r.Context())
@@ -70,7 +67,7 @@ func RequireHousehold(checker householdclient.Checker, log *slog.Logger) func(ht
 			membership, err := checker.CheckMembership(r.Context(), householdID, claims.Subject)
 			switch {
 			case err == nil:
-			case errors.Is(err, householdclient.ErrNotMember):
+			case errors.Is(err, ErrNotMember):
 				log.Warn("household access denied: caller is not a member",
 					slog.String("household_id", householdID.String()),
 					slog.String("user_id", claims.Subject))

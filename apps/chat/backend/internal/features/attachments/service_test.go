@@ -17,8 +17,8 @@ import (
 	"github.com/google/uuid"
 
 	"alfheim/chat/internal/shared/attachmenturl"
-	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/chat/internal/shared/storage"
+	"alfheim/go-shared/household"
 )
 
 type mockStorageClient struct {
@@ -76,12 +76,12 @@ type fakeMembership struct {
 	calls int
 }
 
-func (f *fakeMembership) CheckMembership(ctx context.Context, householdID uuid.UUID, userSub string) (householdclient.Membership, error) {
+func (f *fakeMembership) CheckMembership(ctx context.Context, householdID uuid.UUID, userSub string) (household.Membership, error) {
 	f.calls++
 	if f.err != nil {
-		return householdclient.Membership{}, f.err
+		return household.Membership{}, f.err
 	}
-	return householdclient.Membership{HouseholdID: householdID, UserID: userSub, Role: householdclient.RoleMember}, nil
+	return household.Membership{HouseholdID: householdID, UserID: userSub, Role: household.RoleMember}, nil
 }
 
 type mockRepository struct {
@@ -532,14 +532,14 @@ func TestOpenContentWithToken(t *testing.T) {
 	})
 
 	t.Run("a removed member is forbidden although the token is still valid", func(t *testing.T) {
-		svc := NewService(contentRepo("user-1", ownKey), downloadOf("abc"), signer, &fakeMembership{err: householdclient.ErrNotMember}, log)
+		svc := NewService(contentRepo("user-1", ownKey), downloadOf("abc"), signer, &fakeMembership{err: household.ErrNotMember}, log)
 		if _, err := svc.OpenContentWithToken(ctx, "att-1", token("att-1", "user-1", testHouseholdID)); !errors.Is(err, ErrForbidden) {
 			t.Errorf("error = %v, want ErrForbidden", err)
 		}
 	})
 
 	t.Run("an unreachable household service fails closed", func(t *testing.T) {
-		svc := NewService(contentRepo("user-1", ownKey), downloadOf("abc"), signer, &fakeMembership{err: householdclient.ErrUnavailable}, log)
+		svc := NewService(contentRepo("user-1", ownKey), downloadOf("abc"), signer, &fakeMembership{err: household.ErrUnavailable}, log)
 		if _, err := svc.OpenContentWithToken(ctx, "att-1", token("att-1", "user-1", testHouseholdID)); !errors.Is(err, ErrMembershipUnavailable) {
 			t.Errorf("error = %v, want ErrMembershipUnavailable", err)
 		}

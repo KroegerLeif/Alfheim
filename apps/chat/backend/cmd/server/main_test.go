@@ -392,3 +392,35 @@ func TestReadinessCheck_UnreadableMigrationsStaysUnready(t *testing.T) {
 		t.Error("a client without a pool must not be ready")
 	}
 }
+
+// TestNewLLMGuard covers the allowlist handling that netguard.FromEnv did before
+// the package moved to go-shared.
+func TestNewLLMGuard(t *testing.T) {
+	ctx := context.Background()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	t.Run("the default keeps private addresses blocked", func(t *testing.T) {
+		g := newLLMGuard(config.DefaultAllowedLLMHosts, log)
+		if err := g.ValidateURL(ctx, "http://10.0.0.1"); err == nil {
+			t.Error("private ip must stay blocked by default")
+		}
+	})
+
+	t.Run("an empty value allows nothing private", func(t *testing.T) {
+		if err := newLLMGuard("", log).ValidateURL(ctx, "http://10.0.0.1"); err == nil {
+			t.Error("private ip must stay blocked")
+		}
+	})
+
+	t.Run("an invalid value falls back to the strictest setting", func(t *testing.T) {
+		if err := newLLMGuard("10.0.0.0/99,10.0.0.1", log).ValidateURL(ctx, "http://10.0.0.1"); err == nil {
+			t.Error("a broken allowlist must not widen access")
+		}
+	})
+
+	t.Run("a configured value is honoured", func(t *testing.T) {
+		if err := newLLMGuard("10.0.0.0/8", log).ValidateURL(ctx, "http://10.0.0.1"); err != nil {
+			t.Errorf("allow-listed ip must be accepted: %v", err)
+		}
+	})
+}

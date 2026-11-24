@@ -14,13 +14,12 @@ import (
 	"github.com/google/uuid"
 
 	"alfheim/chat/internal/features/modelblocks"
-	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/chat/internal/shared/llm"
-	"alfheim/chat/internal/shared/middleware"
 	"alfheim/go-shared/auth"
+	"alfheim/go-shared/household"
 )
 
-// testHouseholdID is the verified household injected by the fake auth middleware.
+// testHouseholdID is the verified household injected by the fake auth household.
 const testHouseholdID = "11111111-1111-1111-1111-111111111111"
 
 // withClaims returns a fake auth middleware that injects fixed UserClaims into the
@@ -30,7 +29,7 @@ func withClaims(claims *auth.UserClaims) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.WithValue(r.Context(), auth.UserContextKey, claims)
 			if claims != nil {
-				ctx = middleware.ContextWithHousehold(ctx, &middleware.HouseholdContext{HouseholdID: uuid.MustParse(testHouseholdID), Role: householdclient.RoleOwner, Subject: claims.Subject})
+				ctx = household.ContextWithHousehold(ctx, &household.HouseholdContext{HouseholdID: uuid.MustParse(testHouseholdID), Role: household.RoleOwner, Subject: claims.Subject})
 			}
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

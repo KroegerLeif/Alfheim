@@ -19,6 +19,7 @@ gofmt -l .                  # must print nothing
 - JWT validation checks issuer and audience (`OIDC_AUDIENCE`), as `core/dashboard` does.
 - `internal/shared/llm` must not import `internal/features/modelblocks`; `conversations` declares its own consumer interfaces.
 - The tool loop never forwards the `Done` chunk of an intermediate round. The SSE endpoint needs the long `WriteTimeout`.
-- Outbound LLM URLs go through `internal/shared/netguard` (`CHAT_ALLOWED_LLM_HOSTS`).
+- Outbound LLM URLs go through `alfheim/go-shared/netguard`; `cmd/server` builds the guard from `CHAT_ALLOWED_LLM_HOSTS` (read in `config`).
+- Household checks (`RequireHousehold`, the membership client) and API key encryption come from `alfheim/go-shared/household` and `alfheim/go-shared/crypto`; do not copy them back into `internal/shared`.
 
 Reference page: [docs/en/reference/apps/chat.md](../../../docs/en/reference/apps/chat.md).

@@ -15,10 +15,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"alfheim/dashboard/config"
 	"alfheim/dashboard/internal/features/apps"
 	"alfheim/go-shared/auth"
 	"alfheim/go-shared/db"
+	"alfheim/go-shared/household"
 )
 
 func TestSetupAuthenticator_FailClosed(t *testing.T) {
@@ -42,6 +45,51 @@ func TestSetupAuthenticator_FailClosed(t *testing.T) {
 
 func passthroughAuth(next http.Handler) http.Handler { return next }
 
+// TestMain supplies the required ALFHEIM_INTERNAL_TOKEN so tests exercising the
+// real config.Load path get past the startup check.
+func TestMain(m *testing.M) {
+	if os.Getenv("ALFHEIM_INTERNAL_TOKEN") == "" {
+		_ = os.Setenv("ALFHEIM_INTERNAL_TOKEN", "test-internal-token")
+	}
+	os.Exit(m.Run())
+}
+
+// noMembership is a membership API that knows no member at all.
+type noMembership struct{}
+
+func (noMembership) CheckMembership(context.Context, uuid.UUID, string) (household.Membership, error) {
+	return household.Membership{}, household.ErrNotMember
+}
+
+func TestBuildRouter_LaunchersRequireHouseholdMembership(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	withUser := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := context.WithValue(r.Context(), auth.UserContextKey, &auth.UserClaims{Subject: "user-1"})
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+	router := buildRouter(log, &db.Client{}, nil, withUser, noMembership{}, "", []string{}, apps.AllApps())
+
+	for _, tc := range []struct {
+		header string
+		want   int
+	}{
+		{header: "", want: http.StatusBadRequest},
+		{header: uuid.NewString(), want: http.StatusForbidden},
+	} {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/launchers", nil)
+		if tc.header != "" {
+			req.Header.Set(household.HouseholdHeader, tc.header)
+		}
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != tc.want {
+			t.Errorf("X-Household-ID %q: status %d, want %d", tc.header, rec.Code, tc.want)
+		}
+	}
+}
+
 func TestBuildRouter_PanicsWithoutAuth(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	defer func() {
@@ -49,14 +97,14 @@ func TestBuildRouter_PanicsWithoutAuth(t *testing.T) {
 			t.Fatal("expected buildRouter to panic when auth middleware is nil")
 		}
 	}()
-	buildRouter(log, &db.Client{Pool: nil}, nil, nil, "", []string{}, apps.AllApps())
+	buildRouter(log, &db.Client{Pool: nil}, nil, nil, noMembership{}, "", []string{}, apps.AllApps())
 }
 
 func TestBuildRouter(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dbClient := &db.Client{Pool: nil}
 
-	router := buildRouter(log, dbClient, nil, passthroughAuth, "", []string{}, apps.AllApps())
+	router := buildRouter(log, dbClient, nil, passthroughAuth, noMembership{}, "", []string{}, apps.AllApps())
 
 	t.Run("a router without a readiness check is never ready", func(t *testing.T) {
 		if got := probeStatus(t, router, "/readyz"); got != http.StatusServiceUnavailable {
@@ -225,7 +273,7 @@ func TestBuildRouter_Probes(t *testing.T) {
 	up := func(context.Context) error { return nil }
 	down := func(context.Context) error { return errors.New("connection refused") }
 
-	healthy := buildRouter(log, &db.Client{}, up, passthroughAuth, "", []string{}, apps.AllApps())
+	healthy := buildRouter(log, &db.Client{}, up, passthroughAuth, noMembership{}, "", []string{}, apps.AllApps())
 	if got := probeStatus(t, healthy, "/healthz"); got != http.StatusOK {
 		t.Errorf("/healthz = %d, want 200", got)
 	}
@@ -233,7 +281,7 @@ func TestBuildRouter_Probes(t *testing.T) {
 		t.Errorf("/readyz with a reachable database = %d, want 200", got)
 	}
 
-	degraded := buildRouter(log, &db.Client{}, down, passthroughAuth, "", []string{}, apps.AllApps())
+	degraded := buildRouter(log, &db.Client{}, down, passthroughAuth, noMembership{}, "", []string{}, apps.AllApps())
 	if got := probeStatus(t, degraded, "/healthz"); got != http.StatusOK {
 		t.Errorf("/healthz with the database down = %d, want 200 (liveness ignores it)", got)
 	}

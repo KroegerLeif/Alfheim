@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"alfheim/chat/internal/features/modelblocks"
-	"alfheim/chat/internal/shared/crypto"
 	"alfheim/chat/internal/shared/llm"
-	"alfheim/chat/internal/shared/netguard"
+	"alfheim/go-shared/crypto"
+	"alfheim/go-shared/netguard"
 )
 
 // fakeRepository is an in-memory Repository double used to unit-test the service

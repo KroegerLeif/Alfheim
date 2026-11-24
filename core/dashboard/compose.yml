@@ -22,6 +22,10 @@ services:
       # Enabled optional apps (ADR 0007): the dashboard lists only their tiles.
       # Unset means every app, like an installation from before the Lean Core.
       - ALFHEIM_ENABLED_APPS=${ALFHEIM_ENABLED_APPS-all}
+      # Household launchers confirm X-Household-ID against core/household's
+      # internal membership API, reached over core-net.
+      - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:-dev-internal-token-change-me}
+      - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/readyz || exit 1"]
       interval: 5s

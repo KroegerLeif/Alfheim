@@ -1,4 +1,4 @@
-package middleware
+package household
 
 import (
 	"context"
@@ -14,17 +14,16 @@ import (
 
 	"github.com/google/uuid"
 
-	"alfheim/chat/internal/shared/householdclient"
 	"alfheim/go-shared/auth"
 	"alfheim/go-shared/httpmw"
 )
 
 type fakeChecker struct {
 	calls atomic.Int32
-	fn    func(hh uuid.UUID, sub string) (householdclient.Membership, error)
+	fn    func(hh uuid.UUID, sub string) (Membership, error)
 }
 
-func (f *fakeChecker) CheckMembership(_ context.Context, hh uuid.UUID, sub string) (householdclient.Membership, error) {
+func (f *fakeChecker) CheckMembership(_ context.Context, hh uuid.UUID, sub string) (Membership, error) {
 	f.calls.Add(1)
 	return f.fn(hh, sub)
 }
@@ -60,16 +59,16 @@ func TestRequireHousehold(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	member := uuid.MustParse("7d9f3c1e-4b2a-4c8e-9f10-2a3b4c5d6e7f")
 
-	checker := &fakeChecker{fn: func(hh uuid.UUID, sub string) (householdclient.Membership, error) {
+	checker := &fakeChecker{fn: func(hh uuid.UUID, sub string) (Membership, error) {
 		switch {
 		case hh == member && sub == "user-1":
-			return householdclient.Membership{HouseholdID: hh, UserID: sub, Role: householdclient.RoleAdmin}, nil
+			return Membership{HouseholdID: hh, UserID: sub, Role: RoleAdmin}, nil
 		case hh == uuid.MustParse("00000000-0000-0000-0000-000000000503"):
-			return householdclient.Membership{}, householdclient.ErrUnavailable
+			return Membership{}, ErrUnavailable
 		case hh == uuid.MustParse("00000000-0000-0000-0000-000000000500"):
-			return householdclient.Membership{}, errors.New("unexpected failure")
+			return Membership{}, errors.New("unexpected failure")
 		default:
-			return householdclient.Membership{}, householdclient.ErrNotMember
+			return Membership{}, ErrNotMember
 		}
 	}}
 	handler := httpmw.Chain(withTestClaims("user-1"), RequireHousehold(checker, log))(echoHousehold())
@@ -127,9 +126,9 @@ func TestRequireHousehold(t *testing.T) {
 }
 
 func TestRequireHousehold_NoClaimsIsUnauthorized(t *testing.T) {
-	checker := &fakeChecker{fn: func(uuid.UUID, string) (householdclient.Membership, error) {
+	checker := &fakeChecker{fn: func(uuid.UUID, string) (Membership, error) {
 		t.Fatal("checker must not be called without an authenticated user")
-		return householdclient.Membership{}, nil
+		return Membership{}, nil
 	}}
 	h := RequireHousehold(checker, slog.New(slog.NewTextHandler(io.Discard, nil)))(echoHousehold())
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -142,8 +141,8 @@ func TestRequireHousehold_NoClaimsIsUnauthorized(t *testing.T) {
 }
 
 func TestRequireHousehold_BadHeaderDoesNotReachMembershipService(t *testing.T) {
-	checker := &fakeChecker{fn: func(uuid.UUID, string) (householdclient.Membership, error) {
-		return householdclient.Membership{}, nil
+	checker := &fakeChecker{fn: func(uuid.UUID, string) (Membership, error) {
+		return Membership{}, nil
 	}}
 	h := httpmw.Chain(withTestClaims("u"), RequireHousehold(checker, slog.New(slog.NewTextHandler(io.Discard, nil))))(echoHousehold())
 	for _, v := range []string{"", "nope"} {
@@ -157,7 +156,7 @@ func TestRequireHousehold_BadHeaderDoesNotReachMembershipService(t *testing.T) {
 }
 
 // TestRequireHousehold_WithRealClient wires the middleware to a real
-// householdclient against a fake core/household, covering caching and 503.
+// membership client against a fake core/household, covering caching and 503.
 func TestRequireHousehold_WithRealClient(t *testing.T) {
 	hh := uuid.New()
 	var calls atomic.Int32
@@ -180,7 +179,7 @@ func TestRequireHousehold_WithRealClient(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	client := householdclient.New(upstream.URL, "internal")
+	client := New(upstream.URL, "internal")
 	h := httpmw.Chain(withTestClaims("user-1"), RequireHousehold(client, slog.New(slog.NewTextHandler(io.Discard, nil))))(echoHousehold())
 
 	do := func(hhID string) int {

@@ -20,11 +20,13 @@ import (
 	"alfheim/dashboard/internal/features/apphealth"
 	"alfheim/dashboard/internal/features/apps"
 	"alfheim/dashboard/internal/features/capabilities"
+	"alfheim/dashboard/internal/features/launchers"
 	"alfheim/dashboard/internal/features/telemetry"
 	"alfheim/dashboard/internal/shared/middleware"
 	"alfheim/go-shared/auth"
 	"alfheim/go-shared/db"
 	"alfheim/go-shared/health"
+	"alfheim/go-shared/household"
 	"alfheim/go-shared/httpmw"
 	"alfheim/go-shared/logger"
 )
@@ -80,7 +82,10 @@ func run(parentCtx context.Context) error {
 
 	enabledApps := apps.ParseEnabledApps(cfg.EnabledApps)
 	ready := readinessCheck(dbClient, cfg.Database.MigrationsDir, log)
-	r := buildRouter(log, dbClient, ready, authenticator.AuthenticateMiddleware, cfg.StackAppsPath, cfg.CORS.AllowedOrigins, enabledApps)
+	// Household-scoped routes (launchers) confirm X-Household-ID against
+	// core/household's membership API; the JWT never carries a household.
+	membership := household.New(cfg.Household.InternalURL, cfg.Household.InternalToken)
+	r := buildRouter(log, dbClient, ready, authenticator.AuthenticateMiddleware, membership, cfg.StackAppsPath, cfg.CORS.AllowedOrigins, enabledApps)
 
 	// HTTP Server & Graceful Shutdown
 	srv := &http.Server{
@@ -146,7 +151,8 @@ func setupAuthenticator(ctx context.Context, cfg *config.Config, log *slog.Logge
 
 // buildRouter constructs and configures the chi Router with all middlewares and feature endpoints.
 // enabledApps is the installation's ALFHEIM_ENABLED_APPS set; it decides which Tier-1 tiles exist.
-func buildRouter(log *slog.Logger, dbClient *db.Client, ready health.Check, jwtMw func(http.Handler) http.Handler, stackAppsPath string, allowedOrigins []string, enabledApps apps.EnabledApps) http.Handler {
+// membership confirms the household of household-scoped routes.
+func buildRouter(log *slog.Logger, dbClient *db.Client, ready health.Check, jwtMw func(http.Handler) http.Handler, membership household.Checker, stackAppsPath string, allowedOrigins []string, enabledApps apps.EnabledApps) http.Handler {
 	// An unauthenticated API must never be served: refuse to build the router.
 	if jwtMw == nil {
 		panic("dashboard-backend: auth middleware is required to build the router")
@@ -165,8 +171,11 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, ready health.Check, jwtM
 	healthService := apphealth.NewService(healthTargets(coreApps), apphealth.NewHTTPProber(nil, apphealth.DefaultProbeTimeout), apphealth.DefaultCacheTTL, log)
 	telemetryService := telemetry.NewService("", log)
 
+	launchersService := launchers.NewService(launchers.NewRepository(pool))
+
 	// Initialize Handlers
 	appsHandler := apps.NewHandler(appsService)
+	launchersHandler := launchers.NewHandler(launchersService, log)
 	healthHandler := apphealth.NewHandler(healthService)
 	telemetryHandler := telemetry.NewHandler(telemetryService)
 	capabilitiesHandler := capabilities.NewHandler()
@@ -188,8 +197,9 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, ready health.Check, jwtM
 
 	// Auth middleware: OIDC JWT validation, then JIT provisioning of the local
 	// user_profiles row that user_preferences and user_links reference.
-	// Households, roles, profiles and contacts live in core/household; the
-	// dashboard ignores X-Household-ID / X-Household-Role entirely.
+	// Households, roles, profiles and contacts live in core/household. Only the
+	// household-scoped launcher routes read X-Household-ID, and they confirm it
+	// against the membership API; X-Household-Role is always ignored.
 	profileMw := func(next http.Handler) http.Handler { return next }
 	if pool != nil {
 		profileMw = middleware.EnsureUserProfile(pool, log)
@@ -204,6 +214,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, ready health.Check, jwtM
 	telemetryHandler.RegisterRoutes(r, authMw)
 	capabilitiesHandler.RegisterRoutes(r, authMw)
 	enabledAppsHandler.RegisterRoutes(r, authMw)
+	launchersHandler.RegisterRoutes(r, authMw, household.RequireHousehold(membership, log))
 
 	return r
 }

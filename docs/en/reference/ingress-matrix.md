@@ -65,7 +65,7 @@ Rows follow the frontend site block of `infrastructure/caddy/Caddyfile`. "Prefix
 | `/api/v1/chat*` | `chat-backend` | `8080` | Pass-through |
 | `/chat/api/v1*` | `chat-backend` | `8080` | Rewrite to `/api/v1/chat/...` |
 | `/api/v1/households*`, `/api/v1/profile*` | `household-backend` | `8080` | Pass-through; longer than the dashboard catch-all, so it wins |
-| `/api/v1/*` (everything else) | `dashboard-backend` | `8080` | Pass-through (`/api/v1/apps`, `/api/v1/telemetry`, ...) |
+| `/api/v1/*` (everything else) | `dashboard-backend` | `8080` | Pass-through (`/api/v1/apps`, `/api/v1/launchers`, `/api/v1/telemetry`, ...) |
 | `/internal`, `/internal/*` | — | — | `404`: service-to-service endpoints are never routed |
 | `/storage*` | `rustfs` | `9000` | Strip `/storage`; the signed bucket/key path reaches RustFS unchanged |
 | `/household*` | `household-frontend` | `3000` | Pass-through (Next.js basePath `/household`, no locale prefix) |

@@ -10,8 +10,8 @@ import (
 
 	"alfheim/chat/internal/shared/llm"
 	"alfheim/chat/internal/shared/mcp"
-	"alfheim/chat/internal/shared/middleware"
 	"alfheim/go-shared/auth"
+	"alfheim/go-shared/household"
 )
 
 // Handler manages conversation, message, and SSE streaming HTTP endpoints.
@@ -200,14 +200,14 @@ func writeSSEChunk(w http.ResponseWriter, chunk llm.StreamChunk) {
 }
 
 // callerScope returns the authenticated caller and the verified household id
-// (canonical UUID string) set by middleware.AuthenticateMiddleware and
-// middleware.RequireHousehold.
+// (canonical UUID string) set by household.AuthenticateMiddleware and
+// household.RequireHousehold.
 func callerScope(r *http.Request) (*auth.UserClaims, string, error) {
 	claims, err := auth.GetUserClaims(r.Context())
 	if err != nil {
 		return nil, "", err
 	}
-	hc, err := middleware.GetHousehold(r.Context())
+	hc, err := household.GetHousehold(r.Context())
 	if err != nil {
 		return nil, "", err
 	}
