@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Move the household middleware, API key encryption and outbound host guard from the chat backend into `packages/go-shared` (`household`, `crypto`, `netguard`) and add `RequireHouseholdRole` for write endpoints (#954).
+- Redesign the landing page around the Lean Core and its hardware tiers, Core and Optional modules with their `alfheim-setup apps enable` command, the planned launchers and typed plugins, and a roadmap linking the v0.6.0 and v0.7.0 milestones (#952).
+
+### Fixed
+- Serve canonical URLs and the sitemap of the docs portal from `https://docs.alfheim.loegien.de/docs/`, read the landing page release badge from `CHANGELOG.md` instead of a made-up `v2.4 LTS`, and replace the invented `api.alfheim.loegien.de` host with `https://<your-domain>/api/v1/<app>` (#951).
 
 ### Changed
 - Lint every frontend and `@alfheim/shared` with one shared ESLint flat config (`defineAlfheimEslintConfig()` from `@alfheim/shared/eslint-preset`); `./scripts/verify.sh --frontend` and `ci-required` now fail on any ESLint error (#637).

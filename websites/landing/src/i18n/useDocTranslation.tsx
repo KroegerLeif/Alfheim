@@ -4,7 +4,8 @@ import { getSharedMessages, Language } from '@alfheim/shared';
 interface I18nContextType {
   locale: Language;
   setLocale: (lang: Language) => void;
-  t: (path: string) => string;
+  /** Looks up `path` and replaces each `{name}` placeholder with `vars[name]`. */
+  t: (path: string, vars?: Record<string, string | number>) => string;
   messages: any;
 }
 
@@ -33,7 +34,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLocaleState(lang);
   };
 
-  const t = (path: string): string => {
+  const t = (path: string, vars?: Record<string, string | number>): string => {
     const parts = path.split('.');
     let current = messages;
     for (const part of parts) {
@@ -43,7 +44,11 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return path;
       }
     }
-    return typeof current === 'string' ? current : path;
+    if (typeof current !== 'string') return path;
+    if (!vars) return current;
+    return current.replace(/\{(\w+)\}/g, (match: string, name: string) =>
+      name in vars ? String(vars[name]) : match,
+    );
   };
 
   return (

@@ -29,6 +29,8 @@ infrastructure/caddy/pki/*
 
 # Local data & storage
 **/data/
+# Typed site data is source code, not local runtime data.
+!websites/landing/src/data/
 **/rustfs_data/
 **/caddy_data/
 **/caddy_config/

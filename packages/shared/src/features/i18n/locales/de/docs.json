@@ -1,216 +1,184 @@
 {
   "docs": {
     "nav": {
-      "home": "Startseite",
+      "home": "Alfheim Startseite",
+      "sections": "Seitenabschnitte",
+      "leanCore": "Lean Core",
       "modules": "Module",
-      "architecture": "Architektur",
-      "alfi": "Über ALFI",
-      "quickstart": "Schnellstart",
+      "integrations": "Integrationen",
+      "roadmap": "Roadmap",
       "documentation": "Dokumentation",
-      "status": "Enklave Online",
-      "vpnProtected": "VPN Geschützt"
+      "language": "Sprache"
     },
     "hero": {
-      "badge": "Alfheim Sovereign OS",
-      "title": "Private Souveräne Micro-App Cloud",
-      "subtitle": "Self-hosted, mandantenfähige Hausautomation, Bestandsverwaltung, Aufgaben und Telemetrie abgesichert durch Zero-Trust IAM und WireGuard/Tailscale VPN.",
-      "exploreModules": "Module erkunden",
-      "readArchitecture": "Architektur-Spezifikation",
-      "githubRepo": "GitHub Repository",
-      "metrics": {
-        "architecture": {
-          "label": "Architektur",
-          "value": "Multi-Zone",
-          "note": "Isolierte Netzwerke"
-        },
-        "identity": {
-          "label": "Identität",
-          "value": "Zitadel OIDC",
-          "note": "RS256-signierte JWTs"
-        },
-        "storage": {
-          "label": "Objektspeicher",
-          "value": "RustFS S3",
-          "note": "Mandanten-Presigned-URLs"
-        },
-        "ai": {
-          "label": "KI-Begleiter",
-          "value": "ALFI Agent",
-          "note": "MCP-Tools aktiviert"
-        }
-      }
+      "releaseLabel": "Aktuelle Version",
+      "title": "Dein Haushalt, auf deiner eigenen Hardware",
+      "subtitle": "Alfheim ist ein Local-first-Haushalts-OS, das Vorräte, Einkaufslisten, Budget, Aufgaben und mehr auf einem Server bei dir zu Hause betreibt.",
+      "install": "Installieren",
+      "readDocs": "Zur Dokumentation"
     },
-    "vpnNotice": {
-      "badge": "Sicherheits-Perimeter",
-      "title": "Hinweis zum privaten Netzwerkzugriff",
-      "description": "Produktions-Apps (Dashboard, Vorratskammer, Einkaufsliste, Aufgaben, Wartung, Budget, Bibliothek, Workout, Chat) laufen innerhalb einer isolierten WireGuard/Tailscale-Enklave. Der Direktzugriff erfordert einen aktiven VPN-Tunnel.",
-      "gatewayInfo": "Öffentlicher Datenverkehr wird über das Caddy Gateway mit TLS-Terminierung geroutet."
+    "leanCore": {
+      "badge": "Lean Core",
+      "title": "Klein anfangen, nach Bedarf erweitern",
+      "subtitle": "Eine Standardinstallation ist der Lean Core: sechs Dienste, die immer laufen. Jede weitere App ist ein optionales Modul, das du bei Bedarf einschaltest.",
+      "coreTitle": "Läuft immer",
+      "optionalTitle": "Optionale Module",
+      "optionalDesc": "Vorräte, Einkauf, Budget, Aufgaben, Bibliothek, Training, Wartung, Chat und der Telemetrie-Stack. Ein abgeschaltetes Modul behält seine Daten, du kannst es später zurückholen.",
+      "manageAppsLink": "Apps verwalten",
+      "services": {
+        "caddy": "Ingress und HTTPS",
+        "postgres": "Eine gemeinsame Datenbank",
+        "zitadel": "Anmeldung und Identität",
+        "rustfs": "S3-Dateispeicher",
+        "dashboard": "Launcher und App-Katalog",
+        "household": "Haushalte, Mitglieder und Rollen"
+      },
+      "table": {
+        "caption": "Hardware-Stufen",
+        "tier": "Stufe",
+        "reserved": "Reservierter RAM",
+        "host": "Host-RAM",
+        "cpu": "CPU",
+        "cores": "{count} Kerne"
+      },
+      "tiers": {
+        "leanCore": {
+          "name": "Lean Core",
+          "runs": "Die sechs Kerndienste"
+        },
+        "leanCorePlusApps": {
+          "name": "Lean Core + Apps",
+          "runs": "Plus jede eingeschaltete App"
+        },
+        "full": {
+          "name": "Voll",
+          "runs": "Alle optionalen Apps, Telemetrie aus"
+        },
+        "fullTelemetry": {
+          "name": "Voll + Telemetrie",
+          "runs": "Alle Apps plus Telemetrie-Stack"
+        }
+      },
+      "reservedPerApp": "{base} + {perApp} pro App",
+      "host": {
+        "swap": "plus {size} Swap",
+        "minimum": "mindestens {size}",
+        "recommended": "{size} empfohlen",
+        "upToTwoApps": "{size} für bis zu zwei Apps",
+        "upToFiveApps": "{size} für bis zu fünf Apps"
+      },
+      "source": "Diese Werte fassen die Installationsanleitung zusammen, die maßgeblich ist.",
+      "sourceLink": "Hardware-Anforderungen"
     },
     "modules": {
-      "badge": "Microservices",
-      "title": "Integrierte Plattform-Module",
-      "subtitle": "Containerisierte Microservices entwickelt mit Python FastAPI, Go und Next.js, isoliert über dedizierte Docker-Bridge-Netzwerke.",
-      "pantry": {
-        "name": "Digitale Vorratskammer",
-        "tagline": "Bestands- & Vorratsverwaltung",
-        "description": "Echtzeit-Lagerbestände, Barcode-Suche via OpenFoodFacts, Lagerortverwaltung und unveränderliches Transaktionsbuch.",
-        "badge": "FastAPI + Next.js",
-        "route": "/pantry"
-      },
-      "shopping": {
-        "name": "Einkaufslisten",
-        "tagline": "Kollaborative Echtzeit-Listen",
-        "description": "Mandantenfähige Haushalts- und persönliche Einkaufslisten mit automatischem Abgleich von Vorratsdefiziten.",
-        "badge": "FastAPI + Next.js",
-        "route": "/shopping"
-      },
-      "maintenance": {
-        "name": "Hauswartung",
-        "tagline": "Geräte- & Wartungszyklus",
-        "description": "Präventive Wartungspläne, Garantiebelege in RustFS S3, wiederkehrende Benachrichtigungen und Anlagenverwaltung.",
-        "badge": "FastAPI + Next.js",
-        "route": "/maintenance"
-      },
-      "chores": {
-        "name": "Haushaltsaufgaben",
-        "tagline": "Gamifizierter Gewohnheitstracker",
-        "description": "Wiederkehrende Aufgabenrotation, Streak-Belohnungen, Punktesystem und faire Lastenverteilung.",
-        "badge": "FastAPI + Next.js",
-        "route": "/chores"
-      },
-      "budget": {
-        "name": "Budget & Finanzen",
-        "tagline": "Konten & Finanzplanung",
-        "description": "Haushaltskonten, Sparziele, virtuelle Töpfe, monatliche Budgetpläne und Ausgaben-Transaktionsbuch.",
-        "badge": "FastAPI + Next.js",
-        "route": "/budget"
-      },
-      "library": {
-        "name": "Medien- & Bibliotheks-Hub",
-        "tagline": "Bücher- & Mediensammlung",
-        "description": "Persönliche Buchverwaltung, Lesefortschritts-Tracking, Leihverwaltung und Metadaten-Integration.",
-        "badge": "FastAPI + Next.js",
-        "route": "/library"
-      },
-      "workout": {
-        "name": "Workout Tracker",
-        "tagline": "Fitness & Kraft-Telemetrie",
-        "description": "Erstellung von Trainingsplänen, Protokollierung von Sätzen und Wiederholungen, Rekorde-Tracking und Fortschrittsanalysen.",
-        "badge": "FastAPI + Next.js",
-        "route": "/workout"
-      },
-      "chat": {
-        "name": "ALFI Chat",
-        "tagline": "Konversations-KI & MCP-Schnittstelle",
-        "description": "Multimodale KI-Assistentenschnittstelle für ALFI mit MCP-Tool-Ausführung, Echtzeit-Kontext-Streaming und Prompt-Orchestrierung.",
-        "badge": "Go + Next.js",
-        "route": "/chat"
-      },
-      "dashboard": {
-        "name": "Control Plane",
-        "tagline": "Zentralverwaltung & Ingress",
-        "description": "Zentrale OIDC-Authentifizierung, Live-Telemetrie-Streaming, App-Katalog und Caddy-Proxy-Routing.",
-        "badge": "Go + Next.js",
-        "route": "/"
-      },
-      "storage_label": "Speicher",
-      "basepath_label": "Frontend BasePath"
-    },
-    "alfi": {
-      "badge": "Autonomer Begleiter",
-      "title": "Lerne ALFI kennen: Dein Ambient-Haushaltsbegleiter",
-      "description": "ALFI bildet die intelligente Orchestrierungsschicht für Alfheim. Über natürliche Sprache und Model Context Protocol (MCP) Tools steuert ALFI Vorräte, plant Wartungen und verteilt Aufgaben.",
-      "capabilitiesTitle": "KI-Kernkompetenzen",
-      "cap1": "Proaktive Nachbestellempfehlungen und Erkennung von Vorratsmängeln",
-      "cap2": "Rezeptvorschläge in natürlicher Sprache basierend auf Vorräten",
-      "cap3": "Automatische Wartungsplanung und Garantiebeleg-Archivierung",
-      "cap4": "Faire Aufgabenverteilung und Streak-Erinnerungen",
-      "states": {
-        "idle": "Bereit",
-        "thinking": "Denkt nach",
-        "speaking": "Spricht",
-        "listening": "Hört zu",
-        "eating": "Essen",
-        "fixing": "Repariert",
-        "chasing": "Verfolgt",
-        "sleeping": "Standby",
-        "loading": "Lädt",
-        "curious": "Neugierig"
-      },
-      "mascotAlt": "ALFI-Begleiter",
-      "protocolFooter": "Model Context Protocol (FastMCP) · Ereignisgesteuerte S3- & Telemetrie-Hooks"
-    },
-    "architecture": {
-      "badge": "Topologie & Sicherheit",
-      "title": "Architektonisches Fundament",
-      "subtitle": "Sicherheitsfokussierte Multi-Zonen-Netzwerksegmentierung mit einheitlichem Zitadel-Identitätsmanagement.",
-      "diagram_title": "DOCKER MULTI-ZONEN NETZWERK TOPOLOGIE",
-      "gateway_net_desc": "Caddy Ingress & Frontends",
-      "pillars": {
-        "iam": {
-          "title": "Zero-Trust IAM",
-          "desc": "Zentrales Zitadel OIDC mit kurzlebigen RS256 JWT Tokens, validiert von allen Microservice-Backends."
-        },
-        "storage": {
-          "title": "Mandanten-S3-Speicher",
-          "desc": "RustFS S3-Objektspeicher mit isolierten Buckets und signierten PUT/GET-URLs."
-        },
-        "proxy": {
-          "title": "Caddy Reverse Proxy",
-          "desc": "Zentrales Ingress-Gateway für pfadbasiertes Routing, Header-Injektion und automatische HTTPS-Zertifikate."
-        },
-        "observability": {
-          "title": "OpenTelemetry & VictoriaStack",
-          "desc": "Vollständiges Tracing, strukturierte Logs und Live-Telemetrie über alle Container."
-        }
-      },
-      "zones": {
-        "gateway": {
-          "desc": "Caddy-Ingress & Frontends",
-          "note": "Öffentlicher / WireGuard-Ingress"
-        },
-        "infra": {
-          "desc": "Zitadel & postgres-core & RustFS",
-          "note": "Isolierte Plattform-IAM"
-        },
-        "core": {
-          "desc": "Dashboard-Backend & DB",
-          "note": "Plattform-Steuerungsebene"
-        },
-        "apps": {
-          "desc": "8 Microservice-Backends & DBs",
-          "note": "Keine App-übergreifende DB-Kopplung"
-        }
-      }
-    },
-    "techStack": {
-      "badge": "Technik",
-      "title": "Technologie-Stack",
-      "frontend": "Frontend: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide Icons",
-      "backend": "Backend: Python 3.14 (FastAPI), Go 1.27, SQLAlchemy / asyncpg / sqlx",
-      "database": "Datenbanken: PostgreSQL 18 (dedizierte Instanzen je App), ClickHouse",
-      "infra": "Infrastruktur: Docker Compose, Caddy 2, Zitadel 4, RustFS (S3-kompatibel)",
-      "categories": {
-        "frontends": "Frontends & UI",
-        "backends": "API Backends",
-        "storage": "Datenbanken & Speicher",
-        "platform": "Plattform & Mesh"
-      },
+      "badge": "Module",
+      "title": "Kern- und optionale Module",
+      "subtitle": "Jedes Modul liefert seine Seiten unter einem eigenen Pfad und seine API unter https://<deine-domain>/api/v1/<app> aus, auf der Domain, auf der du Alfheim installierst.",
+      "ingressLink": "Routing in der Ingress-Matrix",
+      "core": "Kern",
+      "optional": "Optional",
+      "routeLabel": "Seiten",
+      "apiLabel": "API",
+      "enableLabel": "Einschalten",
+      "alwaysOn": "Immer installiert",
+      "requires": "Benötigt {app}",
       "items": {
-        "controlPlane": "Go 1.27 (Steuerungsebene & Chat)",
-        "postgres": "PostgreSQL 18 (Isolierte Instanzen)",
-        "rustfs": "RustFS (Hochleistungs-S3)",
-        "victoria": "VictoriaStack (Metriken & Logs)",
-        "redis": "Redis (Caching)",
-        "compose": "Docker Compose & Multi-Bridge-Netzwerke",
-        "caddy": "Caddy 2 Reverse Proxy"
+        "dashboard": {
+          "name": "Dashboard",
+          "description": "Der Startbildschirm: Launcher, App-Katalog mit Live-Status und persönliche Links."
+        },
+        "household": {
+          "name": "Haushalt",
+          "description": "Haushalte, Mitglieder, Rollen und Einladungen. Alle anderen Apps fragen hier, wer wohin gehört."
+        },
+        "pantry": {
+          "name": "Vorräte",
+          "description": "Bestandsführung, Ablaufwarnungen und Barcode-Suche für alles in deinen Schränken."
+        },
+        "shopping": {
+          "name": "Einkauf",
+          "description": "Gemeinsame Haushaltslisten und private Listen, mit Artikeln aus dem Vorratsbestand."
+        },
+        "budget": {
+          "name": "Budget",
+          "description": "Konten, Spartöpfe, Monatspläne und ein Buchungsjournal mit Belegen."
+        },
+        "chores": {
+          "name": "Aufgaben",
+          "description": "Wiederkehrende Aufgaben, Zuweisungen, Serien und Punkte für den ganzen Haushalt."
+        },
+        "library": {
+          "name": "Bibliothek",
+          "description": "Ein Katalog für Bücher, Spiele und Medien, mit Ausleihen und Metadatensuche."
+        },
+        "workout": {
+          "name": "Training",
+          "description": "Übungskatalog, Trainingsplaner, Einheiten-Protokoll und Fortschrittsanalyse."
+        },
+        "maintenance": {
+          "name": "Wartung",
+          "description": "Haustechnik, wiederkehrende Wartungspläne, Checklisten und Reparaturhistorie."
+        },
+        "chat": {
+          "name": "Chat mit ALFI",
+          "description": "ALFI, der Haushaltsassistent: beliebiger LLM-Anbieter, mit Werkzeugen, die in deinen anderen Apps handeln."
+        },
+        "telemetry": {
+          "name": "Telemetrie",
+          "description": "Metriken, Logs und Grafana-Dashboards für den Server selbst. Standardmäßig aus."
+        }
       }
+    },
+    "integrations": {
+      "badge": "Integrationen",
+      "title": "Verbinde die Dienste, die du schon betreibst",
+      "subtitle": "Alfheim trennt zwei Arten von Integration: Links, die eine andere App nur öffnen, und Plugins, die mit ihr sprechen.",
+      "planned": "Geplant für v0.6.0",
+      "launchers": {
+        "title": "App-Launcher",
+        "description": "Vom Haushalt verwaltete Kacheln, die Home Assistant, Jellyfin, YouTube oder jede andere Adresse in einem neuen Tab öffnen. Es sind nur Links: Alfheim ruft das Ziel nie auf und speichert kein Geheimnis dafür.",
+        "today": "Schon heute kann der Betreiber solche Links für alle in deploy/stack-apps.yaml eintragen."
+      },
+      "plugins": {
+        "title": "Typisierte Plugins",
+        "description": "Integrationen im Dashboard-Backend mit eigenen Einstellungen, verschlüsselten Haushalts-Zugangsdaten, Health-Check und Ein/Aus-Schalter. Sie erreichen nur Hosts, die der Betreiber freigibt.",
+        "items": {
+          "homeAssistant": {
+            "name": "Home Assistant",
+            "description": "Dein Smart Home lesen und steuern, im Dashboard und über ALFI."
+          },
+          "media": {
+            "name": "Jellyfin und Navidrome",
+            "description": "Verbinde deine Medienserver für Filme, Serien und Musik."
+          },
+          "llm": {
+            "name": "ALFI-LLM-Anbieter",
+            "description": "Wähle, welches Sprachmodell ALFI für den Haushalt nutzt."
+          }
+        }
+      },
+      "adrLink": "Warum zwei Ebenen: ADR 0010"
+    },
+    "roadmap": {
+      "badge": "Roadmap",
+      "title": "Was als Nächstes kommt",
+      "subtitle": "Jede Version ist als GitHub-Meilenstein mit ihren Issues geplant.",
+      "releases": {
+        "v060": {
+          "title": "Integrationen und Stabilität",
+          "theme": "Härtung von CI und Installer, diese Website, App-Launcher für Haushalte, typisierte Plugins für Home Assistant, Jellyfin, Navidrome und ALFIs LLM-Anbieter sowie API-Verträge für native Clients (OpenAPI, PKCE)."
+        },
+        "v070": {
+          "title": "Nativer Apple-Client",
+          "theme": "Eine SwiftUI-App für iPad und iPhone, beschränkt auf das, was der Browser nicht kann: MusicKit und AirPlay, Widgets, Siri und ein Offline-Cache."
+        }
+      },
+      "milestoneLink": "Meilenstein {version} auf GitHub"
     },
     "footer": {
-      "copyright": "© 2026 Alfheim Sovereign OS. Alle Rechte vorbehalten.",
-      "license": "Lizenziert unter MIT",
-      "builtWith": "Erstellt mit React 19, Vite und Tailwind CSS v4.",
-      "zero_trust_badge": "Zero-Trust Architektur"
+      "tagline": "Ein Local-first-Haushalts-OS.",
+      "changelog": "Changelog",
+      "license": "MIT-Lizenz"
     }
   }
 }

@@ -1,52 +1,42 @@
 @import "tailwindcss";
 
-:root {
-  --surface-canvas: #0b1326;
-  --surface-card: #111b33;
-  --surface-elevated: #182542;
-  --primary-main: #3eb1ff;
-  --primary-hover: #60beff;
-  --border-subtle: #1c2847;
-  --border-accent: rgba(62, 177, 255, 0.3);
-  --text-main: #f0f6fc;
-  --text-muted: #8b949e;
-  --accent-glow: rgba(62, 177, 255, 0.15);
+/*
+ * Theme tokens of the landing page. Components use the generated utilities
+ * (bg-canvas, text-fg, border-line, text-primary, ...) and never a literal colour,
+ * so the palette changes in this one place.
+ */
+@theme {
+  --color-canvas: #0b1326;
+  --color-card: #111b33;
+  --color-elevated: #182542;
+  --color-line: #1c2847;
+  --color-primary: #3eb1ff;
+  --color-primary-hover: #60beff;
+  --color-fg: #f0f6fc;
+  --color-muted: #9aa4af;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
 }
 
 body {
-  background-color: var(--surface-canvas);
-  color: var(--text-main);
+  background-color: var(--color-canvas);
+  color: var(--color-fg);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   overflow-x: hidden;
 }
 
+::selection {
+  background-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  color: var(--color-fg);
+}
+
 .glass-card {
-  background: rgba(17, 27, 51, 0.7);
+  background: color-mix(in srgb, var(--color-card) 70%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(62, 177, 255, 0.12);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 
 .glass-card:hover {
-  border-color: rgba(62, 177, 255, 0.28);
-  box-shadow: 0 12px 40px 0 rgba(62, 177, 255, 0.1);
-}
-
-.specular-border {
-  position: relative;
-}
-
-.specular-border::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 10%;
-  right: 10%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(62, 177, 255, 0.6), transparent);
-}
-
-.glow-pill {
-  box-shadow: 0 0 15px rgba(62, 177, 255, 0.25);
+  border-color: color-mix(in srgb, var(--color-primary) 28%, transparent);
 }
