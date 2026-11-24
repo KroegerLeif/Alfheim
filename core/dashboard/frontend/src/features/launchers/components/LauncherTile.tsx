@@ -2,9 +2,9 @@
 
 import { ExternalLink, Pencil, Trash2 } from 'lucide-react';
 import { useTranslation } from '@alfheim/shared';
-import { launcherIcon } from '../icons';
 import { safeHref } from '../safeHref';
 import type { Launcher } from '../types';
+import { LauncherIcon } from './LauncherIcon';
 
 interface LauncherTileProps {
   launcher: Launcher;
@@ -17,7 +17,6 @@ interface LauncherTileProps {
 /** One household launcher: opens the target in a new tab, never in a frame. */
 export function LauncherTile({ launcher, canManage, onEdit, onDelete, isDeleting = false }: LauncherTileProps) {
   const { t } = useTranslation();
-  const Icon = launcherIcon(launcher.icon);
   const href = safeHref(launcher.url);
 
   return (
@@ -25,7 +24,7 @@ export function LauncherTile({ launcher, canManage, onEdit, onDelete, isDeleting
       <div className="min-w-0">
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="w-10 h-10 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-main)]">
-            <Icon className="h-5 w-5" aria-hidden="true" />
+            <LauncherIcon name={launcher.icon} className="h-5 w-5" />
           </div>
           {canManage && (
             <div className="flex items-center gap-1">

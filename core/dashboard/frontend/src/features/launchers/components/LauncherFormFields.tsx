@@ -1,7 +1,8 @@
 'use client';
 
 import { useTranslation } from '@alfheim/shared';
-import { LAUNCHER_ICON_NAMES, launcherIcon } from '../icons';
+import { LAUNCHER_ICON_NAMES } from '../icons';
+import { LauncherIcon } from './LauncherIcon';
 import { LAUNCHER_PRESETS } from '../presets';
 
 export interface LauncherFormValues {
@@ -26,7 +27,6 @@ const labelClass = 'block text-xs font-mono uppercase text-[var(--text-muted)] m
 /** Inputs of the launcher admin form; the parent owns the state. */
 export function LauncherFormFields({ values, onChange, onPreset, showPreset }: LauncherFormFieldsProps) {
   const { t } = useTranslation();
-  const PreviewIcon = launcherIcon(values.icon);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -74,7 +74,7 @@ export function LauncherFormFields({ values, onChange, onPreset, showPreset }: L
         <label htmlFor="launcher-icon" className={labelClass}>{t('dashboard.launchers.field_icon')}</label>
         <div className="flex items-center gap-2">
           <span className="w-9 h-9 shrink-0 rounded-lg bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-main)]">
-            <PreviewIcon className="h-4 w-4" aria-hidden="true" />
+            <LauncherIcon name={values.icon} className="h-4 w-4" />
           </span>
           <select id="launcher-icon" value={values.icon} onChange={(e) => onChange({ icon: e.target.value })} className={inputClass}>
             {LAUNCHER_ICON_NAMES.map((name) => (
