@@ -69,7 +69,7 @@ func TestBuildRouter_LaunchersRequireHouseholdMembership(t *testing.T) {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
-	router := buildRouter(log, &db.Client{}, nil, withUser, noMembership{}, "", []string{}, apps.AllApps())
+	router := buildRouter(log, &db.Client{}, nil, withUser, noMembership{}, testPluginService(t), "", []string{}, apps.AllApps())
 
 	for _, tc := range []struct {
 		header string
@@ -78,14 +78,16 @@ func TestBuildRouter_LaunchersRequireHouseholdMembership(t *testing.T) {
 		{header: "", want: http.StatusBadRequest},
 		{header: uuid.NewString(), want: http.StatusForbidden},
 	} {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/launchers", nil)
-		if tc.header != "" {
-			req.Header.Set(household.HouseholdHeader, tc.header)
-		}
-		rec := httptest.NewRecorder()
-		router.ServeHTTP(rec, req)
-		if rec.Code != tc.want {
-			t.Errorf("X-Household-ID %q: status %d, want %d", tc.header, rec.Code, tc.want)
+		for _, path := range []string{"/api/v1/launchers", "/api/v1/integrations/plugins"} {
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			if tc.header != "" {
+				req.Header.Set(household.HouseholdHeader, tc.header)
+			}
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+			if rec.Code != tc.want {
+				t.Errorf("%s with X-Household-ID %q: status %d, want %d", path, tc.header, rec.Code, tc.want)
+			}
 		}
 	}
 }
@@ -97,14 +99,14 @@ func TestBuildRouter_PanicsWithoutAuth(t *testing.T) {
 			t.Fatal("expected buildRouter to panic when auth middleware is nil")
 		}
 	}()
-	buildRouter(log, &db.Client{Pool: nil}, nil, nil, noMembership{}, "", []string{}, apps.AllApps())
+	buildRouter(log, &db.Client{Pool: nil}, nil, nil, noMembership{}, testPluginService(t), "", []string{}, apps.AllApps())
 }
 
 func TestBuildRouter(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dbClient := &db.Client{Pool: nil}
 
-	router := buildRouter(log, dbClient, nil, passthroughAuth, noMembership{}, "", []string{}, apps.AllApps())
+	router := buildRouter(log, dbClient, nil, passthroughAuth, noMembership{}, testPluginService(t), "", []string{}, apps.AllApps())
 
 	t.Run("a router without a readiness check is never ready", func(t *testing.T) {
 		if got := probeStatus(t, router, "/readyz"); got != http.StatusServiceUnavailable {
@@ -273,7 +275,7 @@ func TestBuildRouter_Probes(t *testing.T) {
 	up := func(context.Context) error { return nil }
 	down := func(context.Context) error { return errors.New("connection refused") }
 
-	healthy := buildRouter(log, &db.Client{}, up, passthroughAuth, noMembership{}, "", []string{}, apps.AllApps())
+	healthy := buildRouter(log, &db.Client{}, up, passthroughAuth, noMembership{}, testPluginService(t), "", []string{}, apps.AllApps())
 	if got := probeStatus(t, healthy, "/healthz"); got != http.StatusOK {
 		t.Errorf("/healthz = %d, want 200", got)
 	}
@@ -281,7 +283,7 @@ func TestBuildRouter_Probes(t *testing.T) {
 		t.Errorf("/readyz with a reachable database = %d, want 200", got)
 	}
 
-	degraded := buildRouter(log, &db.Client{}, down, passthroughAuth, noMembership{}, "", []string{}, apps.AllApps())
+	degraded := buildRouter(log, &db.Client{}, down, passthroughAuth, noMembership{}, testPluginService(t), "", []string{}, apps.AllApps())
 	if got := probeStatus(t, degraded, "/healthz"); got != http.StatusOK {
 		t.Errorf("/healthz with the database down = %d, want 200 (liveness ignores it)", got)
 	}

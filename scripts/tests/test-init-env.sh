@@ -46,7 +46,7 @@ check_no_example_secrets() {
     key="${BASH_REMATCH[1]}"
     example="${BASH_REMATCH[2]}"
     [[ "$key" =~ $SECRET_KEY_RE ]] || continue
-    [[ "$key" == "CHAT_ENCRYPTION_KEY_ID" ]] && continue
+    [[ "$key" == "CHAT_ENCRYPTION_KEY_ID" || "$key" == "INTEGRATIONS_ENCRYPTION_KEY_ID" ]] && continue
     case "$example" in
       ""|'${'*|__PROVISIONED__) continue ;;
     esac

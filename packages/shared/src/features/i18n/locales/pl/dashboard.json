@@ -173,6 +173,38 @@
         "video": "Wideo",
         "wifi": "Wi-Fi"
       }
+    },
+    "integrations": {
+      "title": "Integracje",
+      "subtitle": "Połączenia z usługami Twojego gospodarstwa, np. Home Assistant lub serwerem multimediów. Zarządzają nimi właściciele i administratorzy; dane logowania są przechowywane w postaci zaszyfrowanej i nigdy nie są ponownie wyświetlane.",
+      "load_error": "Nie udało się wczytać integracji.",
+      "empty": "W tej wersji nie ma jeszcze dostępnych integracji.",
+      "no_household": "Wybierz gospodarstwo, aby zobaczyć jego integracje.",
+      "encryption_unavailable": "Na serwerze brakuje INTEGRATIONS_ENCRYPTION_KEY, więc nie można zapisać danych logowania. Poproś operatora o jego ustawienie.",
+      "enabled": "Włączona",
+      "disabled": "Wyłączona",
+      "enable": "Włącz {name}",
+      "credentials_stored": "Dane logowania zapisane",
+      "credentials_missing": "Brak zapisanych danych logowania",
+      "test": "Testuj połączenie",
+      "testing": "Testowanie…",
+      "status_label": "Stan połączenia: {status}",
+      "error_invalid": "Sprawdź ustawienia: niektóre wartości są nieprawidłowe dla tej integracji.",
+      "error_forbidden": "Tylko właściciele i administratorzy gospodarstwa mogą zarządzać integracjami.",
+      "error_encryption": "Nie można zapisać danych logowania, ponieważ na serwerze brakuje klucza szyfrowania.",
+      "error_failed": "Nie udało się zaktualizować integracji. Spróbuj ponownie.",
+      "status": {
+        "unknown": "Nie testowano",
+        "ok": "Połączono",
+        "host_not_allowed": "Host niedozwolony",
+        "unreachable": "Nieosiągalny",
+        "timeout": "Przekroczono czas",
+        "auth_failed": "Logowanie nieudane",
+        "invalid_response": "Nieoczekiwana odpowiedź",
+        "invalid_config": "Nieprawidłowe ustawienia",
+        "credentials_unavailable": "Dane logowania nieczytelne",
+        "error": "Błąd"
+      }
     }
   }
 }

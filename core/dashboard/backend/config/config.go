@@ -8,8 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"alfheim/go-shared/crypto"
 	"alfheim/go-shared/db"
 	"alfheim/go-shared/httpmw"
+	"alfheim/go-shared/netguard"
 )
 
 // Config encapsulates all backend service configurations.
@@ -25,6 +27,25 @@ type Config struct {
 	// installer default for installations from before the Lean Core).
 	EnabledApps string
 	Household   HouseholdConfig
+	// Integrations configures the typed plugin framework (ADR 0010).
+	Integrations IntegrationsConfig
+}
+
+// IntegrationsConfig holds the settings of the typed plugins: the key that
+// encrypts their credentials and the operator's outbound allowlist.
+type IntegrationsConfig struct {
+	// EncryptionKey is the raw 32-byte AES-256 key decoded from
+	// INTEGRATIONS_ENCRYPTION_KEY (base64). Empty means credentials can be
+	// neither stored nor read; the dashboard still starts (fail closed for
+	// secrets only). A set but malformed key fails startup.
+	EncryptionKey []byte
+	// EncryptionKeyID is INTEGRATIONS_ENCRYPTION_KEY_ID (default "v1"), stored
+	// with each row so keys can be rotated.
+	EncryptionKeyID string
+	// AllowedHosts is INTEGRATIONS_ALLOWED_HOSTS, the comma-separated netguard
+	// allowlist of private hosts, IP addresses and CIDR ranges plugins may
+	// reach. Empty allows public destinations only.
+	AllowedHosts string
 }
 
 // HouseholdConfig locates core/household's internal membership API, which
@@ -121,7 +142,33 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("ALFHEIM_INTERNAL_TOKEN is required to verify household membership")
 	}
 
+	integrations, err := loadIntegrations()
+	if err != nil {
+		return nil, err
+	}
+	cfg.Integrations = integrations
+
 	return cfg, nil
+}
+
+// loadIntegrations reads the INTEGRATIONS_* variables. A malformed key or
+// allowlist fails startup instead of silently weakening the boundary.
+func loadIntegrations() (IntegrationsConfig, error) {
+	out := IntegrationsConfig{
+		EncryptionKeyID: strings.TrimSpace(getEnv("INTEGRATIONS_ENCRYPTION_KEY_ID", "v1")),
+		AllowedHosts:    strings.TrimSpace(os.Getenv("INTEGRATIONS_ALLOWED_HOSTS")),
+	}
+	if raw := strings.TrimSpace(os.Getenv("INTEGRATIONS_ENCRYPTION_KEY")); raw != "" {
+		key, err := crypto.DecodeKey(raw)
+		if err != nil {
+			return IntegrationsConfig{}, fmt.Errorf("INTEGRATIONS_ENCRYPTION_KEY: %w", err)
+		}
+		out.EncryptionKey = key
+	}
+	if _, err := netguard.New(out.AllowedHosts); err != nil {
+		return IntegrationsConfig{}, fmt.Errorf("INTEGRATIONS_ALLOWED_HOSTS: %w", err)
+	}
+	return out, nil
 }
 
 func getEnv(key, fallback string) string {

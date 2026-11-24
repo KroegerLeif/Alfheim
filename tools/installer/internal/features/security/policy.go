@@ -64,6 +64,8 @@ var Manifest = []Secret{
 
 	// Application level encryption.
 	{Key: "CHAT_ENCRYPTION_KEY", Kind: KindBase64, Size: 32},
+	// Dashboard plugin credentials (ADR 0010), AES-256 like chat's key.
+	{Key: "INTEGRATIONS_ENCRYPTION_KEY", Kind: KindBase64, Size: 32},
 
 	// HMAC key signing the short-lived tokens in chat attachment download
 	// URLs. 32 random bytes, hex encoded (64 characters).

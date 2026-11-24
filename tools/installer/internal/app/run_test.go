@@ -675,13 +675,15 @@ func dryRunTargetFromStdout(t *testing.T, out string) string {
 
 func TestCarryForwardOperatorTuned(t *testing.T) {
 	got := carryForwardOperatorTuned(map[string]string{
-		"ALFHEIM_RATE_LIMIT_LOOKUP": "120",
-		"ALFHEIM_RATE_LIMIT_API":    "",
-		"ALFHEIM_HOST":              "alfheim.example.com",
-		"ALFHEIM_SIGNUP_ALLOWLIST":  "@family.example",
+		"ALFHEIM_RATE_LIMIT_LOOKUP":  "120",
+		"ALFHEIM_RATE_LIMIT_API":     "",
+		"ALFHEIM_HOST":               "alfheim.example.com",
+		"ALFHEIM_SIGNUP_ALLOWLIST":   "@family.example",
+		"INTEGRATIONS_ALLOWED_HOSTS": "192.168.1.0/24",
 	})
-	if len(got) != 2 || got["ALFHEIM_RATE_LIMIT_LOOKUP"] != "120" || got["ALFHEIM_SIGNUP_ALLOWLIST"] != "@family.example" {
-		t.Fatalf("carryForwardOperatorTuned() = %v, want the rate limit and the sign-up allowlist", got)
+	if len(got) != 3 || got["ALFHEIM_RATE_LIMIT_LOOKUP"] != "120" || got["ALFHEIM_SIGNUP_ALLOWLIST"] != "@family.example" ||
+		got["INTEGRATIONS_ALLOWED_HOSTS"] != "192.168.1.0/24" {
+		t.Fatalf("carryForwardOperatorTuned() = %v, want the rate limit, the sign-up allowlist and the plugin allowlist", got)
 	}
 }
 
