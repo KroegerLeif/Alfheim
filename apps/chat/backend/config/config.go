@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"alfheim/chat/internal/shared/crypto"
+	"alfheim/go-shared/crypto"
 
 	"alfheim/go-shared/db"
 	"alfheim/go-shared/httpmw"
@@ -17,23 +17,30 @@ import (
 
 // Config encapsulates all chat-backend service configurations.
 type Config struct {
-	Environment    string
-	Port           string
-	Database       DatabaseConfig
-	OIDC           OIDCConfig
-	CORS           CORSConfig
-	Encryption     EncryptionConfig
-	Bootstrap      BootstrapConfig
-	Storage        StorageConfig
-	Attachments    AttachmentsConfig
-	Household      HouseholdConfig
-	MCPServersSpec string
+	Environment string
+	Port        string
+	Database    DatabaseConfig
+	OIDC        OIDCConfig
+	CORS        CORSConfig
+	Encryption  EncryptionConfig
+	Bootstrap   BootstrapConfig
+	Storage     StorageConfig
+	Attachments AttachmentsConfig
+	Household   HouseholdConfig
+	// AllowedLLMHosts is CHAT_ALLOWED_LLM_HOSTS, the netguard allowlist for model
+	// block base URLs (DefaultAllowedLLMHosts when the variable is unset).
+	AllowedLLMHosts string
+	MCPServersSpec  string
 	// MCPServersSpecSet reports whether CHAT_MCP_SERVERS is present at all.
 	// The installer renders it from the enabled apps, so an empty value means
 	// "no tool apps installed", while a missing variable keeps the registry
 	// as it is.
 	MCPServersSpecSet bool
 }
+
+// DefaultAllowedLLMHosts is used when CHAT_ALLOWED_LLM_HOSTS is unset, so the
+// documented local Ollama setup (Ollama on the Docker host) keeps working out of the box.
+const DefaultAllowedLLMHosts = "host.docker.internal"
 
 // HouseholdConfig locates core/household's internal membership API.
 type HouseholdConfig struct {
@@ -175,6 +182,12 @@ func Load() (*Config, error) {
 		MCPServersSpec: getEnv("CHAT_MCP_SERVERS", ""),
 	}
 	_, cfg.MCPServersSpecSet = os.LookupEnv("CHAT_MCP_SERVERS")
+	// Unset keeps the default; an explicitly empty value allows no private host.
+	if hosts, ok := os.LookupEnv("CHAT_ALLOWED_LLM_HOSTS"); ok {
+		cfg.AllowedLLMHosts = hosts
+	} else {
+		cfg.AllowedLLMHosts = DefaultAllowedLLMHosts
+	}
 
 	if strings.TrimSpace(cfg.Household.InternalToken) == "" {
 		return nil, fmt.Errorf("ALFHEIM_INTERNAL_TOKEN is required to verify household membership")

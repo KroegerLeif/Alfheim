@@ -12,9 +12,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"alfheim/chat/internal/shared/crypto"
 	"alfheim/chat/internal/shared/llm"
-	"alfheim/chat/internal/shared/netguard"
+	"alfheim/go-shared/crypto"
+	"alfheim/go-shared/netguard"
 )
 
 // maxDiscoverResponseBytes bounds the model list read from a discovery endpoint.
@@ -74,16 +74,12 @@ type service struct {
 	httpClient *http.Client
 }
 
-// NewService creates a model block service instance. encryptionKey may be nil/empty
-// if CHAT_ENCRYPTION_KEY is not configured; attempting to store an API key in that
-// case fails with ErrEncryptionKeyMissing rather than silently storing plaintext.
+// NewServiceWithGuard creates a model block service instance. encryptionKey may be
+// nil/empty if CHAT_ENCRYPTION_KEY is not configured; attempting to store an API key in
+// that case fails with ErrEncryptionKeyMissing rather than silently storing plaintext.
 //
-// Outbound provider URLs are restricted by the guard built from CHAT_ALLOWED_LLM_HOSTS.
-func NewService(repo Repository, encryptionKey []byte, encryptionKeyID string, log *slog.Logger) Service {
-	return NewServiceWithGuard(repo, encryptionKey, encryptionKeyID, log, netguard.FromEnv())
-}
-
-// NewServiceWithGuard is NewService with an explicit outbound destination guard.
+// Outbound provider URLs are restricted by guard, which main builds from
+// CHAT_ALLOWED_LLM_HOSTS.
 func NewServiceWithGuard(repo Repository, encryptionKey []byte, encryptionKeyID string, log *slog.Logger, guard *netguard.Guard) Service {
 	return &service{
 		repo:            repo,

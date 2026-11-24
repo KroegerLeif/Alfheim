@@ -2,9 +2,40 @@ package config
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
+
+// TestMain supplies the required ALFHEIM_INTERNAL_TOKEN so the Load tests get
+// past the startup check; TestLoad_Household covers the check itself.
+func TestMain(m *testing.M) {
+	if os.Getenv("ALFHEIM_INTERNAL_TOKEN") == "" {
+		_ = os.Setenv("ALFHEIM_INTERNAL_TOKEN", "test-internal-token")
+	}
+	os.Exit(m.Run())
+}
+
+func TestLoad_Household(t *testing.T) {
+	t.Setenv("HOUSEHOLD_INTERNAL_URL", "http://household.internal:9000/")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Household.InternalURL != "http://household.internal:9000" || cfg.Household.InternalToken == "" {
+		t.Errorf("unexpected household config %+v", cfg.Household)
+	}
+
+	t.Setenv("HOUSEHOLD_INTERNAL_URL", "")
+	if cfg, err = Load(); err != nil || cfg.Household.InternalURL != "http://household-backend:8080" {
+		t.Errorf("default household URL: cfg=%+v err=%v", cfg, err)
+	}
+
+	t.Setenv("ALFHEIM_INTERNAL_TOKEN", "  ")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "ALFHEIM_INTERNAL_TOKEN") {
+		t.Errorf("a blank ALFHEIM_INTERNAL_TOKEN must fail startup, got %v", err)
+	}
+}
 
 func TestLoad_Defaults(t *testing.T) {
 	// Clear potential environment overrides for clean testing of defaults

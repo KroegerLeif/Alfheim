@@ -83,7 +83,7 @@ Authorization: Bearer <ALFHEIM_INTERNAL_TOKEN>
 
 Returns `{"household_id": "<uuid>", "members": [{"user_id": "<sub>", "app_user_id": "<uuid>", "role": "…"}]}`, so an app can check whether another user it only knows by the derived id is a member. `app_user_id` matches `backend_shared.household.derive_user_id` (the subject if it is a UUID, otherwise `uuid5(NAMESPACE_DNS, sub)`). Status codes as above; `404` means the household does not exist.
 
-Python backends call the membership lookup through `backend_shared.household.require_household`, and the chat backend through `internal/shared/householdclient`. No shared helper wraps the member listing yet. The full route and role tables live in [`core/household/backend/README.md`](../../../../core/household/backend/README.md).
+Python backends call the membership lookup through `backend_shared.household.require_household`, and the Go backends (chat, dashboard) through `alfheim/go-shared/household`. No shared helper wraps the member listing yet. The full route and role tables live in [`core/household/backend/README.md`](../../../../core/household/backend/README.md).
 
 ---
 

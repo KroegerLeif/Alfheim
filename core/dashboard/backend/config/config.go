@@ -24,6 +24,17 @@ type Config struct {
 	// the installation runs, or "all" when the variable is unset (the
 	// installer default for installations from before the Lean Core).
 	EnabledApps string
+	Household   HouseholdConfig
+}
+
+// HouseholdConfig locates core/household's internal membership API, which
+// confirms the household of household-scoped routes such as launchers.
+type HouseholdConfig struct {
+	// InternalURL is HOUSEHOLD_INTERNAL_URL (default http://household-backend:8080).
+	InternalURL string
+	// InternalToken is ALFHEIM_INTERNAL_TOKEN, the shared service-to-service secret.
+	// Required: without it every household-scoped request would fail with 503.
+	InternalToken string
 }
 
 // DatabaseConfig holds PostgreSQL connection configuration settings. It is the
@@ -100,6 +111,14 @@ func Load() (*Config, error) {
 		CORS: CORSConfig{
 			AllowedOrigins: corsOrigins,
 		},
+		Household: HouseholdConfig{
+			InternalURL:   strings.TrimRight(getEnv("HOUSEHOLD_INTERNAL_URL", "http://household-backend:8080"), "/"),
+			InternalToken: getEnv("ALFHEIM_INTERNAL_TOKEN", ""),
+		},
+	}
+
+	if strings.TrimSpace(cfg.Household.InternalToken) == "" {
+		return nil, fmt.Errorf("ALFHEIM_INTERNAL_TOKEN is required to verify household membership")
 	}
 
 	return cfg, nil

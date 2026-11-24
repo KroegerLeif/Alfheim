@@ -13,8 +13,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"alfheim/chat/internal/shared/middleware"
 	"alfheim/go-shared/auth"
+	"alfheim/go-shared/household"
 )
 
 // Handler manages image attachment upload and metadata HTTP endpoints.
@@ -71,7 +71,7 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	var householdID *string
-	if hc, err := middleware.GetHousehold(r.Context()); err == nil {
+	if hc, err := household.GetHousehold(r.Context()); err == nil {
 		hh := hc.HouseholdID.String()
 		householdID = &hh
 	}
@@ -112,7 +112,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hc, err := middleware.GetHousehold(r.Context())
+	hc, err := household.GetHousehold(r.Context())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "missing household context")
 		return
@@ -156,7 +156,7 @@ func (h *Handler) contentWithBearer(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
 		return
 	}
-	hc, err := middleware.GetHousehold(r.Context())
+	hc, err := household.GetHousehold(r.Context())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "missing household context")
 		return

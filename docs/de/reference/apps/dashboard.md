@@ -5,7 +5,7 @@ description: "Zentrales Kontrollzentrum, Landing-Page-Launcher, Anwendungsregist
 
 > **Kurzfassung:** Zentrales Kontrollzentrum, Landing-Page-Launcher, Anwendungsregister und Telemetrie-Interface für die Alfheim-Plattform.
 
-> **Hinweis:** Haushalte, Mitglieder und Rollen, Einladungen, Kontakte und das Benutzerprofil sind in die Tier-1-App `core/household` umgezogen (erreichbar unter `/household`). Das Dashboard stellt `/api/v1/households*` und `/api/v1/profile*` nicht mehr bereit und ignoriert die Header `X-Household-ID` / `X-Household-Role`.
+> **Hinweis:** Haushalte, Mitglieder und Rollen, Einladungen, Kontakte und das Benutzerprofil sind in die Tier-1-App `core/household` umgezogen (erreichbar unter `/household`). Das Dashboard stellt `/api/v1/households*` und `/api/v1/profile*` nicht mehr bereit. Nur die Haushalts-Launcher lesen `X-Household-ID` und bestätigen ihn über die Mitgliedschafts-API von `core/household`; `X-Household-Role` wird immer ignoriert.
 
 Quelle: [`core/dashboard/`](https://github.com/KroegerLeif/Alfheim/tree/main/core/dashboard)
 
@@ -29,6 +29,8 @@ Die Plattform organisiert Anwendungen, Portale und Lesezeichen in drei unterschi
 1. **Tier 1 (Kern-Apps):** Native Monorepo-Microservices, registriert in Go (`internal/features/apps/tier1_core_registry.go`). Sichtbar für alle authentifizierten Benutzer; Sichtbarkeit kann pro Benutzer in `user_preferences` umgeschaltet werden.
 2. **Tier 2 (Stack-Apps / Integrationen):** Externe Homelab-Stack-Anwendungen, konfiguriert via Server-level [`deploy/stack-apps.yaml`](../../../../deploy/stack-apps.yaml) und dynamisch nach OIDC-Rollen gefiltert.
 3. **Tier 3 (Benutzer-Links):** Persönliche benutzerdefinierte Lesezeichen, gespeichert in PostgreSQL `user_links` (`GET/POST/PUT/DELETE /api/v1/user/links`).
+
+**Haushalts-Launcher:** Links zu den Web-Apps eines Haushalts (Home Assistant, Jellyfin, beliebige URL), die `OWNER` und `ADMIN` im Dashboard pflegen und alle Mitglieder sehen (`household_launchers`, `GET/POST/PUT/DELETE /api/v1/launchers`). Ein Launcher ist nur ein Link: Das Backend ruft das Ziel nie auf und speichert keine Zugangsdaten; die Kachel öffnet sich in einem neuen Tab. Das Raster zeigt Tier-1-Apps, Haushalts-Launcher, Stack-Apps und persönliche Links in dieser Reihenfolge. Details zu Endpunkten und Validierung stehen in der englischen Referenz.
 
 ---
 

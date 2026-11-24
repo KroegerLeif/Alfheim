@@ -1,4 +1,4 @@
-package householdclient
+package household
 
 import (
 	"context"

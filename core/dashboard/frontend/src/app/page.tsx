@@ -11,15 +11,17 @@ import {
   StackAppsSection,
   UserAppsSection,
 } from '@/features/apps';
+import { LaunchersSection } from '@/features/launchers';
 import { OperatorTelemetry } from '@/features/dashboard/components/OperatorTelemetry';
 import { AppItem } from '@/shared/types';
 
 /**
  * Root Dashboard View.
- * Renders live telemetry stats, interactive terminal log shell, and 3-tier application management:
+ * Renders live telemetry stats, interactive terminal log shell, and the app grid in this order:
  * 1. Tier 1 (Core Apps): Pre-built platform modules.
- * 2. Tier 2 (Stack Apps): Server-level YAML defined integrations.
- * 3. Tier 3 (User Links): User-bound custom bookmarks with full CRUD capabilities.
+ * 2. Household launchers: links the household's owners and admins manage for every member.
+ * 3. Tier 2 (Stack Apps): Server-level YAML defined integrations.
+ * 4. Tier 3 (User Links): User-bound custom bookmarks with full CRUD capabilities.
  */
 export default function DashboardPage() {
   const { t } = useTranslation();
@@ -83,6 +85,9 @@ export default function DashboardPage() {
         refetch={refetch}
         health={health?.apps}
       />
+
+      {/* HOUSEHOLD LAUNCHERS */}
+      <LaunchersSection />
 
       {/* TIER 2: STACK INTEGRATIONS */}
       <StackAppsSection
