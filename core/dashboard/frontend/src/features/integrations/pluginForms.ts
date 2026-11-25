@@ -1,3 +1,4 @@
+import { HomeAssistantForm, HOME_ASSISTANT_TYPE } from './homeassistant';
 import type { PluginUiRegistry } from './types';
 
 /**
@@ -5,4 +6,6 @@ import type { PluginUiRegistry } from './types';
  * its entry here (name key and form component); the settings page passes the map to
  * `IntegrationsSection`. A type the backend lists without an entry still gets the generic card.
  */
-export const PLUGIN_FORMS: PluginUiRegistry = {};
+export const PLUGIN_FORMS: PluginUiRegistry = {
+  [HOME_ASSISTANT_TYPE]: { titleKey: 'dashboard.integrations.homeassistant.title', Form: HomeAssistantForm },
+};
