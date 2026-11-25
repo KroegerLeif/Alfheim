@@ -247,7 +247,7 @@
         },
         "base_url": "Base URL",
         "ollama_url": "http://<host>:11434",
-        "openai_url": "https://api.example.eu/v1",
+        "openai_url": "https://api.example.eu",
         "model": "Model",
         "ollama_model": "llama3.1:8b",
         "openai_model": "mistral-small-latest",
