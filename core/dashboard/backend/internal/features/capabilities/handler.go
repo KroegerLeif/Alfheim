@@ -17,14 +17,21 @@ type Response struct {
 	// alfheim_operator, which unlocks installation-wide resources such as
 	// system logs and metrics.
 	Operator bool `json:"operator"`
+	// Chat is true when the installation runs the optional chat app
+	// (ALFHEIM_ENABLED_APPS), so the ALFI card can offer its settings. It says
+	// nothing about whether a model is configured; chat's own API answers that.
+	Chat bool `json:"chat"`
 }
 
 // Handler serves the capabilities endpoint.
-type Handler struct{}
+type Handler struct {
+	chatEnabled bool
+}
 
-// NewHandler creates a capabilities handler.
-func NewHandler() *Handler {
-	return &Handler{}
+// NewHandler creates a capabilities handler. chatEnabled reports whether the
+// installation runs the chat app; it is fixed for the process lifetime.
+func NewHandler(chatEnabled bool) *Handler {
+	return &Handler{chatEnabled: chatEnabled}
 }
 
 // RegisterRoutes mounts the capabilities endpoint, guarded by authMiddleware.
@@ -36,9 +43,9 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 }
 
 // Get handles GET /api/v1/user/capabilities. The answer is derived from the
-// validated access token only; it is a UI hint, the guarded endpoints enforce
-// the role themselves.
+// validated access token and the installation's app set only; it is a UI
+// hint, the guarded endpoints enforce the role themselves.
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(Response{Operator: auth.IsOperator(r.Context())})
+	_ = json.NewEncoder(w).Encode(Response{Operator: auth.IsOperator(r.Context()), Chat: h.chatEnabled})
 }

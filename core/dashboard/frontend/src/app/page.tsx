@@ -12,6 +12,7 @@ import {
   UserAppsSection,
 } from '@/features/apps';
 import { LaunchersSection } from '@/features/launchers';
+import { NowPlayingWidget, useAlfiReady, withoutUnreadyAlfi } from '@/features/integrations';
 import { OperatorTelemetry } from '@/features/dashboard/components/OperatorTelemetry';
 import { AppItem } from '@/shared/types';
 
@@ -27,6 +28,8 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const { data: dashboard, isLoading, isError, refetch } = useDashboardApps();
   const { data: health } = useAppHealth();
+  // ALFI's tile stays hidden until chat has a healthy model block (#962).
+  const alfiReady = useAlfiReady();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingApp, setEditingApp] = useState<AppItem | null>(null);
@@ -81,10 +84,13 @@ export default function DashboardPage() {
       <CoreAppsSection
         isLoading={isLoading}
         isError={isError}
-        apps={dashboard?.core}
+        apps={withoutUnreadyAlfi(dashboard?.core, alfiReady)}
         refetch={refetch}
         health={health?.apps}
       />
+
+      {/* NOW PLAYING: the household's LAN media servers (status and control only) */}
+      <NowPlayingWidget />
 
       {/* HOUSEHOLD LAUNCHERS */}
       <LaunchersSection />
