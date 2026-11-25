@@ -2,7 +2,7 @@ package modelblocks
 
 import (
 	"encoding/json"
-	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -14,17 +14,23 @@ import (
 // Handler manages model block HTTP endpoints.
 type Handler struct {
 	service Service
+	log     *slog.Logger
 }
 
 // NewHandler creates a model block HTTP handler.
-func NewHandler(service Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service Service, log *slog.Logger) *Handler {
+	return &Handler{service: service, log: log}
 }
 
-// RegisterRoutes mounts model block endpoints on a chi Router, guarded by authMiddleware.
+// RegisterRoutes mounts model block endpoints on a chi Router, guarded by
+// authMiddleware, which also confirms the household (household.RequireHousehold).
+// Only OWNER and ADMIN may write the household default shared block.
 func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler) http.Handler) {
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware)
+		r.Get("/api/v1/chat/model-blocks/household-default", h.GetHouseholdDefault)
+		r.With(household.RequireHouseholdRole(h.log, household.RoleOwner, household.RoleAdmin)).
+			Put("/api/v1/chat/model-blocks/household-default", h.PutHouseholdDefault)
 		r.Get("/api/v1/chat/model-blocks", h.List)
 		r.Get("/api/v1/chat/model-blocks/{id}", h.Get)
 		r.Post("/api/v1/chat/model-blocks", h.Create)
@@ -154,76 +160,4 @@ func (h *Handler) TriggerHealthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, result)
-}
-
-// Discover lists the models a provider endpoint offers.
-func (h *Handler) Discover(w http.ResponseWriter, r *http.Request) {
-	claims, err := auth.GetUserClaims(r.Context())
-	if err != nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "missing authenticated user context")
-		return
-	}
-	_ = claims
-
-	var req DiscoverRequest
-	if r.Body != nil && r.ContentLength != 0 {
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "bad_request", "invalid json request payload")
-			return
-		}
-	}
-
-	result, err := h.service.DiscoverModels(r.Context(), req)
-	if err != nil {
-		switch {
-		case errors.Is(err, ErrInvalidBaseURL), errors.Is(err, ErrDiscoveryUnsupported):
-			writeError(w, http.StatusBadRequest, "bad_request", err.Error())
-		default:
-			// Details are logged by the service; upstream errors must not reach the client.
-			writeError(w, http.StatusBadGateway, "discovery_failed", ErrDiscoveryFailed.Error())
-		}
-		return
-	}
-
-	writeJSON(w, http.StatusOK, result)
-}
-
-// writeServiceError maps domain errors to their corresponding HTTP status codes.
-func writeServiceError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, ErrNotFound):
-		writeError(w, http.StatusNotFound, "not_found", "model block not found")
-	case errors.Is(err, ErrBootstrapReadOnly):
-		writeError(w, http.StatusForbidden, "bootstrap_read_only", err.Error())
-	case errors.Is(err, ErrForbidden):
-		writeError(w, http.StatusForbidden, "forbidden", err.Error())
-	case errors.Is(err, ErrMissingHouseholdID), errors.Is(err, ErrInvalidVisibility), errors.Is(err, ErrInvalidProviderType),
-		errors.Is(err, ErrInvalidBaseURL), errors.Is(err, ErrAPIKeyRequiredForBaseURLChange):
-		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
-	case errors.Is(err, ErrEncryptionKeyMissing):
-		writeError(w, http.StatusUnprocessableEntity, "encryption_unavailable", err.Error())
-	default:
-		writeError(w, http.StatusInternalServerError, "internal_server_error", "failed to process model block request")
-	}
-}
-
-func writeJSON(w http.ResponseWriter, status int, payload any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(payload)
-}
-
-func writeError(w http.ResponseWriter, status int, code, message string) {
-	writeJSON(w, status, map[string]string{"error": code, "message": message})
-}
-
-// householdOf returns the verified household id set by household.RequireHousehold,
-// or "" when the request carries no household scope (the service then refuses any
-// household-shared operation).
-func householdOf(r *http.Request) string {
-	hc, err := household.GetHousehold(r.Context())
-	if err != nil {
-		return ""
-	}
-	return hc.HouseholdID.String()
 }

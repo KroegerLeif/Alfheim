@@ -38,7 +38,7 @@ func withClaims(claims *auth.UserClaims) func(http.Handler) http.Handler {
 
 func newTestRouter(svc modelblocks.Service, claims *auth.UserClaims) http.Handler {
 	r := chi.NewRouter()
-	handler := modelblocks.NewHandler(svc)
+	handler := modelblocks.NewHandler(svc, testLogger())
 	handler.RegisterRoutes(r, withClaims(claims))
 	return r
 }
@@ -137,7 +137,7 @@ func TestHandler_CreateRejectsMissingHouseholdForSharedVisibility(t *testing.T) 
 	svc := newTestService(repo)
 	// Claims but no verified household context (RequireHousehold not applied).
 	r := chi.NewRouter()
-	modelblocks.NewHandler(svc).RegisterRoutes(r, func(next http.Handler) http.Handler {
+	modelblocks.NewHandler(svc, testLogger()).RegisterRoutes(r, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			ctx := context.WithValue(req.Context(), auth.UserContextKey, &auth.UserClaims{Subject: "user-1"})
 			next.ServeHTTP(w, req.WithContext(ctx))
@@ -386,6 +386,12 @@ func (e *errorModelBlockService) TriggerHealthCheck(ctx context.Context, userID,
 }
 func (e *errorModelBlockService) DiscoverModels(ctx context.Context, req modelblocks.DiscoverRequest) (modelblocks.DiscoverResponse, error) {
 	return modelblocks.DiscoverResponse{}, e.err
+}
+func (e *errorModelBlockService) HouseholdDefault(ctx context.Context, userID, householdID string) (modelblocks.ResponseDTO, error) {
+	return modelblocks.ResponseDTO{}, e.err
+}
+func (e *errorModelBlockService) SaveHouseholdDefault(ctx context.Context, userID, householdID string, req modelblocks.HouseholdDefaultRequest) (modelblocks.ResponseDTO, bool, error) {
+	return modelblocks.ResponseDTO{}, false, e.err
 }
 func (e *errorModelBlockService) EnsureBootstrap(ctx context.Context, seed modelblocks.BootstrapSeed) error {
 	return e.err
