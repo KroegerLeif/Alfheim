@@ -8,7 +8,8 @@
 #   - normal traffic below each rate limit passes without a 429,
 #   - traffic above the limit gets 429 with Retry-After and the JSON or plain
 #     text body, per zone: auth login posts, the auth host, the API host, the
-#     external lookups and the /api/v1 routes on the app host,
+#     external lookups, the Home Assistant webhook and the /api/v1 routes on
+#     the app host,
 #   - the ALFHEIM_RATE_LIMIT_* variables tune the limits.
 #
 # The limits are lowered through those variables so the test needs a few
@@ -38,6 +39,7 @@ LIMIT_LOGIN=3
 LIMIT_AUTH=12
 LIMIT_LOOKUP=2
 LIMIT_API=6
+LIMIT_WEBHOOK=1
 
 FAILURES=0
 pass() { printf '  \033[0;32m✔\033[0m %s\n' "$*"; }
@@ -58,6 +60,7 @@ docker run -d --name "${CONTAINER}" -p "127.0.0.1:${PORT}:80" \
 	-e ALFHEIM_RATE_LIMIT_AUTH="${LIMIT_AUTH}" \
 	-e ALFHEIM_RATE_LIMIT_LOOKUP="${LIMIT_LOOKUP}" \
 	-e ALFHEIM_RATE_LIMIT_API="${LIMIT_API}" \
+	-e ALFHEIM_RATE_LIMIT_WEBHOOK="${LIMIT_WEBHOOK}" \
 	-v "${ROOT}/infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro" \
 	-v "${ROOT}/infrastructure/caddy/errors:/srv/alfheim-errors:ro" \
 	"${IMAGE}" >/dev/null
@@ -160,8 +163,11 @@ expect_throttled "auth host" "${AUTH_HOST}" /.well-known/openid-configuration
 echo "▶ App host: external lookups (limit ${LIMIT_LOOKUP}/min) and /api/v1 (limit ${LIMIT_API}/min)"
 expect_burst "lookups" "${LIMIT_LOOKUP}" "${APP_HOST}" /api/v1/library/lookup/isbn/9780000000000
 expect_throttled "lookups" "${APP_HOST}" /api/v1/pantry/products/barcode/4000000000000
-# Lookups count against the API zone too: LIMIT_LOOKUP + 1 requests so far.
-remaining=$((LIMIT_API - LIMIT_LOOKUP - 1))
+echo "▶ App host: Home Assistant webhook (limit ${LIMIT_WEBHOOK}/min)"
+expect_burst "webhook" "${LIMIT_WEBHOOK}" "${APP_HOST}" /api/v1/integrations/home-assistant/events -X POST -d '{}'
+expect_throttled "webhook" "${APP_HOST}" /api/v1/integrations/home-assistant/events -X POST -d '{}'
+# Lookups and webhook posts count against the API zone too.
+remaining=$((LIMIT_API - LIMIT_LOOKUP - 1 - LIMIT_WEBHOOK - 1))
 expect_burst "/api/v1" "${remaining}" "${APP_HOST}" /api/v1/households
 expect_throttled "/api/v1" "${APP_HOST}" /api/v1/households
 
