@@ -157,9 +157,11 @@ Notes:
 | `GRAFANA_ADMIN_PASSWORD` | `admin` | Grafana initial admin password |
 | `GRAFANA_OIDC_CLIENT_ID` | `alfheim-grafana` | Zitadel OIDC client ID for Grafana SSO |
 | `GRAFANA_OIDC_CLIENT_SECRET` | _(auto-provisioned)_ | Zitadel OIDC client secret for Grafana SSO (set by `alfheim-setup provision` / the installer's provisioning step, only while `OTEL_ENABLED=true`) |
-| `INTEGRATIONS_PRINCIPAL_ID` | _(auto-provisioned)_ | Zitadel user id of the `alfheim-integrations` machine user ([service principals](../explanation/authentication-security.md#household-bound-service-principals)). `compose.prod.yaml` passes it to `household-backend` as `ALFHEIM_SERVICE_PRINCIPAL_IDS` |
+| `INTEGRATIONS_PRINCIPAL_ID` | _(auto-provisioned)_ | Zitadel user id of the `alfheim-integrations` machine user ([service principals](../explanation/authentication-security.md#household-bound-service-principals)). `compose.prod.yaml` passes it to `household-backend` as `ALFHEIM_SERVICE_PRINCIPAL_IDS` and to `dashboard-backend`, which binds it to a household when the Home Assistant plugin is switched on |
 | `INTEGRATIONS_CLIENT_ID` | _(auto-provisioned)_ | Client id (`alfheim-integrations`) of its client credentials, passed to `dashboard-backend` |
 | `INTEGRATIONS_CLIENT_SECRET` | _(auto-provisioned)_ | Client secret of `alfheim-integrations`, passed to `dashboard-backend`. Provisioning creates it once and reuses it on later runs |
+
+`dashboard-backend` also receives `ZITADEL_PROJECT_ID` for that scope. Plugin actions run only when the principal id, client id, client secret and project id are all set.
 
 The integrations machine user issues JWT access tokens; request them with the scope `openid urn:zitadel:iam:org:project:id:${ZITADEL_PROJECT_ID}:aud` so their audience is the project the backends accept.
 
@@ -183,6 +185,8 @@ Grafana SSO is restricted to users holding the Zitadel project role `alfheim_ope
 | `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp` | Comma-separated MCP server definitions for the chat assistant. The installer rewrites it from `ALFHEIM_ENABLED_APPS` (only enabled tool apps) on install, update and `alfheim-setup apps`. An empty value is kept (no tools); only a missing one gets the default list |
 | `INTEGRATIONS_ENCRYPTION_KEY` | _(empty)_ | AES-256-GCM key (base64 of 32 bytes) that `dashboard-backend` encrypts typed plugin credentials with. `alfheim-setup` and `scripts/init-env.sh` generate it and never regenerate an existing value. Empty keeps the dashboard running but refuses to store or read plugin credentials (`503 integrations_encryption_unavailable`); a malformed value stops the backend at startup. Never change it on a running install without re-entering the plugin credentials |
 | `INTEGRATIONS_ENCRYPTION_KEY_ID` | `v1` | Key id stored with every plugin row; a row sealed with another id reads as `credentials_unavailable` |
+| `INTEGRATIONS_CHORES_URL` | `http://chores-backend:8000` | Chores backend whose public API `dashboard-backend` calls for the `chores.create_instance` action of Home Assistant events |
+| `CHAT_DASHBOARD_URL` | `http://dashboard-backend:8080` | Dashboard backend that `chat-backend` asks whether a household has the Home Assistant MCP proxy, and whose proxy it then calls |
 | `INTEGRATIONS_ALLOWED_HOSTS` | _(empty)_ | Comma-separated host names, IPs and CIDR ranges that typed plugins may reach even though they are private, for example `homeassistant.lan,192.168.1.0/24`. Empty allows public addresses only; a malformed entry stops the backend at startup. Checked with go-shared `netguard` before each request and again at connect time. `alfheim-setup` keeps the value across re-renders |
 | `CHAT_ALLOWED_LLM_HOSTS` | `host.docker.internal` | Comma-separated host names, IPs and CIDR ranges that model block base URLs may point to even though they are private (see below) |
 | `PANTRY_BACKEND_URL` | `http://pantry-backend:8000` | Internal URL for shopping list service to reach the pantry inventory API. The installer writes it from `ALFHEIM_ENABLED_APPS`: empty while pantry is disabled, which hides the shopping pantry sync |
@@ -264,6 +268,7 @@ Requests per minute and client IP that Caddy allows before it answers `429`. Opt
 | `ALFHEIM_RATE_LIMIT_AUTH` | `600` | Every request to the `auth.*` host |
 | `ALFHEIM_RATE_LIMIT_API` | `1200` | Every `/api/v1` request |
 | `ALFHEIM_RATE_LIMIT_LOOKUP` | `60` | Library ISBN/BGG/TMDB lookups and pantry barcode lookups |
+| `ALFHEIM_RATE_LIMIT_WEBHOOK` | `30` | Posts to the unauthenticated Home Assistant webhook (`POST /api/v1/integrations/home-assistant/events`) |
 
 ---
 
