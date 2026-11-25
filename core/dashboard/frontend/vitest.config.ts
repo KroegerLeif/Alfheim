@@ -2,5 +2,5 @@ import { defineAlfheimVitestConfig } from '../../../packages/shared/vitest.prese
 
 export default defineAlfheimVitestConfig({
   // Ratchet floor (#385): raise as coverage grows, never lower.
-  thresholds: { statements: 64, branches: 60, functions: 55, lines: 65 },
+  thresholds: { statements: 79, branches: 74, functions: 74, lines: 80 },
 });
