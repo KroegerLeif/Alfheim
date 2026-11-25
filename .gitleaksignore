@@ -7,3 +7,5 @@ c89d2c4d5b25ac8fd3fca39c0f9f4b01aa1183ee:tools/installer/internal/app/run_test.g
 9db450f06341c5c9b444bb0b07d4ac8e6ca7017e:core/household/frontend/src/features/household/components/tests/InviteQrAndRevoke.test.tsx:generic-api-key:46
 # False positive: a fixed 32-character CHAT_ATTACHMENT_URL_SECRET test value (#921 CORS test), replaced by a generated placeholder.
 60429880b0eebbc70d29ba04bd396405a6478a36:apps/chat/backend/config/config_test.go:generic-api-key:212
+# False positive: md5("sesame" + "c19b2d"), the expected Subsonic token of the Navidrome signature test (#961).
+cf6a274dabda9f857c6e3e79033ac4811b869d41:core/dashboard/backend/internal/features/integrations/navidrome/navidrome_test.go:generic-api-key:24
