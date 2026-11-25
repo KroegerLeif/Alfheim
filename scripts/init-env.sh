@@ -145,8 +145,8 @@ urlencode() {
 readonly SECRET_KEY_RE='^[A-Z0-9_]*(PASSWORD|SECRET|MASTERKEY|ENCRYPTION_KEY|TOKEN)[A-Z0-9_]*$'
 
 # Secret-shaped keys that are not credentials (allowedUngenerated in the same
-# test): the chat key version label must keep its example value.
-readonly NON_SECRET_KEYS=" CHAT_ENCRYPTION_KEY_ID "
+# test): the key version labels must keep their example values.
+readonly NON_SECRET_KEYS=" CHAT_ENCRYPTION_KEY_ID INTEGRATIONS_ENCRYPTION_KEY_ID "
 
 # Keys that must hold the same value as another key (mirror:source), because
 # compose wires both to one credential.
@@ -208,7 +208,7 @@ generate_for_key() {
   case "$1" in
     ZITADEL_MASTERKEY) generate_masterkey ;;
     ZITADEL_ADMIN_PASSWORD) generate_zitadel_password ;;
-    CHAT_ENCRYPTION_KEY) generate_base64_32 ;;
+    CHAT_ENCRYPTION_KEY|INTEGRATIONS_ENCRYPTION_KEY) generate_base64_32 ;;
     ALFHEIM_INTERNAL_TOKEN|CHAT_ATTACHMENT_URL_SECRET) generate_secret 64 ;;
     *) generate_secret 32 ;;
   esac
@@ -789,6 +789,7 @@ CHORES_PW="$(generate_secret 32)"
 BUDGET_PW="$(generate_secret 32)"
 CHAT_PW="$(generate_secret 32)"
 CHAT_ENC_KEY="$(generate_base64_32)"
+INTEGRATIONS_ENC_KEY="$(generate_base64_32)"
 WORKOUT_PW="$(generate_secret 32)"
 LIBRARY_PW="$(generate_secret 32)"
 GRAFANA_PW="$(generate_secret 32)"
@@ -819,6 +820,7 @@ sed \
   -e "s|^BUDGET_POSTGRES_PASSWORD=.*|BUDGET_POSTGRES_PASSWORD=${BUDGET_PW}|" \
   -e "s|^CHAT_POSTGRES_PASSWORD=.*|CHAT_POSTGRES_PASSWORD=${CHAT_PW}|" \
   -e "s|^CHAT_ENCRYPTION_KEY=.*|CHAT_ENCRYPTION_KEY=${CHAT_ENC_KEY}|" \
+  -e "s|^INTEGRATIONS_ENCRYPTION_KEY=.*|INTEGRATIONS_ENCRYPTION_KEY=${INTEGRATIONS_ENC_KEY}|" \
   -e "s|^WORKOUT_POSTGRES_PASSWORD=.*|WORKOUT_POSTGRES_PASSWORD=${WORKOUT_PW}|" \
   -e "s|^LIBRARY_POSTGRES_PASSWORD=.*|LIBRARY_POSTGRES_PASSWORD=${LIBRARY_PW}|" \
   -e "s|^GRAFANA_ADMIN_PASSWORD=.*|GRAFANA_ADMIN_PASSWORD=${GRAFANA_PW}|" \
@@ -913,4 +915,5 @@ echo -e "  Zitadel Masterkey:         ${DIM}${ZITADEL_MASTERKEY:0:8}...${RESET}"
 echo -e "  Grafana Admin User:        ${CYAN}admin${RESET}"
 echo -e "  Grafana Admin Password:    ${DIM}stored in ${OUTPUT_FILE} as GRAFANA_ADMIN_PASSWORD${RESET}"
 echo -e "  Chat AES-256 Key:          ${DIM}${CHAT_ENC_KEY:0:8}...${RESET}"
+echo -e "  Integrations AES-256 Key:  ${DIM}${INTEGRATIONS_ENC_KEY:0:8}...${RESET}"
 echo ""

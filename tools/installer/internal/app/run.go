@@ -506,6 +506,7 @@ var operatorTunedEnvKeys = []string{
 	"ALFHEIM_RATE_LIMIT_API",
 	"ALFHEIM_RATE_LIMIT_LOOKUP",
 	"ALFHEIM_SIGNUP_ALLOWLIST",
+	"INTEGRATIONS_ALLOWED_HOSTS",
 }
 
 // carryForwardOperatorTuned picks out the operator-tuned values present in

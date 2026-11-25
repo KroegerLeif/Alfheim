@@ -173,6 +173,38 @@
         "video": "Video",
         "wifi": "Wi-Fi"
       }
+    },
+    "integrations": {
+      "title": "Integrations",
+      "subtitle": "Connections to services your household runs, such as Home Assistant or a media server. Owners and admins manage them; credentials are stored encrypted and never shown again.",
+      "load_error": "Could not load the integrations.",
+      "empty": "No integrations are available in this version yet.",
+      "no_household": "Choose a household to see its integrations.",
+      "encryption_unavailable": "The server has no INTEGRATIONS_ENCRYPTION_KEY, so credentials cannot be saved. Ask the operator to set it.",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "enable": "Enable {name}",
+      "credentials_stored": "Credentials stored",
+      "credentials_missing": "No credentials stored",
+      "test": "Test connection",
+      "testing": "Testing…",
+      "status_label": "Connection status: {status}",
+      "error_invalid": "Check the settings: some values are not valid for this integration.",
+      "error_forbidden": "Only household owners and admins can manage integrations.",
+      "error_encryption": "Credentials cannot be saved because the server has no encryption key.",
+      "error_failed": "The integration could not be updated. Please try again.",
+      "status": {
+        "unknown": "Not tested",
+        "ok": "Connected",
+        "host_not_allowed": "Host not allowed",
+        "unreachable": "Unreachable",
+        "timeout": "Timed out",
+        "auth_failed": "Sign-in failed",
+        "invalid_response": "Unexpected answer",
+        "invalid_config": "Invalid settings",
+        "credentials_unavailable": "Credentials unreadable",
+        "error": "Error"
+      }
     }
   }
 }

@@ -143,7 +143,8 @@ var secretKeyPattern = regexp.MustCompile(`^[A-Z0-9_]*(PASSWORD|SECRET|MASTERKEY
 // generated, with the reason they are exempt.
 var allowedUngenerated = map[string]string{
 	// A pure identifier, not a credential.
-	"CHAT_ENCRYPTION_KEY_ID": "key version label",
+	"CHAT_ENCRYPTION_KEY_ID":         "key version label",
+	"INTEGRATIONS_ENCRYPTION_KEY_ID": "key version label",
 	// Zitadel assigns this when the installer's provisioning step reconciles
 	// the Grafana OIDC application; it is never generated locally.
 	"GRAFANA_OIDC_CLIENT_SECRET": "provisioned by Zitadel, not generated",

@@ -6,6 +6,7 @@ import { useDashboardApps, useUpdateUserPreferences } from '@/features/apps';
 import { ThemePickerWidget } from '@/features/dashboard/components/ThemePickerWidget';
 import { CustomThemeBuilder } from '@/features/dashboard/components/CustomThemeBuilder';
 import { AppVisibilityPreferences } from '@/features/dashboard/components/AppVisibilityPreferences';
+import { IntegrationsSection, PLUGIN_FORMS } from '@/features/integrations';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -70,6 +71,9 @@ export default function SettingsPage() {
         hiddenAppIds={hiddenAppIds}
         onToggleCoreApp={handleToggleCoreApp}
       />
+
+      {/* Household integrations: typed plugins with health and credentials (ADR 0010) */}
+      <IntegrationsSection registry={PLUGIN_FORMS} />
 
       {/* Visual Theme Picker */}
       <ThemePickerWidget />

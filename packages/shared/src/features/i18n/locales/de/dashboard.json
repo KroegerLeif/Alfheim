@@ -173,6 +173,38 @@
         "video": "Video",
         "wifi": "WLAN"
       }
+    },
+    "integrations": {
+      "title": "Integrationen",
+      "subtitle": "Verbindungen zu Diensten Ihres Haushalts, etwa Home Assistant oder einem Medienserver. Eigentümer und Admins verwalten sie; Zugangsdaten werden verschlüsselt gespeichert und nie wieder angezeigt.",
+      "load_error": "Die Integrationen konnten nicht geladen werden.",
+      "empty": "In dieser Version sind noch keine Integrationen verfügbar.",
+      "no_household": "Wählen Sie einen Haushalt, um seine Integrationen zu sehen.",
+      "encryption_unavailable": "Dem Server fehlt INTEGRATIONS_ENCRYPTION_KEY, daher können keine Zugangsdaten gespeichert werden. Bitten Sie den Betreiber, ihn zu setzen.",
+      "enabled": "Aktiviert",
+      "disabled": "Deaktiviert",
+      "enable": "{name} aktivieren",
+      "credentials_stored": "Zugangsdaten gespeichert",
+      "credentials_missing": "Keine Zugangsdaten gespeichert",
+      "test": "Verbindung testen",
+      "testing": "Wird getestet…",
+      "status_label": "Verbindungsstatus: {status}",
+      "error_invalid": "Prüfen Sie die Einstellungen: Einige Werte sind für diese Integration ungültig.",
+      "error_forbidden": "Nur Eigentümer und Admins des Haushalts können Integrationen verwalten.",
+      "error_encryption": "Zugangsdaten können nicht gespeichert werden, weil dem Server ein Schlüssel fehlt.",
+      "error_failed": "Die Integration konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "status": {
+        "unknown": "Nicht getestet",
+        "ok": "Verbunden",
+        "host_not_allowed": "Host nicht erlaubt",
+        "unreachable": "Nicht erreichbar",
+        "timeout": "Zeitüberschreitung",
+        "auth_failed": "Anmeldung fehlgeschlagen",
+        "invalid_response": "Unerwartete Antwort",
+        "invalid_config": "Ungültige Einstellungen",
+        "credentials_unavailable": "Zugangsdaten nicht lesbar",
+        "error": "Fehler"
+      }
     }
   }
 }
