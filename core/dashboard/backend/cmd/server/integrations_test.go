@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"log/slog"
+	"slices"
 	"strings"
 	"testing"
 
@@ -31,8 +32,8 @@ func TestNewPluginService_WarnsWithoutKey(t *testing.T) {
 	if svc.EncryptionAvailable() || !strings.Contains(logs.String(), "INTEGRATIONS_ENCRYPTION_KEY") {
 		t.Errorf("a missing key must be logged and leave encryption unavailable; logs: %s", logs.String())
 	}
-	if len(svc.Registry().Types()) != 0 {
-		t.Errorf("this build registers no concrete plugin, got %v", svc.Registry().Types())
+	if got := svc.Registry().Types(); !slices.Equal(got, []string{"jellyfin", "navidrome"}) {
+		t.Errorf("expected the media plugins, got %v", got)
 	}
 }
 

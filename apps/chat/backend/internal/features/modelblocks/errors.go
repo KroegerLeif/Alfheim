@@ -33,6 +33,9 @@ var (
 	ErrInvalidVisibility = errors.New("visibility must be \"private\" or \"shared\"")
 	// ErrInvalidProviderType indicates provider_type is empty or unsupported.
 	ErrInvalidProviderType = errors.New("provider_type must be one of: " + strings.Join(llm.SupportedProviderTypes, ", "))
+	// ErrModelIdentifierRequired indicates a household default model block was
+	// saved without a model identifier.
+	ErrModelIdentifierRequired = errors.New("model_identifier is required")
 	// ErrEncryptionKeyMissing indicates an API key was supplied but CHAT_ENCRYPTION_KEY
 	// is not configured, so it cannot be safely encrypted at rest.
 	ErrEncryptionKeyMissing = errors.New("cannot store an api key: CHAT_ENCRYPTION_KEY is not configured")

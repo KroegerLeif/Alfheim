@@ -3,3 +3,5 @@ export * from './hooks/usePlugins';
 export * from './types';
 export { PLUGIN_FORMS } from './pluginForms';
 export { knownHealthStatus, pluginErrorKey } from './errors';
+export { NowPlayingWidget } from './media';
+export { AlfiCard, useAlfiReady, withoutUnreadyAlfi } from './alfi';

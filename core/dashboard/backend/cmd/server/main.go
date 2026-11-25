@@ -185,7 +185,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, ready health.Check, jwtM
 	pluginsHandler := plugins.NewHandler(pluginSvc, log)
 	healthHandler := apphealth.NewHandler(healthService)
 	telemetryHandler := telemetry.NewHandler(telemetryService)
-	capabilitiesHandler := capabilities.NewHandler()
+	capabilitiesHandler := capabilities.NewHandler(enabledApps.Has("chat"))
 	enabledAppsHandler := apps.NewEnabledAppsHandler(coreApps)
 
 	// Router Setup
@@ -224,6 +224,7 @@ func buildRouter(log *slog.Logger, dbClient *db.Client, ready health.Check, jwtM
 	householdMw := household.RequireHousehold(membership, log)
 	launchersHandler.RegisterRoutes(r, authMw, householdMw)
 	pluginsHandler.RegisterRoutes(r, authMw, householdMw)
+	newMediaHandler(pluginSvc, log).RegisterRoutes(r, authMw, householdMw)
 
 	return r
 }

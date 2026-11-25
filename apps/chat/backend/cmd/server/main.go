@@ -101,7 +101,7 @@ func run(parentCtx context.Context) error {
 	// Model Blocks Feature (LLM provider configs, encryption, health checks)
 	modelBlocksRepo := modelblocks.NewRepository(dbClient.Pool)
 	modelBlocksService := modelblocks.NewServiceWithGuard(modelBlocksRepo, cfg.Encryption.Key, cfg.Encryption.KeyID, log, newLLMGuard(cfg.AllowedLLMHosts, log))
-	modelBlocksHandler := modelblocks.NewHandler(modelBlocksService)
+	modelBlocksHandler := modelblocks.NewHandler(modelBlocksService, log)
 
 	// Seed the ENV-configured fallback model block on first startup only.
 	if err := ensureBootstrap(ctx, modelBlocksService, modelblocks.BootstrapSeed{
@@ -257,7 +257,7 @@ func buildRouter(
 	r.Use(chimiddleware.Recoverer)
 	r.Use(httpmw.CORSWithOrigins(httpmw.CORSConfig{
 		AllowedOrigins: allowedOrigins,
-		AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-Household-ID"},
 	}))
 	r.Use(httpmw.RequestLogger(log))

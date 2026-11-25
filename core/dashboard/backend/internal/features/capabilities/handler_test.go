@@ -33,7 +33,7 @@ func TestHandler_Get(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			r := chi.NewRouter()
-			capabilities.NewHandler().RegisterRoutes(r, authAs(tc.claims))
+			capabilities.NewHandler(false).RegisterRoutes(r, authAs(tc.claims))
 
 			rec := httptest.NewRecorder()
 			r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/user/capabilities", nil))
@@ -48,5 +48,21 @@ func TestHandler_Get(t *testing.T) {
 				t.Fatalf("operator = %v, want %v", got.Operator, tc.want)
 			}
 		})
+	}
+}
+
+func TestHandler_GetReportsChat(t *testing.T) {
+	for _, enabled := range []bool{true, false} {
+		r := chi.NewRouter()
+		capabilities.NewHandler(enabled).RegisterRoutes(r, authAs(&auth.UserClaims{Subject: "u1"}))
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/user/capabilities", nil))
+		var got capabilities.Response
+		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if got.Chat != enabled {
+			t.Errorf("chat = %v, want %v", got.Chat, enabled)
+		}
 	}
 }

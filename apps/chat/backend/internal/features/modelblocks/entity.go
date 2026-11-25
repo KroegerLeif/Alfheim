@@ -11,7 +11,8 @@ const (
 	// VisibilityPrivate restricts a model block to its owner.
 	VisibilityPrivate Visibility = "private"
 	// VisibilityShared allows any member of the owner's household to select and use
-	// the model block in chat, but never to edit or delete it.
+	// the model block in chat. Besides its owner, only the household's OWNER and
+	// ADMIN may change it, through the household default endpoint.
 	VisibilityShared Visibility = "shared"
 )
 
@@ -75,9 +76,10 @@ func (m *ModelBlock) IsVisibleTo(userID, householdID string) bool {
 	return m.HouseholdID != nil && *m.HouseholdID == householdID
 }
 
-// CanModify reports whether userID may edit or delete this model block. Regular
-// blocks may only be modified by their owner (shared blocks are usable by the
-// household but not editable, per product decision). Bootstrap blocks are managed
+// CanModify reports whether userID may edit or delete this model block through
+// the per-block endpoints. Regular blocks may only be modified there by their
+// owner; OWNER and ADMIN manage the household's default shared block through
+// PUT /api/v1/chat/model-blocks/household-default (ADR 0010 §5). Bootstrap blocks are managed
 // exclusively through the CHAT_BOOTSTRAP_* environment variables and are read-only
 // for every API user: they carry the operator's API key, so letting any user repoint
 // their base URL would leak that key to an attacker-controlled host.

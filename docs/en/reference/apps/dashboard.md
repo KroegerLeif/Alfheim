@@ -68,7 +68,7 @@ Errors use `{"detail": {"code", "message"}}` ([ADR 0011](../../explanation/decis
 
 ### Typed plugins
 
-A typed plugin is a backend integration with configuration, encrypted credentials, a health check and an enable toggle ([ADR 0010](../../explanation/decisions/0010-integration-architecture.md)). The framework lives in `internal/features/plugins`; this release registers no concrete plugin, so the list is empty until a plugin ships. Each household has at most one row per plugin type (`household_plugins`). Household and role checks work as for launchers.
+A typed plugin is a backend integration with configuration, encrypted credentials, a health check and an enable toggle ([ADR 0010](../../explanation/decisions/0010-integration-architecture.md)). The framework lives in `internal/features/plugins`; this release registers the media server plugins `jellyfin` and `navidrome` (see [Media servers](#media-servers)). Each household has at most one row per plugin type (`household_plugins`). Household and role checks work as for launchers.
 
 | Method and path | Role | Answer |
 | :--- | :--- | :--- |
@@ -96,6 +96,38 @@ Errors: `422 validation_error`, `400 invalid_body` (malformed JSON or unknown fi
 * **Other features** reach a household's plugin through `*plugins.Service`: `Instance` (configuration and decrypted credentials), `EnabledInstance` (also fails with `ErrDisabled` or `ErrHostNotAllowed`), `IsEnabled` and `Registry`.
 * **Frontend:** add a `PluginUiEntry` (`titleKey` and a `Form` component receiving `PluginFormProps`) to `PLUGIN_FORMS` in `src/features/integrations/pluginForms.ts`. The generic `PluginCard` provides the health badge, the credential indicator, the enable toggle and the test button; only `OWNER` and `ADMIN` see the controls and the form.
 
+#### Media servers
+
+`jellyfin` and `navidrome` (`internal/features/integrations/{jellyfin,navidrome}`) report what the household's LAN media servers play. Alfheim only sends status and control calls; media streams stay between the player and the server and are never proxied or transcoded. How-to: [Connect a media server](../../how-to/connect-media-server.md).
+
+| Plugin | Credentials | Health | Now playing | Control |
+| :--- | :--- | :--- | :--- | :--- |
+| `jellyfin` | `api_key` | `GET /System/Info` | `GET /Sessions?activeWithinSeconds=60` | `POST /Sessions/{id}/Playing/{PlayPause,NextTrack,PreviousTrack,Stop}` |
+| `navidrome` | `username`, `password` | `GET /rest/ping.view` | `GET /rest/getNowPlaying.view` | None (Subsonic has no remote control) |
+
+Jellyfin requests carry `Authorization: MediaBrowser Token="<key>"`. Navidrome requests use Subsonic token authentication: `u`, `t = md5(password + salt)`, a fresh random `s` per request, `v=1.16.1`, `c=alfheim`, `f=json`; the password is never sent. The values of `t`, `s` and `p` are redacted from every URL that can reach a log line. Neither plugin takes `config` settings.
+
+The `media` feature (`internal/features/integrations/media`) sits on top. A plugin opts in by implementing `media.Source` (now playing) and optionally `media.Controller` (playback control); the feature finds them with `plugins.CapabilityOf`.
+
+| Method and path | Role | Answer |
+| :--- | :--- | :--- |
+| `GET /api/v1/integrations/media/now-playing` | Any member | `200` with `{"items": [MediaStatus], "sources": [{"source", "status"}]}` for every enabled media plugin |
+| `POST /api/v1/integrations/media/{type}/sessions/{id}/{command}` | `OWNER`, `ADMIN`, `MEMBER` | `204` once the server accepted the command |
+
+`MediaStatus` is `{"source", "session_id", "title", "artist", "device", "state", "can_control"}` with `state` `playing` or `paused`; `can_control` is always `false` for a server without control. A server that fails is listed in `sources` with a code (`auth_failed`, `unreachable`, `timeout`, `host_not_allowed`, `credentials_unavailable`, `invalid_response`, `error`) and does not hide the sessions of the others. `{command}` is `play_pause`, `next`, `previous` or `stop`; `{id}` must match `[A-Za-z0-9_-]{1,128}`.
+
+Control errors: `400 media_command_invalid`, `400 media_session_invalid`, `403 household_role_forbidden` for a `GUEST`, `404 media_type_unknown`, `404 media_not_configured`, `404 media_session_not_found`, `409 media_disabled`, `409 media_control_unsupported` (Navidrome), `503 media_credentials_unavailable` and `502 media_upstream_error` with a `reason` code for a failed server call.
+
+#### ALFI card
+
+The ALFI card in the integrations settings is **not** a backend plugin type. Chat's household-shared model blocks stay the only store of LLM providers and their keys ([ADR 0010 §5](../../explanation/decisions/0010-integration-architecture.md)), and a backend `alfi` type would need the user's token inside the health check, which the plugin contract does not carry. The card is therefore a frontend view (`src/features/integrations/alfi`) that calls chat's public API with the user's token and household:
+
+* `GET /api/v1/user/capabilities` first: `{"operator", "chat"}`, where `chat` reflects `ALFHEIM_ENABLED_APPS`. Without chat the card shows "Chat module not installed" and the command `alfheim-setup apps enable chat`, and sends no request to chat.
+* `GET` and `PUT /api/v1/chat/model-blocks/household-default` read and write the household's default shared model block (see the [chat reference](./chat.md)); only `OWNER` and `ADMIN` see the form. Presets: Ollama (`http://<host>:11434`, no key) and OpenAI-compatible (base URL and key). The card names `CHAT_ALLOWED_LLM_HOSTS` and explains a rejected host. Keys are write-only; the card only shows `has_api_key`.
+* After a save the card runs chat's health check. The dashboard's ALFI tile (`chat`) stays hidden until at least one model block the user may use reports `health_status: ok`.
+
+How-to: [Connect ALFI to a local model](../../how-to/connect-alfi-local-model.md).
+
 ---
 
 ## 🏗️ Architecture & Tech Stack
@@ -108,6 +140,8 @@ Errors: `422 validation_error`, `400 invalid_body` (malformed JSON or unknown fi
 - `apps`: Unified 3-Tier application registry handlers and YAML loaders.
 - `launchers`: Household launchers (entity, repository, service, handler), behind `household.RequireHousehold` and, for writes, `household.RequireHouseholdRole`.
 - `plugins`: The typed plugin framework (contract, registry, credential cipher, repository, service, handler) behind the same household middleware; see [Typed plugins](#typed-plugins).
+- `integrations/{jellyfin,navidrome,media}`: The media server plugins and the now-playing and control API; see [Media servers](#media-servers).
+- `capabilities`: `GET /api/v1/user/capabilities` with `operator` and `chat` (UI hints only).
 - `apps` also serves `GET /api/v1/apps/enabled`: `{"apps": ["household", ...]}`, the Tier-1 app ids from `ALFHEIM_ENABLED_APPS` (authenticated, independent of hidden tiles and health). `useAppEnabled` in `@alfheim/shared` reads it once per page load, so other frontends leave out entry points into an app that is not installed (pantry hides the ALFI chat button and widget without the chat app).
 - `apphealth`: Live state of the Tier-1 tiles. `GET /api/v1/apps/health` returns `{"apps": {"<id>": "online|degraded|offline"}, "checked_at": ...}`. The backend probes each enabled app backend's readiness endpoint (`/readyz`) on `gateway-net` (2 s timeout): a `2xx` answer is *online*, any other answer *degraded* (for example a backend whose database is down or behind on migrations), no answer *offline*. Snapshots are cached for 15 s and concurrent requests share one probe round, so each app is probed at most once per window however many dashboards are open. The frontend polls every 15 s, so a stopped app turns offline within 30 s, and never calls the app APIs itself. Tier-2 stack apps are not probed.
 - `telemetry`: System metrics and log queries. When VictoriaLogs is unreachable or empty, `GET /api/v1/telemetry/logs` returns a fixed set of illustrative entries (they only reference routes the dashboard serves); the frontend shows a notice when the log request itself fails.
