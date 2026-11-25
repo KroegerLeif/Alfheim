@@ -79,12 +79,16 @@ func (s *Service) Save(ctx context.Context, householdID uuid.UUID, pluginType st
 	if err != nil && !errors.Is(err, ErrNotConfigured) {
 		return View{}, err
 	}
+	wasEnabled := rec.Enabled
 	rec.HouseholdID, rec.Type = householdID, pluginType
 	rec.Enabled, rec.BaseURL, rec.Config = req.Enabled, req.BaseURL, req.Config
 	if req.Credentials != nil {
 		if err := s.sealInto(&rec, *req.Credentials); err != nil {
 			return View{}, err
 		}
+	}
+	if err := notifyEnableChange(ctx, plugin, wasEnabled, rec); err != nil {
+		return View{}, err
 	}
 	if err := s.repo.Upsert(ctx, &rec); err != nil {
 		return View{}, err

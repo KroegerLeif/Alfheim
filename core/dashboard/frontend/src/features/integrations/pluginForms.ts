@@ -1,5 +1,6 @@
-import type { PluginUiRegistry } from './types';
+import { HomeAssistantForm, HOME_ASSISTANT_TYPE } from './homeassistant';
 import { JellyfinForm, NavidromeForm } from './media';
+import type { PluginUiRegistry } from './types';
 
 /**
  * Settings forms of the plugins this frontend knows, keyed by backend plugin type. A plugin adds
@@ -7,6 +8,7 @@ import { JellyfinForm, NavidromeForm } from './media';
  * `IntegrationsSection`. A type the backend lists without an entry still gets the generic card.
  */
 export const PLUGIN_FORMS: PluginUiRegistry = {
+  [HOME_ASSISTANT_TYPE]: { titleKey: 'dashboard.integrations.homeassistant.title', Form: HomeAssistantForm },
   jellyfin: { titleKey: 'dashboard.integrations.media.jellyfin', Form: JellyfinForm },
   navidrome: { titleKey: 'dashboard.integrations.media.navidrome', Form: NavidromeForm },
 };

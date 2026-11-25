@@ -55,6 +55,9 @@ type View struct {
 // ready for an outbound call. It exists only in memory, for the length of one
 // request; never log it or put it in a response.
 type Instance struct {
+	// ID is the household_plugins row id; the Home Assistant webhook uses it
+	// as its public webhook id.
+	ID          uuid.UUID
 	HouseholdID uuid.UUID
 	Type        string
 	Enabled     bool

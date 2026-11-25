@@ -168,7 +168,12 @@ The gateway limits requests per client IP with the [`caddy-ratelimit`](https://g
 | `auth` | `auth.*` | every request | 600 | `ALFHEIM_RATE_LIMIT_AUTH` |
 | `lookup` | app host | `/api/v1/library/lookup*`, `/api/v1/pantry/products/barcode/*` and their `/<app>/api/v1` forms | 60 | `ALFHEIM_RATE_LIMIT_LOOKUP` |
 | `api` | app host | `/api/v1/*`, `*/api/v1/*` | 1200 | `ALFHEIM_RATE_LIMIT_API` |
-| `api_host_lookup`, `api_host` | dev `api.*` host | the same lookups; everything except `/storage*` and `/grafana*` | 60, 1200 | as above |
+| `webhook` | app host | `POST /api/v1/integrations/home-assistant/events` | 30 | `ALFHEIM_RATE_LIMIT_WEBHOOK` |
+| `api_host_lookup`, `api_host_webhook`, `api_host` | dev `api.*` host | the same lookups and webhook; everything except `/storage*` and `/grafana*` | 60, 30, 1200 | as above |
+
+### Unauthenticated API paths
+
+`POST /api/v1/integrations/home-assistant/events` is the only `/api/v1` route that accepts requests without a bearer token. It reaches `dashboard-backend` through the `/api/v1/*` catch-all and is protected by the backend, not the gateway: an HMAC-SHA256 signature with the household's webhook secret, a ±300 s timestamp window, a 16 KiB body limit and per-plugin `event_id` idempotency. The household comes from the plugin row the `X-Alfheim-Webhook-Id` header names. The `webhook` zone above caps signature guessing per client IP, and `./scripts/verify-stack.sh` checks its `429`. Details: [dashboard reference](apps/dashboard.md#home-assistant).
 
 Pages, static assets, `/storage` and `/livez` are not limited. [Tune the rate limits](../how-to/tune-rate-limits.md) explains when and how to change them. `./scripts/test-gateway-hardening.sh` checks every zone against a running gateway container.
 

@@ -607,17 +607,19 @@ func TestRenderedCaddyfileRateLimits(t *testing.T) {
 				"\t\t\tevents {$ALFHEIM_RATE_LIMIT_LOOKUP:60}\n",
 				"\t\t\t\tpath /api/v1/* */api/v1/*\n",
 				"\t\t\tevents {$ALFHEIM_RATE_LIMIT_API:1200}\n",
+				"\t\tzone webhook {\n\t\t\tmatch {\n\t\t\t\tmethod POST\n\t\t\t\tpath /api/v1/integrations/home-assistant/events\n",
+				"\t\t\tevents {$ALFHEIM_RATE_LIMIT_WEBHOOK:30}\n",
 				"\thandle_errors 429 {\n",
 			} {
 				if !strings.Contains(caddy, want) {
 					t.Errorf("the %s Caddyfile lacks %q", s.ID, want)
 				}
 			}
-			if got, want := strings.Count(caddy, "\t\t\tkey {client_ip}\n"), 4; got != want {
+			if got, want := strings.Count(caddy, "\t\t\tkey {client_ip}\n"), 5; got != want {
 				t.Errorf("%d rate-limit zones are keyed by client IP, want %d", got, want)
 			}
-			if got := strings.Count(caddy, "\t\t\twindow 1m\n"); got != 4 {
-				t.Errorf("%d rate-limit zones use a one-minute window, want 4", got)
+			if got := strings.Count(caddy, "\t\t\twindow 1m\n"); got != 5 {
+				t.Errorf("%d rate-limit zones use a one-minute window, want 5", got)
 			}
 
 			// Each site block imports its limits and the 429 handler.

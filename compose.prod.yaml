@@ -54,6 +54,7 @@ services:
       ALFHEIM_RATE_LIMIT_AUTH: "${ALFHEIM_RATE_LIMIT_AUTH:-600}"
       ALFHEIM_RATE_LIMIT_API: "${ALFHEIM_RATE_LIMIT_API:-1200}"
       ALFHEIM_RATE_LIMIT_LOOKUP: "${ALFHEIM_RATE_LIMIT_LOOKUP:-60}"
+      ALFHEIM_RATE_LIMIT_WEBHOOK: "${ALFHEIM_RATE_LIMIT_WEBHOOK:-30}"
     volumes:
       - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       # Installer-generated root cert + key that sign the --tls internal
@@ -706,6 +707,12 @@ services:
       # service principal. Empty disables plugin actions.
       - INTEGRATIONS_CLIENT_ID=${INTEGRATIONS_CLIENT_ID:-}
       - INTEGRATIONS_CLIENT_SECRET=${INTEGRATIONS_CLIENT_SECRET:-}
+      # The machine user's id (bound to a household when its Home Assistant
+      # plugin is enabled) and the project its tokens are issued for.
+      - INTEGRATIONS_PRINCIPAL_ID=${INTEGRATIONS_PRINCIPAL_ID:-}
+      - ZITADEL_PROJECT_ID=${ZITADEL_PROJECT_ID:-}
+      # Chores public API that plugin actions call (#960).
+      - INTEGRATIONS_CHORES_URL=${INTEGRATIONS_CHORES_URL:-http://chores-backend:8000}
     volumes:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
@@ -910,6 +917,9 @@ services:
       - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
       # Hosts the chat backend may call as an LLM endpoint (SSRF allowlist).
       - CHAT_ALLOWED_LLM_HOSTS=${CHAT_ALLOWED_LLM_HOSTS:-host.docker.internal}
+      # Dashboard whose Home Assistant MCP proxy is offered to households
+      # with the plugin enabled (#957).
+      - CHAT_DASHBOARD_URL=${CHAT_DASHBOARD_URL:-http://dashboard-backend:8080}
     volumes:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro

@@ -46,6 +46,7 @@ Source: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 | `CHAT_ATTACHMENT_URL_SECRET` | *(generated secret, at least 32 bytes)* | HMAC key signing attachment download URLs. Required in production (compose refuses to start without it); the installer generates it and backfills it on update. Without it outside production, a random key is used per process |
 | `CHAT_ATTACHMENT_URL_TTL_MINUTES` | `15` | Lifetime of a signed attachment download URL |
 | `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,...` | Comma-separated FastMCP endpoints of the enabled tool apps. Empty means no tool app is installed; unset keeps the stored registry |
+| `CHAT_DASHBOARD_URL` | `http://dashboard-backend:8080` | Dashboard backend whose Home Assistant MCP proxy is offered to households with the plugin enabled |
 | `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Base URL of the household membership API (`core/household`) |
 | `ALFHEIM_INTERNAL_TOKEN` | *(generated secret)* | Shared secret sent as `Authorization: Bearer …` on membership checks. Required; the backend refuses to start without it |
 | `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/chat` | Browser API base URL. Compose derives it from `ALFHEIM_BASE_URL` (build argument and runtime env) |
@@ -100,6 +101,21 @@ MCP sessions are kept per endpoint, household and user: `ClientPool` resolves th
 every call from that call's caller credentials, so a session id and the cached tool list are
 never shared between users or households. Idle sessions are dropped after 15 minutes. The MCP
 servers themselves do not yet bind a session id to the caller that opened it (#633).
+
+### Household-scoped MCP sources
+
+Besides the installation-wide registry, `mcpservers` takes household-scoped sources
+(`HouseholdSource`). The only one is the dashboard's Home Assistant proxy
+([#957](https://github.com/KroegerLeif/Alfheim/issues/957), ADR 0010 §4): on every tool
+discovery chat calls `GET {CHAT_DASHBOARD_URL}/api/v1/integrations/home-assistant/status` with the
+caller's token and `X-Household-ID`. Only when the dashboard confirms the membership and answers
+`"mcp_available": true` is `{CHAT_DASHBOARD_URL}/api/v1/integrations/home-assistant/mcp` listed,
+with the slug `homeassistant`, for that call only, so one household's Home Assistant tools never
+appear for another. A failing status call hides the server for that turn (3 s timeout). The proxy
+has no registry row: tool results from it carry no `mcp_server_id`, and it cannot be toggled with
+`PATCH /api/v1/chat/mcp-servers/{id}`. A model block's MCP allowlist names it as `homeassistant`.
+Chat never sees the Home Assistant token; with `allow_control` off the dashboard offers only
+read-only tools and rejects control calls.
 
 ---
 
