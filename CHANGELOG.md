@@ -17,24 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ADR 0010 records the integration architecture: launchers stay UI-only links, typed plugins live in the dashboard backend with encrypted household-scoped credentials, `netguard` with `INTEGRATIONS_ALLOWED_HOSTS`, an MCP proxy for ALFI, HMAC-signed webhooks and a household-bound service principal (#953).
 - ADR 0011 records the headless API contract for native clients: committed OpenAPI 3.1 specs with a CI drift gate, one error envelope and page shape, canonical `/api/v1/<app>` paths, additive versioning with a deprecation window, PKCE through the system browser with a native Zitadel application, clients under `clients/` and LAN TLS through DNS-01 (#891).
 - Add household-managed external app launchers: owners and admins add Home Assistant, Jellyfin, Navidrome, YouTube or any http(s) link to the dashboard, every household member sees them (`/api/v1/launchers`) (#955).
+- Add the typed plugin framework to the dashboard: a plugin registry, household-scoped plugin settings with AES-256-GCM encrypted credentials (`INTEGRATIONS_ENCRYPTION_KEY`), a connection test through `netguard` with `INTEGRATIONS_ALLOWED_HOSTS` and a 5 s timeout, `/api/v1/integrations/plugins` and an integrations section under the dashboard settings where owners and admins enable and test plugins (#956).
 - Add household-bound service principals: household owners and admins bind the provisioned `alfheim-integrations` machine user to a household with scopes (`/api/v1/households/{id}/service-bindings`), the membership API answers it with the role `SERVICE`, and backends admit it only on endpoints that opt in with `require_household_access(allow_service_scopes=...)` or `AllowServiceScopes(...)`; `alfheim-setup` writes `INTEGRATIONS_PRINCIPAL_ID`, `INTEGRATIONS_CLIENT_ID` and `INTEGRATIONS_CLIENT_SECRET` (#958).
 - Add `POST /api/v1/chores/instances` and the MCP tool `create_chore_instance` to create a one-off chore from a template without changing its schedule, idempotent per household through the `Idempotency-Key` header and open to service principals with the `chores:create_instance` scope (#959).
 
 ### Changed
 - Move the household middleware, API key encryption and outbound host guard from the chat backend into `packages/go-shared` (`household`, `crypto`, `netguard`) and add `RequireHouseholdRole` for write endpoints (#954).
 - Redesign the landing page around the Lean Core and its hardware tiers, Core and Optional modules with their `alfheim-setup apps enable` command, the planned launchers and typed plugins, and a roadmap linking the v0.6.0 and v0.7.0 milestones (#952).
-
-### Fixed
-- Serve canonical URLs and the sitemap of the docs portal from `https://docs.alfheim.loegien.de/docs/`, read the landing page release badge from `CHANGELOG.md` instead of a made-up `v2.4 LTS`, and replace the invented `api.alfheim.loegien.de` host with `https://<your-domain>/api/v1/<app>` (#951).
-
-### Changed
 - Lint every frontend and `@alfheim/shared` with one shared ESLint flat config (`defineAlfheimEslintConfig()` from `@alfheim/shared/eslint-preset`); `./scripts/verify.sh --frontend` and `ci-required` now fail on any ESLint error (#637).
 - Enforce a coverage floor per frontend: `defineAlfheimVitestConfig({ thresholds })` sets each app's floor at its measured coverage, and `./scripts/verify.sh --frontend` and `ci-required` run Vitest with `--coverage`, so coverage can no longer drop (#385).
 
 ### Fixed
+- Serve canonical URLs and the sitemap of the docs portal from `https://docs.alfheim.loegien.de/docs/`, read the landing page release badge from `CHANGELOG.md` instead of a made-up `v2.4 LTS`, and replace the invented `api.alfheim.loegien.de` host with `https://<your-domain>/api/v1/<app>` (#951).
 - Remove the `postgres-core` bind mount `infrastructure/postgres/data` on `./scripts/down.sh -v`, through a short-lived container of the pinned Postgres image, so the next `up.sh` starts a fresh cluster without host root; plain `down.sh` keeps it, and the removal refuses any path outside `<repo root>/infrastructure/postgres/data` (#941).
 - Bring `@alfheim/shared` back above its 90 % branch coverage threshold with new tests for the OIDC flow, `useOidcAuth`, `AuthGuard` and `ThemeContext` (#609).
 - Stop rendering the shared sidebar, media-query hook, language provider, address autocomplete, map viewer and ALFI chat widget through extra effect passes; the sidebar collapse state now stays in sync across every sidebar and tab (#637).
+- Render dashboard launcher icons through a static `LauncherIcon` component so the frontend lint gate no longer reports components created during render (#956).
 
 ### Security
 - Sign release attestations with `actions/attest` instead of the deprecated `actions/attest-sbom` and `actions/attest-build-provenance`, and retry each attestation up to three times so a transient Sigstore error no longer fails a release half-published (#950).

@@ -3,6 +3,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
+import { StaticHouseholdProvider } from '@alfheim/shared'
 import { renderWithProviders } from '../../../tests/test-utils'
 import { server } from '../../../tests/mocks/server'
 import SettingsPage from '../page'
@@ -25,6 +26,15 @@ vi.mock('@alfheim/shared', async () => {
   }
 })
 
+// The app shell mounts the household provider; the integrations section reads it.
+function renderSettings() {
+  return renderWithProviders(
+    <StaticHouseholdProvider householdId={null} value={{ role: null }}>
+      <SettingsPage />
+    </StaticHouseholdProvider>
+  )
+}
+
 describe('SettingsPage', () => {
   it('has no "Save Changes" button, since every setting already auto-saves', async () => {
     server.use(
@@ -40,7 +50,7 @@ describe('SettingsPage', () => {
       )
     )
 
-    renderWithProviders(<SettingsPage />)
+    renderSettings()
 
     await waitFor(() => expect(screen.getByText('Pantry')).toBeInTheDocument())
     expect(screen.queryByRole('button', { name: /save_changes/i })).not.toBeInTheDocument()
@@ -66,7 +76,7 @@ describe('SettingsPage', () => {
     )
 
     const user = userEvent.setup()
-    renderWithProviders(<SettingsPage />)
+    renderSettings()
 
     await waitFor(() => expect(screen.getByText('Pantry')).toBeInTheDocument())
     await user.click(screen.getByText('Pantry'))

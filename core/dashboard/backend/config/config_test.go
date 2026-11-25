@@ -214,3 +214,40 @@ func TestLoad_CORSOrigins(t *testing.T) {
 		t.Error("a wildcard origin must fail Load()")
 	}
 }
+
+func TestLoad_Integrations(t *testing.T) {
+	t.Setenv("INTEGRATIONS_ENCRYPTION_KEY", "")
+	t.Setenv("INTEGRATIONS_ENCRYPTION_KEY_ID", "")
+	t.Setenv("INTEGRATIONS_ALLOWED_HOSTS", "")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load without a key must succeed (fail closed for secrets only): %v", err)
+	}
+	if len(cfg.Integrations.EncryptionKey) != 0 || cfg.Integrations.EncryptionKeyID != "v1" || cfg.Integrations.AllowedHosts != "" {
+		t.Errorf("unexpected default integrations config %+v", cfg.Integrations)
+	}
+
+	// 32 bytes of 'A' (0x41), base64 encoded.
+	t.Setenv("INTEGRATIONS_ENCRYPTION_KEY", "QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE=")
+	t.Setenv("INTEGRATIONS_ENCRYPTION_KEY_ID", "v2")
+	t.Setenv("INTEGRATIONS_ALLOWED_HOSTS", "homeassistant.lan, 192.168.1.0/24")
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(cfg.Integrations.EncryptionKey) != 32 || cfg.Integrations.EncryptionKeyID != "v2" ||
+		cfg.Integrations.AllowedHosts != "homeassistant.lan, 192.168.1.0/24" {
+		t.Errorf("unexpected integrations config %+v", cfg.Integrations)
+	}
+
+	t.Setenv("INTEGRATIONS_ENCRYPTION_KEY", "too-short")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "INTEGRATIONS_ENCRYPTION_KEY") {
+		t.Errorf("a malformed key must fail startup, got %v", err)
+	}
+
+	t.Setenv("INTEGRATIONS_ENCRYPTION_KEY", "")
+	t.Setenv("INTEGRATIONS_ALLOWED_HOSTS", "10.0.0.0/99")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "INTEGRATIONS_ALLOWED_HOSTS") {
+		t.Errorf("a malformed allowlist must fail startup, got %v", err)
+	}
+}

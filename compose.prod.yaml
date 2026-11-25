@@ -695,6 +695,12 @@ services:
       # internal membership API, reached over core-net (never through Caddy).
       - ALFHEIM_INTERNAL_TOKEN=${ALFHEIM_INTERNAL_TOKEN:?ALFHEIM_INTERNAL_TOKEN must be set}
       - HOUSEHOLD_INTERNAL_URL=${HOUSEHOLD_INTERNAL_URL:-http://household-backend:8080}
+      # Typed plugins (ADR 0010): the key encrypts plugin credentials. Empty
+      # keeps the dashboard up but refuses to store or read credentials.
+      - INTEGRATIONS_ENCRYPTION_KEY=${INTEGRATIONS_ENCRYPTION_KEY:-}
+      - INTEGRATIONS_ENCRYPTION_KEY_ID=${INTEGRATIONS_ENCRYPTION_KEY_ID:-v1}
+      # Private hosts, IPs or CIDR ranges plugins may reach; empty = public only.
+      - INTEGRATIONS_ALLOWED_HOSTS=${INTEGRATIONS_ALLOWED_HOSTS:-}
       # Client credentials of the alfheim-integrations machine user (#958),
       # provisioned by alfheim-setup: plugin actions run as this household-bound
       # service principal. Empty disables plugin actions.
