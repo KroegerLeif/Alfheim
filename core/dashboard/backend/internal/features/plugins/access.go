@@ -30,6 +30,7 @@ func (s *Service) Instance(ctx context.Context, householdID uuid.UUID, pluginTyp
 		return Instance{}, err
 	}
 	return Instance{
+		ID:          rec.ID,
 		HouseholdID: householdID,
 		Type:        pluginType,
 		Enabled:     rec.Enabled,

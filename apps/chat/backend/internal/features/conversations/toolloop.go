@@ -125,14 +125,14 @@ func (s *service) executeToolCall(ctx context.Context, conversationID string, ca
 		s.log.Warn("mcp tool call failed", slog.String("tool_name", call.ToolName), slog.String("app_slug", server.Slug), slog.String("error", err.Error()))
 		// The stored text stays generic: transport errors name internal endpoints,
 		// which the user-facing history must not show.
-		s.persistToolResult(ctx, conversationID, call, toolCallFailedText, true, &server.ID)
+		s.persistToolResult(ctx, conversationID, call, toolCallFailedText, true, server.RegistryID())
 		return fmt.Sprintf("tool error: %v", err)
 	}
 	if isError {
 		s.log.Debug("mcp tool call reported an error result", slog.String("tool_name", call.ToolName), slog.String("app_slug", server.Slug))
 	}
 
-	s.persistToolResult(ctx, conversationID, call, resultText, isError, &server.ID)
+	s.persistToolResult(ctx, conversationID, call, resultText, isError, server.RegistryID())
 	return resultText
 }
 

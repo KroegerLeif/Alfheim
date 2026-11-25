@@ -31,6 +31,16 @@ type ServerRef struct {
 	EndpointURL string
 }
 
+// RegistryID returns the registry row id for messages.mcp_server_id, or nil
+// for a household-scoped server (#957) that has no registry row.
+func (s ServerRef) RegistryID() *string {
+	if s.ID == "" {
+		return nil
+	}
+	id := s.ID
+	return &id
+}
+
 const (
 	// clientIdleTTL is how long a per-caller Client may stay unused before the pool
 	// drops it (and with it the MCP session and the cached tool list).

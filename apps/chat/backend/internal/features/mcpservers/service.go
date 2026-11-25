@@ -34,8 +34,9 @@ type MCPClientPool interface {
 }
 
 type service struct {
-	repo Repository
-	log  *slog.Logger
+	repo    Repository
+	log     *slog.Logger
+	sources []HouseholdSource
 
 	mu sync.RWMutex
 	// seeded holds the app slugs of the last applied spec; nil means no spec
@@ -43,9 +44,11 @@ type service struct {
 	seeded map[string]bool
 }
 
-// NewService creates an mcpservers service instance.
-func NewService(repo Repository, log *slog.Logger) Service {
-	return &service{repo: repo, log: log}
+// NewService creates an mcpservers service instance. sources add
+// household-scoped servers (the dashboard's Home Assistant proxy, #957) to
+// ListEnabledServers for the caller's household only.
+func NewService(repo Repository, log *slog.Logger, sources ...HouseholdSource) Service {
+	return &service{repo: repo, log: log, sources: sources}
 }
 
 func (s *service) SeedFromEnv(ctx context.Context, spec string) error {
@@ -124,6 +127,15 @@ func (s *service) ListEnabledServers(ctx context.Context) ([]mcp.ServerRef, erro
 			continue
 		}
 		out = append(out, mcp.ServerRef{ID: srv.ID, Slug: srv.AppSlug, EndpointURL: srv.InternalURL})
+	}
+	for _, src := range s.sources {
+		extra, err := src.HouseholdServers(ctx)
+		if err != nil {
+			// One unavailable source only hides its own tools.
+			s.log.Warn("household mcp source unavailable; skipping", slog.String("error", err.Error()))
+			continue
+		}
+		out = append(out, extra...)
 	}
 	return out, nil
 }

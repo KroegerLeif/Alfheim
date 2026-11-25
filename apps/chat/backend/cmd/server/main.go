@@ -116,7 +116,9 @@ func run(parentCtx context.Context) error {
 
 	// MCP Servers Registry (bridges to the Fach-Apps' FastMCP servers)
 	mcpServersRepo := mcpservers.NewRepository(dbClient.Pool)
-	mcpServersService := mcpservers.NewService(mcpServersRepo, log)
+	// Households with the dashboard's Home Assistant plugin also get its MCP proxy.
+	haSource := mcpservers.NewDashboardHomeAssistant(cfg.DashboardURL, &http.Client{Timeout: 3 * time.Second})
+	mcpServersService := mcpservers.NewService(mcpServersRepo, log, haSource)
 	mcpClientPool := mcp.NewClientPool()
 	mcpServersHandler := mcpservers.NewHandler(mcpServersService, mcpClientPool)
 

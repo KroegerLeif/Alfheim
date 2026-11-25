@@ -8,50 +8,63 @@ import (
 	"testing"
 
 	"alfheim/dashboard/config"
-	"alfheim/dashboard/internal/features/plugins"
+	"alfheim/dashboard/internal/features/apps"
+	"alfheim/dashboard/internal/features/integrations/homeassistant"
 )
 
-// testPluginService is the plugin service of a router under test: no database,
-// no key and an empty allowlist.
-func testPluginService(t *testing.T) *plugins.Service {
+func discardLogger() *slog.Logger { return slog.New(slog.NewTextHandler(io.Discard, nil)) }
+
+// testPluginService is the integration stack of a router under test: no
+// database, no key, an empty allowlist and no service principal.
+func testPluginService(t *testing.T) *integrationStack {
 	t.Helper()
-	svc, err := newPluginService(nil, config.IntegrationsConfig{}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	s, err := newIntegrations(nil, &config.Config{}, apps.AllApps(), discardLogger())
 	if err != nil {
-		t.Fatalf("newPluginService: %v", err)
+		t.Fatalf("newIntegrations: %v", err)
 	}
-	return svc
+	return s
 }
 
-func TestNewPluginService_WarnsWithoutKey(t *testing.T) {
+func TestNewIntegrations_WarnsWithoutKeyAndPrincipal(t *testing.T) {
 	var logs bytes.Buffer
-	svc, err := newPluginService(nil, config.IntegrationsConfig{EncryptionKeyID: "v1"}, slog.New(slog.NewTextHandler(&logs, nil)))
+	cfg := &config.Config{Integrations: config.IntegrationsConfig{EncryptionKeyID: "v1"}}
+	s, err := newIntegrations(nil, cfg, apps.AllApps(), slog.New(slog.NewTextHandler(&logs, nil)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if svc.EncryptionAvailable() || !strings.Contains(logs.String(), "INTEGRATIONS_ENCRYPTION_KEY") {
+	if s.plugins.EncryptionAvailable() || !strings.Contains(logs.String(), "INTEGRATIONS_ENCRYPTION_KEY") {
 		t.Errorf("a missing key must be logged and leave encryption unavailable; logs: %s", logs.String())
 	}
-	if len(svc.Registry().Types()) != 0 {
-		t.Errorf("this build registers no concrete plugin, got %v", svc.Registry().Types())
+	if !strings.Contains(logs.String(), "service principal is not configured") {
+		t.Errorf("a missing principal must be logged; logs: %s", logs.String())
+	}
+	if got := s.plugins.Registry().Types(); len(got) != 1 || got[0] != homeassistant.Type {
+		t.Errorf("this build registers the Home Assistant plugin, got %v", got)
 	}
 }
 
-func TestNewPluginService_WithKey(t *testing.T) {
-	cfg := config.IntegrationsConfig{EncryptionKey: bytes.Repeat([]byte{7}, 32), EncryptionKeyID: "v1", AllowedHosts: "10.0.0.0/8"}
-	svc, err := newPluginService(nil, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	if err != nil || !svc.EncryptionAvailable() {
-		t.Fatalf("svc=%v err=%v", svc, err)
+func TestNewIntegrations_WithKeyAndPrincipal(t *testing.T) {
+	cfg := &config.Config{Integrations: config.IntegrationsConfig{
+		EncryptionKey: bytes.Repeat([]byte{7}, 32), EncryptionKeyID: "v1", AllowedHosts: "10.0.0.0/8",
+		Principal: config.PrincipalConfig{PrincipalID: "p", ClientID: "c", ClientSecret: "s", ProjectID: "proj"},
+	}}
+	var logs bytes.Buffer
+	s, err := newIntegrations(nil, cfg, apps.ParseEnabledApps(""), slog.New(slog.NewTextHandler(&logs, nil)))
+	if err != nil || !s.plugins.EncryptionAvailable() {
+		t.Fatalf("s=%v err=%v", s, err)
+	}
+	if strings.Contains(logs.String(), "service principal") || strings.Contains(logs.String(), "s\"") {
+		t.Errorf("a configured principal logs nothing; logs: %s", logs.String())
 	}
 }
 
-func TestNewPluginService_RejectsBadSettings(t *testing.T) {
-	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	for name, cfg := range map[string]config.IntegrationsConfig{
+func TestNewIntegrations_RejectsBadSettings(t *testing.T) {
+	for name, ic := range map[string]config.IntegrationsConfig{
 		"allowlist": {AllowedHosts: "10.0.0.0/99"},
 		"key size":  {EncryptionKey: []byte("short"), EncryptionKeyID: "v1"},
 		"key id":    {EncryptionKey: bytes.Repeat([]byte{7}, 32)},
 	} {
-		if _, err := newPluginService(nil, cfg, log); err == nil {
+		if _, err := newIntegrations(nil, &config.Config{Integrations: ic}, apps.AllApps(), discardLogger()); err == nil {
 			t.Errorf("%s: expected an error", name)
 		}
 	}

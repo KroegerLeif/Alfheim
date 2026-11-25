@@ -36,6 +36,10 @@ type Config struct {
 	// "no tool apps installed", while a missing variable keeps the registry
 	// as it is.
 	MCPServersSpecSet bool
+	// DashboardURL is CHAT_DASHBOARD_URL, the dashboard backend whose Home
+	// Assistant MCP proxy households with the plugin enabled get as a tool
+	// server (#957). Default http://dashboard-backend:8080.
+	DashboardURL string
 }
 
 // DefaultAllowedLLMHosts is used when CHAT_ALLOWED_LLM_HOSTS is unset, so the
@@ -180,6 +184,7 @@ func Load() (*Config, error) {
 			InternalToken: getEnv("ALFHEIM_INTERNAL_TOKEN", ""),
 		},
 		MCPServersSpec: getEnv("CHAT_MCP_SERVERS", ""),
+		DashboardURL:   strings.TrimRight(getEnv("CHAT_DASHBOARD_URL", "http://dashboard-backend:8080"), "/"),
 	}
 	_, cfg.MCPServersSpecSet = os.LookupEnv("CHAT_MCP_SERVERS")
 	// Unset keeps the default; an explicitly empty value allows no private host.

@@ -18,6 +18,7 @@ const (
 	CodeUnknownType           = "plugin_type_unknown"
 	CodeNotConfigured         = "plugin_not_configured"
 	CodeEncryptionUnavailable = "integrations_encryption_unavailable"
+	CodeLifecycle             = "plugin_lifecycle_failed"
 	CodeInternal              = "internal_error"
 	CodeHouseholdCtx          = household.CodeHouseholdContextMissing
 )
@@ -81,7 +82,9 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeInvalidBody, "request body is not a valid plugin object")
 		return
 	}
-	view, err := h.svc.Save(r.Context(), hc.HouseholdID, chi.URLParam(r, "type"), req)
+	// An EnableObserver acts on other Alfheim APIs as the admin who saved.
+	ctx := WithCallerToken(r.Context(), BearerToken(r))
+	view, err := h.svc.Save(ctx, hc.HouseholdID, chi.URLParam(r, "type"), req)
 	if err != nil {
 		h.writeErr(w, err)
 		return
@@ -125,6 +128,9 @@ func (h *Handler) writeErr(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, CodeUnknownType, "plugin type is not available")
 	case errors.Is(err, ErrNotConfigured):
 		writeError(w, http.StatusNotFound, CodeNotConfigured, "plugin is not configured for this household")
+	case errors.Is(err, ErrLifecycle):
+		h.log.Warn("plugin enable state change failed", slog.String("error", err.Error()))
+		writeError(w, http.StatusBadGateway, CodeLifecycle, "the integration could not be switched; try again later")
 	case errors.Is(err, ErrEncryptionUnavailable):
 		writeError(w, http.StatusServiceUnavailable, CodeEncryptionUnavailable,
 			"credentials cannot be stored: INTEGRATIONS_ENCRYPTION_KEY is not configured")
