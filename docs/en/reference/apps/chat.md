@@ -46,6 +46,7 @@ Source: [`apps/chat/`](https://github.com/KroegerLeif/Alfheim/tree/main/apps/cha
 | `CHAT_ATTACHMENT_URL_SECRET` | *(generated secret, at least 32 bytes)* | HMAC key signing attachment download URLs. Required in production (compose refuses to start without it); the installer generates it and backfills it on update. Without it outside production, a random key is used per process |
 | `CHAT_ATTACHMENT_URL_TTL_MINUTES` | `15` | Lifetime of a signed attachment download URL |
 | `CHAT_MCP_SERVERS` | `pantry=http://pantry-backend:8000/mcp,...` | Comma-separated FastMCP endpoints of the enabled tool apps. Empty means no tool app is installed; unset keeps the stored registry |
+| `CHAT_DASHBOARD_URL` | `http://dashboard-backend:8080` | Dashboard backend whose Home Assistant MCP proxy is offered to households with the plugin enabled |
 | `HOUSEHOLD_INTERNAL_URL` | `http://household-backend:8080` | Base URL of the household membership API (`core/household`) |
 | `ALFHEIM_INTERNAL_TOKEN` | *(generated secret)* | Shared secret sent as `Authorization: Bearer …` on membership checks. Required; the backend refuses to start without it |
 | `NEXT_PUBLIC_API_URL` | `${ALFHEIM_BASE_URL}/api/v1/chat` | Browser API base URL. Compose derives it from `ALFHEIM_BASE_URL` (build argument and runtime env) |
@@ -68,6 +69,8 @@ Every chat API route runs `middleware.RequireHousehold` after JWT validation: `X
   - `GET /conversations/{id}/stream` emits `delta`, `tool_call` (`{"ID", "ToolName", "Arguments"}`), `done` and `error` events. Closing the connection cancels the model request and any running tool call; nothing is stored for the cancelled reply, so the pending user message can be streamed again (the UI's Stop and Retry actions).
   - Every tool call outcome is stored as a `tool` message whose `tool_calls` holds `{"tool_call_id", "tool_name", "is_error"}`; transport failures are stored with a generic text, never the internal endpoint URL. History replay sends the id as `tool_call_id`. The UI shows tool calls as collapsed entries (name and status; arguments and result on expand, credential-like argument keys, bearer tokens and JWTs masked).
 - `modelblocks`: Provider configuration blocks (Ollama, OpenAI) with AES-256 key encryption. Only `ollama` and `openai_compatible` can run, and creating a block with any other `provider_type` answers `400`. OpenRouter is configured as `openai_compatible` with base URL `https://openrouter.ai/api`.
+  - **Household default block** (used by the dashboard's ALFI card): `GET /api/v1/chat/model-blocks/household-default` returns the oldest model block shared with the caller's household (private and bootstrap blocks never count) or `404 not_found`; any member may read it. `PUT` on the same path creates (`201`) or updates (`200`) it and is limited to `OWNER` and `ADMIN` by `household.RequireHouseholdRole` (`403 household_role_forbidden` otherwise), even when another member created the block. Body: `{"display_name", "provider_type", "base_url", "model_identifier", "api_key", "clear_api_key"}`; unknown fields are rejected, `display_name` defaults to `ALFI`, `model_identifier` is required. The usual rules hold: the base URL must pass `CHAT_ALLOWED_LLM_HOSTS`, and a changed base URL needs a new key or `clear_api_key`.
+  - Model block errors carry `{"error", "message"}`. A base URL outside the allowlist answers `400 invalid_base_url`, a changed base URL that would reuse the stored key `400 api_key_required`; other invalid input stays `400 bad_request`.
 - `attachments`: File attachment uploads backed by RustFS S3 object storage. Each upload records its uploader (`image_refs.owner_user_id`); reading an attachment by ID returns `404` to anyone else, and a message can only link unlinked attachments owned by the conversation owner (otherwise `400`). Attachments uploaded before this ownership column existed have no owner and can no longer be read by ID or linked.
   - Uploads (JPEG, PNG or WebP, up to 10 MB, checked by content) are normalised before they are stored: the EXIF orientation is applied, all metadata including GPS is dropped, and the longest edge is capped at 2048 px. Opaque images are stored as JPEG, images with transparency as PNG. Images above 40 megapixels are refused with `400`. The pipeline is pure Go, so the binary stays CGO-free.
   - The bucket stays private and the API never returns storage URLs. Every `url` (upload response, `GET /attachments/{id}`, message `attachments`) is `GET /api/v1/chat/attachments/{id}/content?token=…` on the gateway (`ALFHEIM_BASE_URL`), minted fresh on each read. The token is an HMAC-SHA256 over attachment, user and household with an expiry (15 minutes by default), so `<img>` can load it without a bearer header. The endpoint also accepts a normal bearer token with `X-Household-ID`.
@@ -98,6 +101,21 @@ MCP sessions are kept per endpoint, household and user: `ClientPool` resolves th
 every call from that call's caller credentials, so a session id and the cached tool list are
 never shared between users or households. Idle sessions are dropped after 15 minutes. The MCP
 servers themselves do not yet bind a session id to the caller that opened it (#633).
+
+### Household-scoped MCP sources
+
+Besides the installation-wide registry, `mcpservers` takes household-scoped sources
+(`HouseholdSource`). The only one is the dashboard's Home Assistant proxy
+([#957](https://github.com/KroegerLeif/Alfheim/issues/957), ADR 0010 §4): on every tool
+discovery chat calls `GET {CHAT_DASHBOARD_URL}/api/v1/integrations/home-assistant/status` with the
+caller's token and `X-Household-ID`. Only when the dashboard confirms the membership and answers
+`"mcp_available": true` is `{CHAT_DASHBOARD_URL}/api/v1/integrations/home-assistant/mcp` listed,
+with the slug `homeassistant`, for that call only, so one household's Home Assistant tools never
+appear for another. A failing status call hides the server for that turn (3 s timeout). The proxy
+has no registry row: tool results from it carry no `mcp_server_id`, and it cannot be toggled with
+`PATCH /api/v1/chat/mcp-servers/{id}`. A model block's MCP allowlist names it as `homeassistant`.
+Chat never sees the Home Assistant token; with `allow_control` off the dashboard offers only
+read-only tools and rejects control calls.
 
 ---
 
@@ -131,7 +149,7 @@ Seeded and re-synced on every startup from `CHAT_MCP_SERVERS` (`internal/feature
 ### Invariants
 
 1. The API key plaintext never leaves the backend; response DTOs expose only `has_api_key: bool`.
-2. Shared `model_blocks` are usable by household members; only `owner_user_id` may edit, delete or health-check them (`ModelBlock.CanModify` in `internal/features/modelblocks/entity.go`).
+2. Shared `model_blocks` are usable by household members; through the per-block endpoints only `owner_user_id` may edit or delete them (`ModelBlock.CanModify` in `internal/features/modelblocks/entity.go`). The household's `OWNER` and `ADMIN` also manage the household default shared block through `PUT /api/v1/chat/model-blocks/household-default` (see `modelblocks` above).
 3. Bootstrap blocks (`is_bootstrap = true`, `owner_user_id = "system"`) are the exception: any authenticated user may see and modify them. The one-time seed is tracked in the separate `bootstrap_state` table, so deleting or editing the seeded block never makes it reappear after a restart.
 4. `internal/shared/llm.Provider` is built from primitive parameters (provider type, base URL, model, API key), never from a `modelblocks.ModelBlock`, so `internal/shared/llm` does not depend on `internal/features/modelblocks`.
 5. JWT validation comes from the shared `alfheim/go-shared/auth` package and checks both issuer and audience (`OIDC_AUDIENCE`), like every Go backend.

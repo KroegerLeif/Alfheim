@@ -46,6 +46,12 @@ type IntegrationsConfig struct {
 	// allowlist of private hosts, IP addresses and CIDR ranges plugins may
 	// reach. Empty allows public destinations only.
 	AllowedHosts string
+	// Principal holds the client credentials of the alfheim-integrations
+	// machine user (#958) that plugin actions run as.
+	Principal PrincipalConfig
+	// ChoresURL is INTEGRATIONS_CHORES_URL, the chores backend that plugin
+	// actions call through its public API (default http://chores-backend:8000).
+	ChoresURL string
 }
 
 // HouseholdConfig locates core/household's internal membership API, which
@@ -157,6 +163,13 @@ func loadIntegrations() (IntegrationsConfig, error) {
 	out := IntegrationsConfig{
 		EncryptionKeyID: strings.TrimSpace(getEnv("INTEGRATIONS_ENCRYPTION_KEY_ID", "v1")),
 		AllowedHosts:    strings.TrimSpace(os.Getenv("INTEGRATIONS_ALLOWED_HOSTS")),
+		ChoresURL:       strings.TrimRight(getEnv("INTEGRATIONS_CHORES_URL", "http://chores-backend:8000"), "/"),
+		Principal: PrincipalConfig{
+			PrincipalID:  strings.TrimSpace(os.Getenv("INTEGRATIONS_PRINCIPAL_ID")),
+			ClientID:     strings.TrimSpace(os.Getenv("INTEGRATIONS_CLIENT_ID")),
+			ClientSecret: strings.TrimSpace(os.Getenv("INTEGRATIONS_CLIENT_SECRET")),
+			ProjectID:    strings.TrimSpace(os.Getenv("ZITADEL_PROJECT_ID")),
+		},
 	}
 	if raw := strings.TrimSpace(os.Getenv("INTEGRATIONS_ENCRYPTION_KEY")); raw != "" {
 		key, err := crypto.DecodeKey(raw)

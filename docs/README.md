@@ -60,6 +60,8 @@ source with a translation notice, so untranslated paths never 404.
 * [Run Alfheim on low-spec hardware](./en/how-to/low-spec-setup.md) — Lean Core install, telemetry off, adding apps one at a time.
 * [Manage apps](./en/how-to/manage-apps.md) — `alfheim-setup apps list|enable|disable`, dependencies, what happens to data.
 * [Add an external app launcher](./en/how-to/add-external-app-launcher.md) — Household tiles for Home Assistant, Jellyfin, YouTube or any other web app.
+* [Connect a media server](./en/how-to/connect-media-server.md) — Show what Jellyfin or Navidrome plays and control Jellyfin playback.
+* [Connect ALFI to a local model](./en/how-to/connect-alfi-local-model.md) — Point ALFI at an Ollama server or an OpenAI-compatible API.
 * [Wildcard TLS with Hetzner DNS-01](./en/how-to/hetzner-dns-tls.md) — API token and wildcard certificates without inbound port 80.
 * [Wildcard TLS with deSEC DNS-01](./en/how-to/desec-dns-tls.md) — the same for domains hosted on deSEC.
 * [Change the domain](./en/how-to/change-domain.md) — move an installation to new host names with `--reconfigure`.

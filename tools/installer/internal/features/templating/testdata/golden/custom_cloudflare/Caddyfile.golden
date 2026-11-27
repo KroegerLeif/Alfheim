@@ -74,6 +74,9 @@
 # - lookup: library and pantry lookups that call ISBN, BGG, TMDB and Open
 #   Food Facts upstream and would otherwise burn their quotas.
 # - api: every /api/v1 route. Generous: a page load fires several calls.
+# - webhook: the unauthenticated, HMAC-signed Home Assistant webhook
+#   (POST /api/v1/integrations/home-assistant/events). Automations send a
+#   few events per minute; the limit caps signature-guessing floods.
 # =============================================================================
 (auth_rate_limit) {
 	rate_limit {
@@ -96,6 +99,15 @@
 
 (api_rate_limit) {
 	rate_limit {
+		zone webhook {
+			match {
+				method POST
+				path /api/v1/integrations/home-assistant/events
+			}
+			key {client_ip}
+			events {$ALFHEIM_RATE_LIMIT_WEBHOOK:30}
+			window 1m
+		}
 		zone lookup {
 			match {
 				path /api/v1/library/lookup* /library/api/v1/lookup* /api/v1/pantry/products/barcode/* /pantry/api/v1/products/barcode/*

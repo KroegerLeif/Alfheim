@@ -101,6 +101,8 @@ export interface TelemetryLogsResponse {
 /** Capabilities of the authenticated user, from GET /api/v1/user/capabilities. */
 export interface UserCapabilities {
   operator: boolean;
+  /** True when the installation runs the optional chat app (ALFI). */
+  chat?: boolean;
 }
 
 /** Live state of one app backend, probed by the dashboard backend (GET /api/v1/apps/health). */

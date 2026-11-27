@@ -101,7 +101,7 @@ func run(parentCtx context.Context) error {
 	// Model Blocks Feature (LLM provider configs, encryption, health checks)
 	modelBlocksRepo := modelblocks.NewRepository(dbClient.Pool)
 	modelBlocksService := modelblocks.NewServiceWithGuard(modelBlocksRepo, cfg.Encryption.Key, cfg.Encryption.KeyID, log, newLLMGuard(cfg.AllowedLLMHosts, log))
-	modelBlocksHandler := modelblocks.NewHandler(modelBlocksService)
+	modelBlocksHandler := modelblocks.NewHandler(modelBlocksService, log)
 
 	// Seed the ENV-configured fallback model block on first startup only.
 	if err := ensureBootstrap(ctx, modelBlocksService, modelblocks.BootstrapSeed{
@@ -116,7 +116,9 @@ func run(parentCtx context.Context) error {
 
 	// MCP Servers Registry (bridges to the Fach-Apps' FastMCP servers)
 	mcpServersRepo := mcpservers.NewRepository(dbClient.Pool)
-	mcpServersService := mcpservers.NewService(mcpServersRepo, log)
+	// Households with the dashboard's Home Assistant plugin also get its MCP proxy.
+	haSource := mcpservers.NewDashboardHomeAssistant(cfg.DashboardURL, &http.Client{Timeout: 3 * time.Second})
+	mcpServersService := mcpservers.NewService(mcpServersRepo, log, haSource)
 	mcpClientPool := mcp.NewClientPool()
 	mcpServersHandler := mcpservers.NewHandler(mcpServersService, mcpClientPool)
 
@@ -257,7 +259,7 @@ func buildRouter(
 	r.Use(chimiddleware.Recoverer)
 	r.Use(httpmw.CORSWithOrigins(httpmw.CORSConfig{
 		AllowedOrigins: allowedOrigins,
-		AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-Household-ID"},
 	}))
 	r.Use(httpmw.RequestLogger(log))

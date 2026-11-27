@@ -10,7 +10,8 @@
 # not running, such as optional apps left out of a Lean Core install, are
 # skipped and listed), the /internal/* surface
 # is unreachable from the outside, the household API rejects a request
-# with no bearer token, and, when Zitadel sends e-mail through Mailpit, a
+# with no bearer token, the Home Assistant webhook answers 429 above its rate
+# limit, and, when Zitadel sends e-mail through Mailpit, a
 # password reset for a throwaway user arrives there.
 #
 # It works unmodified against either compose file this repository ships:
@@ -320,6 +321,31 @@ if [[ "${code}" == "401" ]]; then
   log_success "/api/v1/households/me -> 401 without a token"
 else
   fail "/api/v1/households/me -> ${code}, want 401"
+fi
+echo ""
+
+# ------------------------------------------------------------------------------
+# 6b. The unauthenticated Home Assistant webhook is rate limited (#960): more
+# unsigned posts than ALFHEIM_RATE_LIMIT_WEBHOOK per minute get 429 from Caddy.
+# Unsigned posts never reach an action; the backend answers them 404.
+# ------------------------------------------------------------------------------
+log_info "Checking the Home Assistant webhook rate limit..."
+webhook_limit="$(env_value ALFHEIM_RATE_LIMIT_WEBHOOK)"
+webhook_limit="${webhook_limit:-30}"
+throttled="no"
+for _ in $(seq 1 $((webhook_limit + 5))); do
+  code="$(curl -s -o /dev/null -w '%{http_code}' ${CURL_TLS[@]+"${CURL_TLS[@]}"} -X POST \
+    -H 'Content-Type: application/json' -d '{}' \
+    "${BASE_URL}/api/v1/integrations/home-assistant/events" 2>/dev/null || true)"
+  if [[ "${code}" == "429" ]]; then
+    throttled="yes"
+    break
+  fi
+done
+if [[ "${throttled}" == "yes" ]]; then
+  log_success "webhook -> 429 above ${webhook_limit} requests per minute"
+else
+  fail "webhook was never rate limited above ${webhook_limit} requests per minute"
 fi
 echo ""
 

@@ -9,13 +9,15 @@ import { PluginCard } from './PluginCard';
 interface IntegrationsSectionProps {
   /** Per-type names and settings forms; each plugin adds one entry. */
   registry: PluginUiRegistry;
+  /** Cards that are not backend plugin types, such as ALFI's view over chat; shown after the plugins. */
+  extra?: React.ReactNode;
 }
 
 /**
  * Household integrations under the dashboard settings: every plugin type of this build with its
  * health, visible to all members and managed by owners and admins.
  */
-export function IntegrationsSection({ registry }: IntegrationsSectionProps) {
+export function IntegrationsSection({ registry, extra }: IntegrationsSectionProps) {
   const { t } = useTranslation();
   const { status } = useActiveHousehold();
   const { data, isLoading, isError } = usePlugins();
@@ -69,7 +71,10 @@ export function IntegrationsSection({ registry }: IntegrationsSectionProps) {
       {canManage && data && !encryptionAvailable && (
         <div className="mb-4">{notice('dashboard.integrations.encryption_unavailable', 'error')}</div>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">{body}</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {body}
+        {status === 'ready' && extra}
+      </div>
     </section>
   );
 }

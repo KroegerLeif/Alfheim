@@ -38,6 +38,7 @@ Caddy container's environment:
 | `ALFHEIM_RATE_LIMIT_AUTH` | `600` | Every request to the `auth.*` host, including login assets, the console and OIDC calls |
 | `ALFHEIM_RATE_LIMIT_API` | `1200` | Every `/api/v1` request on the app host |
 | `ALFHEIM_RATE_LIMIT_LOOKUP` | `60` | Library ISBN/BGG/TMDB lookups and pantry barcode lookups |
+| `ALFHEIM_RATE_LIMIT_WEBHOOK` | `30` | Posts to the Home Assistant webhook; raise it when many automations send events from one address |
 
 1. Add the variable to `.env` in the install directory, for example to allow
    more barcode scans per minute:

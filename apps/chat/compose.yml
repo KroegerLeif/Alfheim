@@ -40,6 +40,9 @@ services:
       - CHAT_MCP_SERVERS=${CHAT_MCP_SERVERS-pantry=http://pantry-backend:8000/mcp,chores=http://chores-backend:8000/mcp,maintenance=http://maintenance-backend:8000/mcp}
       # Hosts the chat backend may call as an LLM endpoint (SSRF allowlist).
       - CHAT_ALLOWED_LLM_HOSTS=${CHAT_ALLOWED_LLM_HOSTS:-host.docker.internal}
+      # Dashboard whose Home Assistant MCP proxy is offered to households
+      # with the plugin enabled (#957).
+      - CHAT_DASHBOARD_URL=${CHAT_DASHBOARD_URL:-http://dashboard-backend:8080}
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/readyz || exit 1"]
       interval: 5s
