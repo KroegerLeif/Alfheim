@@ -163,6 +163,10 @@ Notes:
 
 `dashboard-backend` also receives `ZITADEL_PROJECT_ID` for that scope. Plugin actions run only when the principal id, client id, client secret and project id are all set.
 
+| `INTEGRATIONS_PRINCIPAL_ID` | _(auto-provisioned)_ | Zitadel user id of the `alfheim-integrations` machine user ([service principals](../explanation/authentication-security.md#household-bound-service-principals)). `compose.prod.yaml` passes it to `household-backend` as `ALFHEIM_SERVICE_PRINCIPAL_IDS` |
+| `INTEGRATIONS_CLIENT_ID` | _(auto-provisioned)_ | Client id (`alfheim-integrations`) of its client credentials, passed to `dashboard-backend` |
+| `INTEGRATIONS_CLIENT_SECRET` | _(auto-provisioned)_ | Client secret of `alfheim-integrations`, passed to `dashboard-backend`. Provisioning creates it once and reuses it on later runs |
+
 The integrations machine user issues JWT access tokens; request them with the scope `openid urn:zitadel:iam:org:project:id:${ZITADEL_PROJECT_ID}:aud` so their audience is the project the backends accept.
 
 Grafana SSO is restricted to users holding the Zitadel project role `alfheim_operator`; everyone else is denied. The local `admin` login keeps working. See [Grant Grafana access](../how-to/grafana-access.md).
