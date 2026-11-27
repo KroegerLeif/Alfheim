@@ -26,6 +26,11 @@ type Config struct {
 	// InternalToken is the shared secret (ALFHEIM_INTERNAL_TOKEN) guarding the
 	// service-to-service membership API. Empty disables that API (503).
 	InternalToken string
+	// ServicePrincipalIDs are the Zitadel subjects of the machine users that
+	// may be bound to households as service principals
+	// (ALFHEIM_SERVICE_PRINCIPAL_IDS, comma-separated, #958). They are
+	// rejected on the whole public API. Empty disables service bindings.
+	ServicePrincipalIDs []string
 }
 
 // DatabaseConfig holds PostgreSQL connection configuration settings. It is the
@@ -82,10 +87,11 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		SignupAllowlist: signupAllowlist,
-		Environment:     env,
-		Port:            port,
-		InternalToken:   internalToken,
+		ServicePrincipalIDs: splitList(os.Getenv("ALFHEIM_SERVICE_PRINCIPAL_IDS")),
+		SignupAllowlist:     signupAllowlist,
+		Environment:         env,
+		Port:                port,
+		InternalToken:       internalToken,
 		Database: DatabaseConfig{
 			URL:             dbURL,
 			MaxConns:        maxConns,
@@ -103,6 +109,17 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// splitList parses a comma-separated list, dropping blank entries.
+func splitList(raw string) []string {
+	var out []string
+	for _, item := range strings.Split(raw, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			out = append(out, item)
+		}
+	}
+	return out
 }
 
 func getEnv(key, fallback string) string {

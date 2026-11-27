@@ -27,3 +27,19 @@ class HouseholdStreakNotFoundError(ChoreError):
 
 class DuplicateChoreTemplateError(ChoreError):
     """Raised when a chore template name conflict is detected within a household."""
+
+
+class IdempotencyKeyConflictError(ChoreError):
+    """Raised when an Idempotency-Key is reused for a different chore template."""
+
+
+class AssignmentForbiddenError(ChoreError):
+    """Raised when a member assigns a chore to someone else without an OWNER/ADMIN role."""
+
+
+class AssigneeNotMemberError(ChoreError):
+    """Raised when the requested assignee is not a member of the household."""
+
+
+class AssigneeNotAssignableError(ChoreError):
+    """Raised when the requested assignee is a read-only guest."""

@@ -701,6 +701,11 @@ services:
       - INTEGRATIONS_ENCRYPTION_KEY_ID=${INTEGRATIONS_ENCRYPTION_KEY_ID:-v1}
       # Private hosts, IPs or CIDR ranges plugins may reach; empty = public only.
       - INTEGRATIONS_ALLOWED_HOSTS=${INTEGRATIONS_ALLOWED_HOSTS:-}
+      # Client credentials of the alfheim-integrations machine user (#958),
+      # provisioned by alfheim-setup: plugin actions run as this household-bound
+      # service principal. Empty disables plugin actions.
+      - INTEGRATIONS_CLIENT_ID=${INTEGRATIONS_CLIENT_ID:-}
+      - INTEGRATIONS_CLIENT_SECRET=${INTEGRATIONS_CLIENT_SECRET:-}
     volumes:
       # Public root cert only (never the key); see ALFHEIM_EXTRA_CA_FILE.
       - ./infrastructure/ca:/etc/alfheim/ca:ro
@@ -782,6 +787,9 @@ services:
       # and @domains allowed to create a first household. Empty keeps the
       # instance open; invites always work.
       - ALFHEIM_SIGNUP_ALLOWLIST=${ALFHEIM_SIGNUP_ALLOWLIST:-}
+      # Zitadel subject of the alfheim-integrations machine user (#958): it may be
+      # bound to households as a service principal and is refused on the public API.
+      - ALFHEIM_SERVICE_PRINCIPAL_IDS=${INTEGRATIONS_PRINCIPAL_ID:-}
       - ENVIRONMENT=production
       # Cross-origin allowlist (#921): the public app origin by default; the
       # frontends call the API same-origin through Caddy. Never a wildcard.

@@ -26,7 +26,8 @@ const (
 	RoleGuest  Role = "GUEST"
 )
 
-// Valid reports whether r is one of the roles defined by the membership contract.
+// Valid reports whether r is one of the member roles defined by the membership
+// contract. RoleService is not a member role and is not Valid.
 func (r Role) Valid() bool {
 	switch r {
 	case RoleOwner, RoleAdmin, RoleMember, RoleGuest:
@@ -58,11 +59,15 @@ var (
 	ErrUnavailable = errors.New("household membership service unavailable")
 )
 
-// Membership is a confirmed membership of a user in a household.
+// Membership is a confirmed membership of a user in a household, or the
+// binding of a service principal to it (Role RoleService with Scopes).
 type Membership struct {
 	HouseholdID uuid.UUID
 	UserID      string
 	Role        Role
+	// Scopes are the actions a service principal may perform in the
+	// household. Always empty for a member.
+	Scopes []string
 }
 
 // Checker resolves a user's membership in a household.
@@ -77,8 +82,9 @@ type cacheEntry struct {
 }
 
 // Client calls GET {baseURL}/internal/v1/memberships/{householdId}/{userSub} and
-// caches answers (positive PositiveTTL, negative NegativeTTL). Errors are never
-// cached. It is safe for concurrent use.
+// caches answers (positive PositiveTTL, negative NegativeTTL). Errors and
+// service principal answers are never cached, so a revoked binding stops
+// working on the next request. It is safe for concurrent use.
 type Client struct {
 	baseURL    string
 	token      string
@@ -121,9 +127,10 @@ func New(baseURL, token string, opts ...Option) *Client {
 }
 
 type membershipResponse struct {
-	HouseholdID string `json:"household_id"`
-	UserID      string `json:"user_id"`
-	Role        string `json:"role"`
+	HouseholdID string   `json:"household_id"`
+	UserID      string   `json:"user_id"`
+	Role        string   `json:"role"`
+	Scopes      []string `json:"scopes"`
 }
 
 // CheckMembership returns the caller's membership, ErrNotMember, or ErrUnavailable.
@@ -143,7 +150,9 @@ func (c *Client) CheckMembership(ctx context.Context, householdID uuid.UUID, use
 	m, err := c.fetch(ctx, householdID, userSub)
 	switch {
 	case err == nil:
-		c.store(key, cacheEntry{membership: m, member: true, expires: c.now().Add(PositiveTTL)})
+		if m.Role != RoleService {
+			c.store(key, cacheEntry{membership: m, member: true, expires: c.now().Add(PositiveTTL)})
+		}
 		return m, nil
 	case errors.Is(err, ErrNotMember):
 		c.store(key, cacheEntry{member: false, expires: c.now().Add(NegativeTTL)})
@@ -192,6 +201,9 @@ func (c *Client) fetch(ctx context.Context, householdID uuid.UUID, userSub strin
 		return Membership{}, fmt.Errorf("%w: response does not match the requested membership", ErrUnavailable)
 	}
 	role := Role(strings.ToUpper(strings.TrimSpace(body.Role)))
+	if m, ok := serviceMembership(householdID, userSub, role, body.Scopes); ok {
+		return m, nil
+	}
 	if !role.Valid() {
 		return Membership{}, fmt.Errorf("%w: unknown role %q", ErrUnavailable, body.Role)
 	}

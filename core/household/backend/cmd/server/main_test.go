@@ -18,6 +18,7 @@ import (
 	"alfheim/go-shared/auth"
 	"alfheim/go-shared/db"
 	"alfheim/household/config"
+	"alfheim/household/internal/features/servicebindings"
 )
 
 func TestSetupAuthenticator_FailClosed(t *testing.T) {
@@ -48,14 +49,14 @@ func TestBuildRouter_PanicsWithoutAuth(t *testing.T) {
 			t.Fatal("expected buildRouter to panic when auth middleware is nil")
 		}
 	}()
-	buildRouter(log, &db.Client{Pool: nil}, nil, nil, "", []string{})
+	buildRouter(log, &db.Client{Pool: nil}, nil, routerConfig{})
 }
 
 func TestBuildRouter(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dbClient := &db.Client{Pool: nil}
 
-	router := buildRouter(log, dbClient, nil, passthroughAuth, "test-token", []string{})
+	router := buildRouter(log, dbClient, nil, routerConfig{authMw: passthroughAuth, internalToken: "test-token"})
 
 	t.Run("internal membership API is mounted without JWT and requires the internal token", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/internal/v1/memberships/0b9f6c2e-4f5a-4c1d-9e0a-6a1c2b3d4e5f/user-1", nil)
@@ -81,6 +82,30 @@ func TestBuildRouter(t *testing.T) {
 			t.Errorf("/readyz = %d, want 503", got)
 		}
 	})
+}
+
+// TestBuildRouter_RejectsServicePrincipals covers #958: a configured service
+// principal is refused on the public API before any handler runs.
+func TestBuildRouter_RejectsServicePrincipals(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	asPrincipal := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := context.WithValue(r.Context(), auth.UserContextKey, &auth.UserClaims{Subject: "integrations"})
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+	router := buildRouter(log, &db.Client{}, nil, routerConfig{
+		authMw:     asPrincipal,
+		principals: servicebindings.NewPrincipals([]string{"integrations"}),
+	})
+	for _, path := range []string{"/api/v1/households/me", "/api/v1/profile/me", "/api/v1/households/" + "0b9f6c2e-4f5a-4c1d-9e0a-6a1c2b3d4e5f/service-bindings"} {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusForbidden {
+			t.Errorf("%s: expected 403, got %d", path, rec.Code)
+		}
+	}
 }
 
 func TestRun_ReturnsErrorOnUnreachableDB(t *testing.T) {
@@ -232,7 +257,7 @@ func TestBuildRouter_Probes(t *testing.T) {
 	up := func(context.Context) error { return nil }
 	down := func(context.Context) error { return errors.New("connection refused") }
 
-	healthy := buildRouter(log, &db.Client{}, up, passthroughAuth, "test-token", []string{})
+	healthy := buildRouter(log, &db.Client{}, up, routerConfig{authMw: passthroughAuth, internalToken: "test-token"})
 	if got := probeStatus(t, healthy, "/healthz"); got != http.StatusOK {
 		t.Errorf("/healthz = %d, want 200", got)
 	}
@@ -240,7 +265,7 @@ func TestBuildRouter_Probes(t *testing.T) {
 		t.Errorf("/readyz with a reachable database = %d, want 200", got)
 	}
 
-	degraded := buildRouter(log, &db.Client{}, down, passthroughAuth, "test-token", []string{})
+	degraded := buildRouter(log, &db.Client{}, down, routerConfig{authMw: passthroughAuth, internalToken: "test-token"})
 	if got := probeStatus(t, degraded, "/healthz"); got != http.StatusOK {
 		t.Errorf("/healthz with the database down = %d, want 200 (liveness ignores it)", got)
 	}

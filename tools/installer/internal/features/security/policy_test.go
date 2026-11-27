@@ -148,6 +148,9 @@ var allowedUngenerated = map[string]string{
 	// Zitadel assigns this when the installer's provisioning step reconciles
 	// the Grafana OIDC application; it is never generated locally.
 	"GRAFANA_OIDC_CLIENT_SECRET": "provisioned by Zitadel, not generated",
+	// Zitadel returns this when provisioning adds a secret to the
+	// alfheim-integrations machine user (#958).
+	"INTEGRATIONS_CLIENT_SECRET": "provisioned by Zitadel, not generated",
 	// DNS provider credentials the operator supplies for DNS-01 issuance.
 	"HETZNER_API_TOKEN":    "operator-supplied DNS API token",
 	"CLOUDFLARE_API_TOKEN": "operator-supplied DNS API token",

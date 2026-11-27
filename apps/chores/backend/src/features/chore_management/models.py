@@ -3,7 +3,7 @@
 import uuid
 from datetime import UTC, date, datetime
 
-from sqlalchemy import Column, Date, DateTime, Index
+from sqlalchemy import Boolean, Column, Date, DateTime, Index, UniqueConstraint, false
 from sqlmodel import Field, SQLModel, func
 
 
@@ -74,9 +74,18 @@ Index(
 
 
 class ChoreInstance(SQLModel, table=True):
-    """The database table model representing a scheduled chore instance for a specific day."""
+    """The database table model representing a scheduled chore instance for a specific day.
+
+    ``is_one_off`` marks an instance created on demand from a template (#959) rather than by the
+    daily schedule; the daily reset neither counts it as the template's scheduled instance nor
+    skips generating one because of it.
+    """
 
     __tablename__ = "chore_instances"
+    __table_args__ = (
+        # A repeated create with the same Idempotency-Key returns the stored instance (#959).
+        UniqueConstraint("home_id", "idempotency_key", name="uq_chore_instance_idempotency_key"),
+    )
 
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,
@@ -129,6 +138,17 @@ class ChoreInstance(SQLModel, table=True):
     points_awarded: int = Field(
         default=0,
         description="Points actual awarded (usually matching template points upon completion).",
+    )
+    is_one_off: bool = Field(
+        default=False,
+        sa_column=Column(Boolean, nullable=False, server_default=false()),
+        description="True for an instance created on demand (POST /instances), not by the daily schedule.",
+    )
+    idempotency_key: str | None = Field(
+        default=None,
+        max_length=200,
+        nullable=True,
+        description="Idempotency-Key of the request that created a one-off instance; unique per household.",
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
